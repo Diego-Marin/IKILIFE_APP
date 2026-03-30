@@ -1,0 +1,406 @@
+:root {
+    /* Colores Base - Modo Claro */
+    --primary-green: #74C08A;
+    --bg-light: #F8F9FA;
+    --text-dark: #1A1A1A;
+    --text-muted: #555;
+    --white: #ffffff;
+
+    /* Colores de Estado (Finanzas) */
+    --income-color: #4caf50;
+    --expense-color: #f44336;
+    --savings-color: #2196f3;
+    --border-color: #e0e0e0;
+
+    --transition: 0.3s ease;
+}
+
+/* Variables - Modo Oscuro */
+.dark-mode {
+    --bg-light: #121212;
+    --text-dark: #E0E0E0;
+    --white: #1E1E1E;
+    --text-muted: #A0A0A0;
+    --border-color: #333333;
+}
+
+/* Reset Global */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+    background-color: var(--white);
+    color: var(--text-dark);
+    min-height: 100vh;
+    transition: background-color var(--transition), color var(--transition);
+}
+
+.container {
+    width: 100%;
+    max-width: none;
+    background: var(--white);
+    padding: 24px;
+    min-height: 100vh;
+    position: relative;
+    transition: background-color var(--transition);
+}
+
+/* --- Header --- */
+header.main-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.logo-area {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo-circle {
+    width: 50px;
+    height: 50px;
+    border: 1px solid var(--text-dark);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color var(--transition);
+}
+
+.brand-name {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: 1px;
+}
+
+.theme-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-dark);
+    display: flex;
+    align-items: center;
+    padding: 5px;
+    transition: transform 0.2s ease, color var(--transition);
+}
+
+.theme-btn:active {
+    transform: scale(0.9);
+}
+
+.profile-dot {
+    width: 45px;
+    height: 45px;
+    background-color: var(--primary-green);
+    border-radius: 50%;
+}
+
+/* --- Date Section & Ranking --- */
+.date-info {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.date-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    width: 100%;
+}
+
+.current-date {
+    font-size: 24px;
+    font-weight: 400;
+}
+
+.last-record {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: right;
+    line-height: 1.4;
+}
+
+.achievement-rank {
+    width: 100%;
+    margin-top: 5px;
+}
+
+.rank-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.rank-label {
+    color: var(--primary-green);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.rank-percentage {
+    color: var(--text-muted);
+}
+
+.progress-bar-bg {
+    width: 100%;
+    height: 8px;
+    background-color: var(--bg-light);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.dark-mode .progress-bar-bg {
+    background-color: #333;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background-color: var(--primary-green);
+    border-radius: 10px;
+    transition: width 0.5s ease-out;
+}
+
+/* --- Tabs --- */
+.tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.tab-btn {
+    padding: 15px;
+    border-radius: 12px;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.tab-active {
+    background-color: var(--primary-green);
+    color: white;
+}
+
+.tab-inactive {
+    background-color: var(--bg-light);
+    color: var(--text-dark);
+}
+
+.dark-mode .tab-inactive {
+    background-color: #2D2D2D;
+    color: var(--text-dark);
+}
+
+/* --- Content Views --- */
+.view-content {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+.view-content.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Finance Styles --- */
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.summary-card {
+    background: var(--white);
+    padding: 12px;
+    border-radius: 12px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+}
+
+.full-width {
+    grid-column: span 2;
+}
+
+.summary-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    letter-spacing: 0.5px;
+}
+
+.summary-value {
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+.text-income { color: var(--income-color); }
+.text-expense { color: var(--expense-color); }
+.text-savings { color: var(--savings-color); }
+
+/* --- Tablas / Categorías (Finanzas y Hábitos) --- */
+.category {
+    background: var(--white);
+    margin-bottom: 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.category-header {
+    padding: 12px 15px;
+    font-weight: bold;
+    background-color: var(--bg-light);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.8rem;
+    transition: background-color var(--transition);
+}
+
+.dark-mode .category-header {
+    background-color: #252525;
+}
+
+.item-list-header {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 15px; /* Espaciado para evitar choque de elementos */
+    padding: 8px 15px;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.item {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 15px; /* Espaciado para evitar choque de elementos */
+    padding: 10px 15px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.8rem;
+    align-items: center;
+}
+
+/* --- Inputs --- */
+.input-value {
+    width: 100%;
+    padding: 6px;
+    text-align: right;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 0.8rem;
+    background-color: var(--bg-light);
+    color: var(--text-dark);
+    transition: background-color var(--transition), color var(--transition);
+}
+
+.dark-mode .input-value {
+    background-color: #2D2D2D;
+    color: var(--text-dark);
+}
+
+/* Ocultar flechas en inputs de tipo número */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+/* Textarea / Reflexión */
+textarea:focus {
+    outline: none;
+    border-color: var(--primary-green);
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+/* --- Cuadrícula específica para seguimiento semanal (Hábitos) --- */
+.habit-grid {
+    grid-template-columns: 2.5fr repeat(7, 1fr) !important;
+    text-align: center;
+    gap: 5px; /* Reducimos el gap para que quepan los 7 días bien */
+}
+
+.habit-grid div:first-child {
+    text-align: left;
+}
+
+.habit-grid .status-circle {
+    margin: 0 auto;
+    width: 20px;
+    height: 20px;
+}
+
+.day-label {
+    font-size: 0.65rem;
+    font-weight: bold;
+    color: var(--text-muted);
+}
+
+/* --- Habit Styles Generales --- */
+.habit-list-container {
+    background-color: var(--bg-light);
+    padding: 15px;
+    border-radius: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: background-color var(--transition);
+}
+
+.dark-mode .habit-list-container {
+    background-color: #181818;
+}
+
+.status-circle {
+    width: 24px;
+    height: 24px;
+    border: 1px solid #999;
+    border-radius: 50%;
+}
+
+/* --- FAB & Utilities --- */
+.fab {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background-color: var(--text-dark);
+    color: var(--white);
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+}
+
+.hidden {
+    display: none;
+}
