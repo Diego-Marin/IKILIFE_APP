@@ -1,22 +1,38 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IKILIFE Dashboard</title>
     <style>
         :root {
+            /* Colores Base - Modo Claro */
             --primary-green: #74C08A;
             --bg-light: #F8F9FA;
             --text-dark: #1A1A1A;
             --text-muted: #555;
             --white: #ffffff;
+
+            /* Colores de Estado (Finanzas) */
             --income-color: #4caf50;
             --expense-color: #f44336;
             --savings-color: #2196f3;
             --border-color: #e0e0e0;
+
+            --transition: 0.3s ease;
         }
 
+        /* Variables - Modo Oscuro */
+        .dark-mode {
+            --bg-light: #121212;
+            --text-dark: #E0E0E0;
+            --white: #1E1E1E;
+            --text-muted: #A0A0A0;
+            --border-color: #333333;
+        }
+
+        /* Reset Global */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -25,57 +41,25 @@
         }
 
         body {
-            background-color: var(--bg-light);
+            background-color: var(--white);
+            /* El fondo ahora es el color principal */
             color: var(--text-dark);
-            display: flex;
-            justify-content: center;
-            padding: 20px;
+            min-height: 100vh;
+            transition: background-color var(--transition), color var(--transition);
         }
-
-        /* Variables para Modo Oscuro */
-.dark-mode {
-    --bg-light: #121212;
-    --text-dark: #E0E0E0;
-    --white: #1E1E1E;
-    --text-muted: #A0A0A0;
-    --border-color: #333333;
-}
-
-/* Estilos específicos para elementos en modo oscuro */
-.dark-mode .habit-list-container { background-color: #181818; }
-.dark-mode .tab-inactive { background-color: #2D2D2D; color: var(--text-dark); }
-.dark-mode .category-header { background-color: #252525; }
-.dark-mode .input-value { background-color: #2D2D2D; color: var(--text-dark); }
-.dark-mode .logo-circle { border-color: var(--text-dark); }
-
-/* Estilos del botón de tema */
-.theme-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--text-dark);
-    display: flex;
-    align-items: center;
-    padding: 5px;
-    transition: transform 0.2s ease;
-}
-
-.theme-btn:active { transform: scale(0.9); }
-
-.hidden { display: none; }
 
         .container {
             width: 100%;
-            max-width: 450px;
+            max-width: none;
+            /* Ocupa todo el ancho */
             background: var(--white);
             padding: 24px;
-            border-radius: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            min-height: 90vh;
+            min-height: 100vh;
             position: relative;
+            transition: background-color var(--transition);
         }
 
-        /* Header */
+        /* --- Header --- */
         header.main-header {
             display: flex;
             justify-content: space-between;
@@ -83,303 +67,606 @@
             margin-bottom: 30px;
         }
 
-        .logo-area { display: flex; align-items: center; gap: 12px; }
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
         .logo-circle {
-            width: 50px; height: 50px;
-            border: 1px solid #333;
+            width: 50px;
+            height: 50px;
+            border: 1px solid var(--text-dark);
             border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: border-color var(--transition);
         }
-        .brand-name { font-size: 28px; font-weight: 600; letter-spacing: 1px; }
-        .profile-dot { width: 45px; height: 45px; background-color: var(--primary-green); border-radius: 50%; }
 
-        /* Date Section */
+        .brand-name {
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .theme-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            padding: 5px;
+            transition: transform 0.2s ease, color var(--transition);
+        }
+
+        .theme-btn:active {
+            transform: scale(0.9);
+        }
+
+        .profile-dot {
+            width: 45px;
+            height: 45px;
+            background-color: var(--primary-green);
+            border-radius: 50%;
+        }
+
+        /* --- Date Section --- */
         .date-info {
-            display: flex; justify-content: space-between;
-            align-items: flex-end; margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 25px;
         }
-        .current-date { font-size: 24px; font-weight: 400; }
-        .last-record { font-size: 12px; color: var(--text-muted); text-align: right; }
 
-        /* Tabs Navigation */
-        .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
+        .current-date {
+            font-size: 24px;
+            font-weight: 400;
+        }
+
+        .last-record {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-align: right;
+            line-height: 1.4;
+        }
+
+        /* --- Tabs --- */
+        .tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
         .tab-btn {
-            padding: 15px; border-radius: 12px; border: none;
-            font-size: 18px; cursor: pointer; transition: 0.3s;
+            padding: 15px;
+            border-radius: 12px;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            transition: var(--transition);
         }
-        .tab-active { background-color: var(--primary-green); color: white; }
-        .tab-inactive { background-color: #F2F2F2; color: var(--text-dark); }
 
-        /* Content Views */
-        .view-content { display: none; animation: fadeIn 0.3s ease; }
-        .view-content.active { display: block; }
+        .tab-active {
+            background-color: var(--primary-green);
+            color: white;
+        }
+
+        .tab-inactive {
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+        }
+
+        .dark-mode .tab-inactive {
+            background-color: #2D2D2D;
+            color: var(--text-dark);
+        }
+
+        /* --- Content Views --- */
+        .view-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .view-content.active {
+            display: block;
+        }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
-        /* Habit Styles */
-        .habit-list-container { background-color: #F9F9F9; padding: 15px; border-radius: 15px; display: flex; flex-direction: column; gap: 12px; }
+        /* --- Habit Styles --- */
+        .habit-list-container {
+            background-color: var(--bg-light);
+            padding: 15px;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            transition: background-color var(--transition);
+        }
+
+        .dark-mode .habit-list-container {
+            background-color: #181818;
+        }
+
         .habit-item {
-            background: var(--white); padding: 18px; border-radius: 10px;
-            display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+            background: var(--white);
+            padding: 18px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
         }
-        .status-circle { width: 24px; height: 24px; border: 1px solid #999; border-radius: 50%; }
 
-        /* Finance Styles */
-        .summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
+        .status-circle {
+            width: 24px;
+            height: 24px;
+            border: 1px solid #999;
+            border-radius: 50%;
+        }
+
+        /* --- Finance Styles --- */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
         .summary-card {
-            background: var(--white); padding: 12px; border-radius: 12px;
-            text-align: center; border: 1px solid var(--border-color);
+            background: var(--white);
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid var(--border-color);
         }
-        .full-width { grid-column: span 2; }
-        .summary-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
-        .summary-value { font-size: 1.1rem; font-weight: bold; }
-        .text-income { color: var(--income-color); }
-        .text-expense { color: var(--expense-color); }
-        .text-savings { color: var(--savings-color); }
 
-        .category { background: var(--white); margin-bottom: 16px; border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden; }
-        .category-header { padding: 10px 15px; font-weight: bold; background-color: #fafafa; border-bottom: 1px solid var(--border-color); font-size: 0.8rem; }
-        .item-list-header { display: grid; grid-template-columns: 2fr 1fr 1fr; padding: 8px 15px; font-size: 0.7rem; color: var(--text-muted); border-bottom: 1px solid var(--border-color); }
-        .item { display: grid; grid-template-columns: 2fr 1fr 1fr; padding: 10px 15px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem; align-items: center; }
-        .input-value { width: 100%; padding: 4px; text-align: right; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.8rem; }
+        .full-width {
+            grid-column: span 2;
+        }
 
+        .summary-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            letter-spacing: 0.5px;
+        }
+
+        .summary-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .text-income {
+            color: var(--income-color);
+        }
+
+        .text-expense {
+            color: var(--expense-color);
+        }
+
+        .text-savings {
+            color: var(--savings-color);
+        }
+
+        .category {
+            background: var(--white);
+            margin-bottom: 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .category-header {
+            padding: 12px 15px;
+            font-weight: bold;
+            background-color: var(--bg-light);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.8rem;
+            transition: background-color var(--transition);
+        }
+
+        .dark-mode .category-header {
+            background-color: #252525;
+        }
+
+        .item-list-header {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            padding: 8px 15px;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .item {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.8rem;
+            align-items: center;
+        }
+
+        .input-value {
+            width: 100%;
+            padding: 6px;
+            text-align: right;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 0.8rem;
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            transition: background-color var(--transition), color var(--transition);
+        }
+
+        .dark-mode .input-value {
+            background-color: #2D2D2D;
+            color: var(--text-dark);
+        }
+
+        /* --- FAB & Utilities --- */
         .fab {
-            position: absolute; bottom: 20px; right: 20px;
-            background-color: var(--text-dark); color: white;
-            width: 50px; height: 50px; border-radius: 50%;
-            border: none; font-size: 24px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            position: fixed;
+            /* Botón fijo en la pantalla */
+            bottom: 30px;
+            right: 30px;
+            background-color: var(--text-dark);
+            color: var(--white);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
         }
 
-        .hidden { display: none; }
+        .hidden {
+            display: none;
+        }
+
+        /* --- Estilos de Progreso y Ranking --- */
+.date-info {
+    display: flex;
+    flex-direction: column; /* Cambiado a columna para apilar la barra */
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.date-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    width: 100%;
+}
+
+.achievement-rank {
+    width: 100%;
+    margin-top: 5px;
+}
+
+.rank-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.rank-label {
+    color: var(--primary-green);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.rank-percentage {
+    color: var(--text-muted);
+}
+
+.progress-bar-bg {
+    width: 100%;
+    height: 8px;
+    background-color: var(--bg-light); /* Se adapta al modo oscuro por variable */
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background-color: var(--primary-green);
+    border-radius: 10px;
+    transition: width 0.5s ease-out;
+}
+
+/* Ajuste para modo oscuro */
+.dark-mode .progress-bar-bg {
+    background-color: #333;
+}
     </style>
 </head>
+
 <body>
 
-<div class="container">
-    <header class="main-header">
-    <div class="logo-area">
-        <div class="logo-circle">
-            <svg width="25" height="25" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="48" fill="none" stroke="currentColor" stroke-width="2"/>
-                <path d="M20 30 L80 30 L50 80 Z" fill="none" stroke="currentColor" stroke-width="2"/>
-                <path d="M50 30 L50 80" fill="none" stroke="currentColor" stroke-width="2"/>
-            </svg>
-        </div>
-        <span class="brand-name">IKILIFE</span>
-    </div>
-    
-    <div style="display: flex; align-items: center; gap: 15px;">
-        <button id="theme-toggle" class="theme-btn" onclick="toggleTheme()" aria-label="Cambiar modo">
-            <svg class="sun-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="5"></circle>
-                <line x1="12" y1="1" x2="12" y2="3"></line>
-                <line x1="12" y1="21" x2="12" y2="23"></line>
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                <line x1="1" y1="12" x2="3" y2="12"></line>
-                <line x1="21" y1="12" x2="23" y2="12"></line>
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-            </svg>
-            <svg class="moon-icon hidden" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-            </svg>
-        </button>
-        <div class="profile-dot"></div>
-    </div>
-</header>
-
-    <section class="date-info">
-        <h1 class="current-date" id="display-date">Marzo 01</h1>
-        <div class="last-record">
-            Ultimo registro<br>
-            <strong>28/03/2026</strong>
-        </div>
-    </section>
-
-    <nav class="tabs">
-        <button class="tab-btn tab-active" onclick="switchTab('habits', this)">Habitos</button>
-        <button class="tab-btn tab-inactive" onclick="switchTab('money', this)">Dinero</button>
-    </nav>
-
-    <main id="main-content">
-        <div id="view-habits" class="view-content active">
-            <div class="habit-list-container">
-                <div class="habit-item"><span class="habit-name">Meditar</span><div class="status-circle"></div></div>
-                <div class="habit-item"><span class="habit-name">Ejercicio</span><div class="status-circle"></div></div>
-                <div class="habit-item"><span class="habit-name">Lectura</span><div class="status-circle"></div></div>
-                <div class="habit-item"><span class="habit-name">Inglés</span><div class="status-circle"></div></div>
-                <div class="habit-item"><span class="habit-name">Programación</span><div class="status-circle"></div></div>
+    <div class="container">
+        <header class="main-header">
+            <div class="logo-area">
+                <div class="logo-circle">
+                    <svg width="25" height="25" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="48" fill="none" stroke="currentColor" stroke-width="2" />
+                        <path d="M20 30 L80 30 L50 80 Z" fill="none" stroke="currentColor" stroke-width="2" />
+                        <path d="M50 30 L50 80" fill="none" stroke="currentColor" stroke-width="2" />
+                    </svg>
+                </div>
+                <span class="brand-name">IKILIFE</span>
             </div>
-        </div>
 
-        <div id="view-money" class="view-content">
-    <div id="finance-main-view">
-        <section class="summary-grid">
-            <div class="summary-card clickable" onclick="toggleFinanceView('income-view')" style="cursor: pointer;">
-                <div class="summary-label">Ingresos Totales →</div>
-                <div class="summary-value text-income">$3.364.000</div>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <button id="theme-toggle" class="theme-btn" onclick="toggleTheme()" aria-label="Cambiar modo">
+                    <svg class="sun-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <svg class="moon-icon hidden" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
+                <div class="profile-dot"></div>
             </div>
-            <div class="summary-card">
-                <div class="summary-label">Ahorro / Capital</div>
-                <div class="summary-value text-savings">$477.800</div>
+        </header>
+
+        <section class="date-info">
+            <div class="date-header">
+                <h1 class="current-date" id="display-date">Marzo 30</h1>
+                <div class="last-record">
+                    Último registro<br>
+                    <strong>28/03/2026</strong>
+                </div>
             </div>
-            <div class="summary-card full-width">
-                <div class="summary-label">Gastos Totales (Pagado)</div>
-                <div class="summary-value text-expense">$3.227.200</div>
+
+            <div class="achievement-rank">
+                <div class="rank-info">
+                    <span class="rank-label">Nivel 14 · <small>En racha (12 días)</small></span>
+                    <span class="rank-percentage">85%</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" style="width: 85%;"></div>
+                </div>
             </div>
         </section>
 
-        <section class="category-container">
-            <div class="category">
-                <div class="category-header">Obligations</div>
-                <div class="item-list-header">
-                    <div>Concepto</div>
-                    <div style="text-align:right">Proyectado</div>
-                    <div style="text-align:right">Real</div>
+        <nav class="tabs">
+            <button class="tab-btn tab-active" onclick="switchTab('habits', this)">Habitos</button>
+            <button class="tab-btn tab-inactive" onclick="switchTab('money', this)">Dinero</button>
+        </nav>
+
+        <main id="main-content">
+            <div id="view-habits" class="view-content active">
+                <div class="habit-list-container">
+                    <div class="habit-item"><span class="habit-name">Meditar</span>
+                        <div class="status-circle"></div>
+                    </div>
+                    <div class="habit-item"><span class="habit-name">Ejercicio</span>
+                        <div class="status-circle"></div>
+                    </div>
+                    <div class="habit-item"><span class="habit-name">Lectura</span>
+                        <div class="status-circle"></div>
+                    </div>
+                    <div class="habit-item"><span class="habit-name">Inglés</span>
+                        <div class="status-circle"></div>
+                    </div>
+                    <div class="habit-item"><span class="habit-name">Programación</span>
+                        <div class="status-circle"></div>
+                    </div>
                 </div>
-                <ul class="item-list" style="list-style:none;">
-                    <li class="item">
-                        <div class="item-name">Mother</div>
-                        <div class="item-projected" style="text-align:right; color:var(--text-muted)">$500.000</div>
-                        <div class="item-actual"><input type="number" class="input-value expense-input" value="480000"></div>
-                    </li>
-                    <li class="item">
-                        <div class="item-name">Alicia's Home</div>
-                        <div class="item-projected" style="text-align:right; color:var(--text-muted)">$150.000</div>
-                        <div class="item-actual"><input type="number" class="input-value expense-input" value="150000"></div>
-                    </li>
-                    <li class="item">
-                        <div class="item-name">Seguridad Social</div>
-                        <div class="item-projected" style="text-align:right; color:var(--text-muted)">$542.000</div>
-                        <div class="item-actual"><input type="number" class="input-value expense-input" value="542000"></div>
-                    </li>
-                    <li class="item">
-                        <div class="item-name">Credit BBVA</div>
-                        <div class="item-projected" style="text-align:right; color:var(--text-muted)">$80.000</div>
-                        <div class="item-actual"><input type="number" class="input-value expense-input" value="90000"></div>
-                    </li>
-                    <li class="item">
-                        <div class="item-name">Transporte</div>
-                        <div class="item-projected" style="text-align:right; color:var(--text-muted)">$180.000</div>
-                        <div class="item-actual"><input type="number" class="input-value expense-input" value="138000"></div>
-                    </li>
-                </ul>
             </div>
 
-            <div class="category">
-                <div class="category-header">Comida</div>
-                <div class="item-list-header">
-                    <div>Concepto</div>
-                    <div style="text-align:right">Proyectado</div>
-                    <div style="text-align:right">Real</div>
+            <div id="view-money" class="view-content">
+                <div id="finance-main-view">
+                    <section class="summary-grid">
+                        <div class="summary-card clickable" onclick="toggleFinanceView('income-view')"
+                            style="cursor: pointer;">
+                            <div class="summary-label">Ingresos Totales →</div>
+                            <div class="summary-value text-income">$3.364.000</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">Ahorro / Capital</div>
+                            <div class="summary-value text-savings">$477.800</div>
+                        </div>
+                        <div class="summary-card full-width">
+                            <div class="summary-label">Gastos Totales (Pagado)</div>
+                            <div class="summary-value text-expense">$3.227.200</div>
+                        </div>
+                    </section>
+
+                    <section class="category-container">
+                        <div class="category">
+                            <div class="category-header">Obligations</div>
+                            <div class="item-list-header">
+                                <div>Concepto</div>
+                                <div style="text-align:right">Proyectado</div>
+                                <div style="text-align:right">Real</div>
+                            </div>
+                            <ul class="item-list" style="list-style:none;">
+                                <li class="item">
+                                    <div class="item-name">Mother</div>
+                                    <div class="item-projected" style="text-align:right; color:var(--text-muted)">
+                                        $500.000</div>
+                                    <div class="item-actual"><input type="number" class="input-value expense-input"
+                                            value="480000"></div>
+                                </li>
+                                <li class="item">
+                                    <div class="item-name">Alicia's Home</div>
+                                    <div class="item-projected" style="text-align:right; color:var(--text-muted)">
+                                        $150.000</div>
+                                    <div class="item-actual"><input type="number" class="input-value expense-input"
+                                            value="150000"></div>
+                                </li>
+                                <li class="item">
+                                    <div class="item-name">Seguridad Social</div>
+                                    <div class="item-projected" style="text-align:right; color:var(--text-muted)">
+                                        $542.000</div>
+                                    <div class="item-actual"><input type="number" class="input-value expense-input"
+                                            value="542000"></div>
+                                </li>
+                                <li class="item">
+                                    <div class="item-name">Credit BBVA</div>
+                                    <div class="item-projected" style="text-align:right; color:var(--text-muted)">
+                                        $80.000</div>
+                                    <div class="item-actual"><input type="number" class="input-value expense-input"
+                                            value="90000"></div>
+                                </li>
+                                <li class="item">
+                                    <div class="item-name">Transporte</div>
+                                    <div class="item-projected" style="text-align:right; color:var(--text-muted)">
+                                        $180.000</div>
+                                    <div class="item-actual"><input type="number" class="input-value expense-input"
+                                            value="138000"></div>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="category">
+                            <div class="category-header">Comida</div>
+                            <div class="item-list-header">
+                                <div>Concepto</div>
+                                <div style="text-align:right">Proyectado</div>
+                                <div style="text-align:right">Real</div>
+                            </div>
+                            <ul class="item-list" style="list-style:none;">
+                                <li class="item">
+                                    <div class="item-name">Food Semanas 1-3</div>
+                                    <div class="item-projected" style="text-align:right; color:var(--text-muted)">
+                                        $450.000</div>
+                                    <div class="item-actual"><input type="number" class="input-value expense-input"
+                                            value="464000"></div>
+                                </li>
+                            </ul>
+                        </div>
+                    </section>
                 </div>
-                <ul class="item-list" style="list-style:none;">
-                    <li class="item">
-                        <div class="item-name">Food Semanas 1-3</div>
-                        <div class="item-projected" style="text-align:right; color:var(--text-muted)">$450.000</div>
-                        <div class="item-actual"><input type="number" class="input-value expense-input" value="464000"></div>
-                    </li>
-                </ul>
+
+                <div id="income-view" class="hidden">
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+                        <button onclick="toggleFinanceView('main')"
+                            style="background:none; border:none; font-size:20px; cursor:pointer;">←</button>
+                        <h3 style="font-size:16px;">Fuentes de Ingreso</h3>
+                    </div>
+
+                    <div class="summary-card full-width" style="margin-bottom:20px;">
+                        <div class="summary-label">Total Percibido</div>
+                        <div class="summary-value text-income">$3.364.000</div>
+                    </div>
+
+                    <div class="category">
+                        <div class="item-list-header">
+                            <div>Origen</div>
+                            <div style="text-align:right">Esperado</div>
+                            <div style="text-align:right">Real</div>
+                        </div>
+                        <ul class="item-list" style="list-style:none;">
+                            <li class="item">
+                                <div class="item-name">Nomina</div>
+                                <div style="text-align:right; color:var(--text-muted)">$3.264k</div>
+                                <div><input type="number" class="input-value income-input" value="3264000"></div>
+                            </li>
+                            <li class="item">
+                                <div class="item-name">Efectivo</div>
+                                <div style="text-align:right; color:var(--text-muted)">$0</div>
+                                <div><input type="number" class="input-value income-input" value="37000"></div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
             </div>
-        </section>
+
+            <script>
+                // Nueva función para navegar entre el resumen de dinero y el detalle de ingresos
+                function toggleFinanceView(view) {
+                    const mainFinance = document.getElementById('finance-main-view');
+                    const incomeDetail = document.getElementById('income-view');
+
+                    if (view === 'income-view') {
+                        mainFinance.classList.add('hidden');
+                        incomeDetail.classList.remove('hidden');
+                    } else {
+                        mainFinance.classList.remove('hidden');
+                        incomeDetail.classList.add('hidden');
+                    }
+                }
+
+                function toggleTheme() {
+                    const body = document.body;
+                    const sunIcon = document.querySelector('.sun-icon');
+                    const moonIcon = document.querySelector('.moon-icon');
+
+                    body.classList.toggle('dark-mode');
+
+                    if (body.classList.contains('dark-mode')) {
+                        sunIcon.classList.add('hidden');
+                        moonIcon.classList.remove('hidden');
+                    } else {
+                        sunIcon.classList.remove('hidden');
+                        moonIcon.classList.add('hidden');
+                    }
+                }
+            </script>
+        </main>
+
+        <button class="fab">+</button>
     </div>
 
-    <div id="income-view" class="hidden">
-        <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
-            <button onclick="toggleFinanceView('main')" style="background:none; border:none; font-size:20px; cursor:pointer;">←</button>
-            <h3 style="font-size:16px;">Fuentes de Ingreso</h3>
-        </div>
-        
-        <div class="summary-card full-width" style="margin-bottom:20px;">
-            <div class="summary-label">Total Percibido</div>
-            <div class="summary-value text-income">$3.364.000</div>
-        </div>
+    <script>
+        function switchTab(tabName, btn) {
+            // 1. Actualizar botones
+            document.querySelectorAll('.tab-btn').forEach(b => {
+                b.classList.remove('tab-active');
+                b.classList.add('tab-inactive');
+            });
+            btn.classList.remove('tab-inactive');
+            btn.classList.add('tab-active');
 
-        <div class="category">
-            <div class="item-list-header">
-                <div>Origen</div>
-                <div style="text-align:right">Esperado</div>
-                <div style="text-align:right">Real</div>
-            </div>
-            <ul class="item-list" style="list-style:none;">
-                <li class="item">
-                    <div class="item-name">Nomina</div>
-                    <div style="text-align:right; color:var(--text-muted)">$3.264k</div>
-                    <div><input type="number" class="input-value income-input" value="3264000"></div>
-                </li>
-                <li class="item">
-                    <div class="item-name">Efectivo</div>
-                    <div style="text-align:right; color:var(--text-muted)">$0</div>
-                    <div><input type="number" class="input-value income-input" value="37000"></div>
-                </li>
-            </ul>
-        </div>
-    </div>
-</div>
+            // 2. Cambiar vistas
+            document.querySelectorAll('.view-content').forEach(v => v.classList.remove('active'));
 
-<script>
-    // Nueva función para navegar entre el resumen de dinero y el detalle de ingresos
-    function toggleFinanceView(view) {
-        const mainFinance = document.getElementById('finance-main-view');
-        const incomeDetail = document.getElementById('income-view');
-        
-        if(view === 'income-view') {
-            mainFinance.classList.add('hidden');
-            incomeDetail.classList.remove('hidden');
-        } else {
-            mainFinance.classList.remove('hidden');
-            incomeDetail.classList.add('hidden');
+            if (tabName === 'habits') {
+                document.getElementById('view-habits').classList.add('active');
+                document.getElementById('display-date').innerText = "Marzo 01";
+            } else {
+                document.getElementById('view-money').classList.add('active');
+                document.getElementById('display-date').innerText = "Finanzas";
+            }
         }
-    }
-
-    function toggleTheme() {
-    const body = document.body;
-    const sunIcon = document.querySelector('.sun-icon');
-    const moonIcon = document.querySelector('.moon-icon');
-    
-    body.classList.toggle('dark-mode');
-    
-    if (body.classList.contains('dark-mode')) {
-        sunIcon.classList.add('hidden');
-        moonIcon.classList.remove('hidden');
-    } else {
-        sunIcon.classList.remove('hidden');
-        moonIcon.classList.add('hidden');
-    }
-}
-</script>
-    </main>
-
-    <button class="fab">+</button>
-</div>
-
-<script>
-    function switchTab(tabName, btn) {
-        // 1. Actualizar botones
-        document.querySelectorAll('.tab-btn').forEach(b => {
-            b.classList.remove('tab-active');
-            b.classList.add('tab-inactive');
-        });
-        btn.classList.remove('tab-inactive');
-        btn.classList.add('tab-active');
-
-        // 2. Cambiar vistas
-        document.querySelectorAll('.view-content').forEach(v => v.classList.remove('active'));
-        
-        if(tabName === 'habits') {
-            document.getElementById('view-habits').classList.add('active');
-            document.getElementById('display-date').innerText = "Marzo 01";
-        } else {
-            document.getElementById('view-money').classList.add('active');
-            document.getElementById('display-date').innerText = "Finanzas";
-        }
-    }
-</script>
+    </script>
 
 </body>
+
 </html>
