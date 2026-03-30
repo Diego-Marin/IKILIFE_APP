@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finanzas Personales</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --text-main: #333;
+            --text-muted: #666;
+            --income-color: #4caf50;
+            --expense-color: #f44336;
+            --savings-color: #2196f3;
+            --card-bg: #ffffff;
+            --border-radius: 8px;
+            --border-color: #e0e0e0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding-bottom: 80px;
+        }
+
+        .screen {
+            display: block;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        header {
+            background-color: var(--card-bg);
+            padding: 16px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-back {
+            position: absolute;
+            left: 16px;
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--text-main);
+            cursor: pointer;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            padding: 16px;
+        }
+
+        .summary-card {
+            background: var(--card-bg);
+            padding: 16px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .summary-card.clickable {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .summary-card.clickable:active {
+            background-color: #f0f0f0;
+        }
+
+        .summary-card.full-width {
+            grid-column: span 2;
+        }
+
+        .summary-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .summary-value {
+            font-size: 1.4rem;
+            font-weight: bold;
+        }
+
+        .text-income { color: var(--income-color); }
+        .text-expense { color: var(--expense-color); }
+        .text-savings { color: var(--savings-color); }
+
+        .category-container {
+            padding: 0 16px;
+        }
+
+        .category {
+            background: var(--card-bg);
+            margin-bottom: 16px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .category-header {
+            padding: 12px 16px;
+            font-weight: bold;
+            background-color: #fafafa;
+            border-bottom: 1px solid var(--border-color);
+            text-transform: uppercase;
+            font-size: 0.9rem;
+        }
+
+        .item-list-header {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 8px;
+            padding: 8px 16px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-color);
+            background-color: #fff;
+        }
+
+        .item-list-header div:nth-child(2),
+        .item-list-header div:nth-child(3) {
+            text-align: right;
+        }
+
+        .item-list {
+            list-style: none;
+        }
+
+        .item {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 8px;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.85rem;
+        }
+
+        .item:last-child {
+            border-bottom: none;
+        }
+
+        .item-name {
+            color: var(--text-main);
+            font-weight: 500;
+        }
+
+        .item-projected {
+            text-align: right;
+            color: var(--text-muted);
+        }
+
+        .item-actual {
+            text-align: right;
+        }
+
+        .input-value {
+            width: 100%;
+            padding: 6px;
+            text-align: right;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-family: inherit;
+            background-color: #fafafa;
+        }
+
+        .input-value:focus {
+            outline: none;
+            border-color: var(--text-main);
+            background-color: #fff;
+        }
+
+        .input-value.income-input {
+            color: var(--income-color);
+            font-weight: bold;
+        }
+
+        .input-value.expense-input {
+            color: var(--expense-color);
+            font-weight: bold;
+        }
+
+        .fab {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--text-main);
+            color: white;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.8rem;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            border: none;
+            cursor: pointer;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="main-view" class="screen">
+        <header>
+            <h2>Marzo 01 - 31</h2>
+        </header>
+
+        <section class="summary-grid">
+            <div class="summary-card clickable" onclick="toggleView('income-view')">
+                <div class="summary-label">Ingresos Totales &#8594;</div>
+                <div class="summary-value text-income">$3.364.000</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Ahorro / Capital</div>
+                <div class="summary-value text-savings">$477.800</div>
+            </div>
+            <div class="summary-card full-width">
+                <div class="summary-label">Gastos Totales (Pagado)</div>
+                <div class="summary-value text-expense">$3.227.200</div>
+            </div>
+        </section>
+
+        <section class="category-container">
+            <div class="category">
+                <div class="category-header">Obligations</div>
+                <div class="item-list-header">
+                    <div>Concepto</div>
+                    <div>Proyectado</div>
+                    <div>Real</div>
+                </div>
+                <ul class="item-list">
+                    <li class="item">
+                        <div class="item-name">Mother</div>
+                        <div class="item-projected">$500.000</div>
+                        <div class="item-actual"><input type="number" class="input-value expense-input" value="480000" placeholder="0"></div>
+                    </li>
+                    <li class="item">
+                        <div class="item-name">Alicia's Home</div>
+                        <div class="item-projected">$150.000</div>
+                        <div class="item-actual"><input type="number" class="input-value expense-input" value="150000" placeholder="0"></div>
+                    </li>
+                    <li class="item">
+                        <div class="item-name">Seguridad Social</div>
+                        <div class="item-projected">$542.000</div>
+                        <div class="item-actual"><input type="number" class="input-value expense-input" value="542000" placeholder="0"></div>
+                    </li>
+                    <li class="item">
+                        <div class="item-name">Manejo de tarjeta</div>
+                        <div class="item-projected">$10.000</div>
+                        <div class="item-actual"><input type="number" class="input-value expense-input" value="10000" placeholder="0"></div>
+                    </li>
+                    <li class="item">
+                        <div class="item-name">Credit BBVA</div>
+                        <div class="item-projected">$80.000</div>
+                        <div class="item-actual"><input type="number" class="input-value expense-input" value="90000" placeholder="0"></div>
+                    </li>
+                    <li class="item">
+                        <div class="item-name">Transporte Efectivo</div>
+                        <div class="item-projected">$90.000</div>
+                        <div class="item-actual"><input type="number" class="input-value expense-input" value="58000" placeholder="0"></div>
+                    </li>
+                    <li class="item">
+                        <div class="item-name">Transporte Civica</div>
+                        <div class="item-projected">$90.000</div>
+                        <div class="item-actual"><input type="number" class="input-value expense-input" value="80000" placeholder="0"></div>
+                    </li>
+                    <li class="item">
+                        <div class="item-name">Aseo casa y ropa</div>
+                        <div class="item-projected">$10.000</div>
+                        <div class="item-actual"><input type="number" class="input-value expense-input" value="10000" placeholder="0"></div>
+                    </li>
+                    <li class="item">
+                        <div class="item-name">Aseo personal</div>
+                        <div class="item-projected">$38.000</div>
+                        <div class="item-actual"><input type="number" class="input-value expense-input" value="18000" placeholder="0"></div>
+                    </li>
+                    <li class="item">
+                        <div class="item-name">Credit Bancolombia</div>
+                        <div class="item-projected">$100.000</div>
+                        <div class="item-actual"><input type="number" class="input-value expense-input" value="76000" placeholder="0"></div>
+                    </li>
+                    <li class="item">
+                        <div class="item-name">Datos</div>
+                        <div class="item-projected">$40.000</div>
+                        <div class="item-actual"><input type="number" class="input-value expense-input" value="18000" placeholder="0"></div>
+                    </li>
+                    <li class="item">
+                        <div class="item-name">Prestamo Luis G</div>
+                        <div class="item-projected">$0</div>
+                        <div class="item-actual"><input type="number" class="input-value expense-input" value="50000" placeholder="0"></div>
+                    </li>
+                    <li class="item">
+                        <div class="item-name">No presupuestados</div>
+                        <div class="item-projected">$100.000</div>
+                        <div class="item-actual"><input type="number" class="input-value expense-input" placeholder="0"></div>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="category">
+                <div class="category-header">Comida</div>
+                <div class="item-list-header">
+                    <div>Concepto</div>
+                    <div>Proyectado</div>
+                    <div>Real</div>
+                </div>
+                <ul class="item-list">
+                    <li class="item">
+                        <div class="item-name">Food Semana 1</div>
+                        <div class="item-projected">$150.000</div>
+                        <div class="item-actual"><input type="number" class="input-value expense-input" value="180000" placeholder="0"></div>
+                    </li>
+                    <li class="item">
+                        <div class="item-name">Food Semana 2</div>
+                        <div class="item-projected">$150.000</div>
+                        <div class="item-actual"><input type="number" class="input-value expense-input" value="160000" placeholder="0"></div>
+                    </li>
+                    <li class="item">
+                        <div class="item-name">Food Semana 3</div>
+                        <div class="item-projected">$150.000</div>
+                        <div class="item-actual"><input type="number" class="input-value expense-input" value="124000" placeholder="0"></div>
+                    </li>
+                    <li class="item">
+                        <div class="item-name">Food Semana 4</div>
+                        <div class="item-projected">$150.000</div>
+                        <div class="item-actual"><input type="number" class="input-value expense-input" placeholder="0"></div>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="category">
+                <div class="category-header">Body Care</div>
+                <div class="item-list-header">
+                    <div>Concepto</div>
+                    <div>Proyectado</div>
+                    <div>Real</div>
+                </div>
+                <ul class="item-list">
+                    <li class="item">
+                        <div class="item-name">Haircut</div>
+                        <div class="item-projected">$26.000</div>
+                        <div class="item-actual"><input type="number" class="input-value expense-input" value="28000" placeholder="0"></div>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <button class="fab">+</button>
+    </div>
+
+    <div id="income-view" class="screen hidden">
+        <header>
+            <button class="btn-back" onclick="toggleView('main-view')">&#8592;</button>
+            <h2>Ingresos Totales</h2>
+        </header>
+
+        <section class="summary-grid">
+            <div class="summary-card full-width">
+                <div class="summary-label">Total Percibido</div>
+                <div class="summary-value text-income">$3.364.000</div>
+            </div>
+        </section>
+
+        <section class="category-container">
+            <div class="category">
+                <div class="category-header">Fuentes de Ingreso</div>
+                <div class="item-list-header">
+                    <div>Concepto</div>
+                    <div>Proyectado</div>
+                    <div>Real</div>
+                </div>
+                <ul class="item-list">
+                    <li class="item">
+                        <div class="item-name">Nomina</div>
+                        <div class="item-projected">$3.264.000</div>
+                        <div class="item-actual"><input type="number" class="input-value income-input" value="3264000" placeholder="0"></div>
+                    </li>
+                    <li class="item">
+                        <div class="item-name">Efectivo</div>
+                        <div class="item-projected">$0</div>
+                        <div class="item-actual"><input type="number" class="input-value income-input" value="37000" placeholder="0"></div>
+                    </li>
+                    <li class="item">
+                        <div class="item-name">Prestamo</div>
+                        <div class="item-projected">$0</div>
+                        <div class="item-actual"><input type="number" class="input-value income-input" value="50000" placeholder="0"></div>
+                    </li>
+                    <li class="item">
+                        <div class="item-name">Bancolombia</div>
+                        <div class="item-projected">$0</div>
+                        <div class="item-actual"><input type="number" class="input-value income-input" value="8000" placeholder="0"></div>
+                    </li>
+                    <li class="item">
+                        <div class="item-name">Civica</div>
+                        <div class="item-projected">$0</div>
+                        <div class="item-actual"><input type="number" class="input-value income-input" value="4000" placeholder="0"></div>
+                    </li>
+                    <li class="item">
+                        <div class="item-name">Nequi</div>
+                        <div class="item-projected">$0</div>
+                        <div class="item-actual"><input type="number" class="input-value income-input" value="1000" placeholder="0"></div>
+                    </li>
+                    <li class="item">
+                        <div class="item-name">Diseño</div>
+                        <div class="item-projected">$0</div>
+                        <div class="item-actual"><input type="number" class="input-value income-input" placeholder="0"></div>
+                    </li>
+                    <li class="item">
+                        <div class="item-name">Comfama</div>
+                        <div class="item-projected">$0</div>
+                        <div class="item-actual"><input type="number" class="input-value income-input" placeholder="0"></div>
+                    </li>
+                </ul>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Lógica de UI para alternar pantallas
+        function toggleView(viewId) {
+            document.querySelectorAll('.screen').forEach(el => el.classList.add('hidden'));
+            document.getElementById(viewId).classList.remove('hidden');
+            window.scrollTo(0, 0);
+        }
+    </script>
+</body>
+</html>
