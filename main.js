@@ -54,7 +54,7 @@ function applySavedTheme() {
 
 /**
  * ==========================================
- * CÁLCULO DE PROGRESO SEMANAL
+ * CÁLCULO DE PROGRESO SEMANAL Y FECHAS
  * ==========================================
  */
 function updateWeeklyProgress() {
@@ -65,7 +65,6 @@ function updateWeeklyProgress() {
     document.getElementById('current-month-text').textContent = monthNames[today.getMonth()];
 
     // Calcular semana del mes actual
-    // Usa lógica estándar donde el día 1 al 7 es semana 1, 8 al 14 semana 2, etc.
     const weekNumber = Math.ceil(today.getDate() / 7);
     document.getElementById('current-week-text').textContent = `Semana ${weekNumber}`;
 
@@ -73,7 +72,24 @@ function updateWeeklyProgress() {
     let currentDay = today.getDay();
     currentDay = currentDay === 0 ? 7 : currentDay;
 
-    // Actualizar barra de progreso
+    // --- NUEVA LÓGICA: Inyectar las fechas de la semana en la cabecera (01, 02...) ---
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - currentDay + 1); // Calcula qué día fue el lunes de esta semana
+
+    for (let i = 0; i < 7; i++) {
+        const dayDate = new Date(monday);
+        dayDate.setDate(monday.getDate() + i);
+        // Formatea el número a dos dígitos (ej. 1 -> 01)
+        const dayString = String(dayDate.getDate()).padStart(2, '0');
+        
+        // Aplica el número al elemento HTML correspondiente
+        const labelEl = document.getElementById(`day-label-${i + 1}`);
+        if (labelEl) {
+            labelEl.textContent = dayString;
+        }
+    }
+
+    // Actualizar barra de progreso visual
     const segments = document.querySelectorAll('.day-segment');
     segments.forEach((segment, index) => {
         const segmentDay = index + 1;
@@ -96,7 +112,6 @@ function updateWeeklyProgress() {
  * ==========================================
  */
 
-// 1. LEER: Cargar hábitos desde Supabase
 async function loadHabits() {
     const { data: habits, error } = await _supabase
         .from('habit_logs')
@@ -117,7 +132,6 @@ async function loadHabits() {
     habits.forEach(habit => {
         let circlesHTML = '';
         
-        // Generar los círculos de estado para cada día
         diasSemana.forEach(dia => {
             const isDone = habit[dia];
             circlesHTML += `
@@ -128,7 +142,6 @@ async function loadHabits() {
                 </div>`;
         });
 
-        // Crear la fila del hábito (Clic para editar, Clic derecho para eliminar)
         const row = `
             <li class="habit-grid">
                 <div class="item-name" 
@@ -145,7 +158,6 @@ async function loadHabits() {
     });
 }
 
-// 2. CREAR: Añadir un nuevo hábito
 async function addHabit() {
     const name = prompt("Nuevo hábito:");
     if (!name || name.trim() === "") return;
@@ -157,12 +169,10 @@ async function addHabit() {
     if (error) {
         alert("Error al guardar: " + error.message);
     } else {
-        // Recarga la página tras hacer clic en OK y guardar con éxito
         window.location.reload();
     }
 }
 
-// 3. ACTUALIZAR (Estado del día): Alternar estado de un día específico
 async function toggleHabit(habitName, diaColumna, currentState) {
     const updateData = {};
     updateData[diaColumna] = !currentState;
@@ -175,13 +185,10 @@ async function toggleHabit(habitName, diaColumna, currentState) {
     if (error) {
         console.error("Error actualizando hábito:", error.message);
     } else {
-        // Aquí NO recargamos la página completa para evitar una mala experiencia al usuario.
-        // Solo repintamos la lista.
         loadHabits(); 
     }
 }
 
-// 4. ACTUALIZAR (Nombre): Editar el nombre de un hábito existente
 async function editHabit(oldName) {
     const newName = prompt("Editar nombre:", oldName);
     if (!newName || newName.trim() === "" || newName === oldName) return;
@@ -194,12 +201,10 @@ async function editHabit(oldName) {
     if (error) {
         alert("Error al editar: " + error.message);
     } else {
-        // Recarga la página tras hacer clic en OK y actualizar con éxito
         window.location.reload();
     }
 }
 
-// 5. ELIMINAR: Borrar un hábito
 async function deleteHabit(name) {
     const confirmDelete = confirm(`¿Deseas eliminar "${name}"?`);
     if (!confirmDelete) return;
@@ -212,7 +217,6 @@ async function deleteHabit(name) {
     if (error) {
         alert("Error al eliminar: " + error.message);
     } else {
-        // Recarga la página tras confirmar la eliminación
         window.location.reload();
     }
 }
@@ -224,7 +228,6 @@ async function deleteHabit(name) {
  * ==========================================
  */
 function switchTab(tab, btn) {
-    // Actualizar estilos de los botones
     document.querySelectorAll('.tab-btn').forEach(b => {
         b.classList.remove('tab-active');
         b.classList.add('tab-inactive');
@@ -232,7 +235,6 @@ function switchTab(tab, btn) {
     btn.classList.add('tab-active');
     btn.classList.remove('tab-inactive');
 
-    // Cambiar la vista visible
     const views = ['view-habits', 'view-money'];
     views.forEach(v => {
         const viewEl = document.getElementById(v);
@@ -243,7 +245,6 @@ function switchTab(tab, btn) {
     if (targetView) targetView.classList.add('active');
 }
 
-// Nota: Esta función requiere un elemento con id 'daily-learning' en el HTML
 async function saveLearning() {
     const textEl = document.getElementById('daily-learning');
     if (!textEl || !textEl.value.trim()) return;
@@ -268,10 +269,9 @@ async function saveLearning() {
  */
 document.addEventListener('DOMContentLoaded', () => {
     applySavedTheme();
-    updateWeeklyProgress(); // Inicializar el componente de progreso semanal
+    updateWeeklyProgress(); 
     loadHabits();
     
-    // Suscripción en tiempo real a cambios en la tabla habit_logs
     _supabase.channel('habit-changes')
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'habit_logs' }, () => loadHabits())
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'habit_logs' }, () => loadHabits())
