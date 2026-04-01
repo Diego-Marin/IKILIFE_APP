@@ -97,3 +97,53 @@ function toggleStatus(element) {
         element.style.borderColor = 'var(--primary-green)';
     }
 }
+
+
+
+// 1. Configuración de conexión supabase
+// 1. Configuración (Usa tus llaves confirmadas)
+const SUPABASE_URL = "https://pgawswfurouzstkapwby.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnYXdzd2Z1cm91enN0a2Fwd2J5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5Nzg0NzEsImV4cCI6MjA5MDU1NDQ3MX0.KciMvGBygkY2lTDtUIE_zztaODNX3XuWb_sEnpzkMHw";
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// 2. Función para cargar y mostrar los hábitos al iniciar
+async function loadHabits() {
+    const { data: habits, error } = await _supabase
+        .from('habit_logs')
+        .select('*')
+        .order('id', { ascending: true });
+
+    if (error) {
+        console.error("Error cargando hábitos:", error.message);
+        return;
+    }
+
+    const listContainer = document.getElementById('list-habits');
+    listContainer.innerHTML = ''; // Limpiar lo que haya
+
+    habits.forEach(habit => {
+        const row = `
+            <li class="item habit-grid">
+                <div class="item-name">${habit.habit_name}</div>
+                <div class="status-circle" 
+                     style="background-color: ${habit.is_completed ? 'var(--primary-green)' : 'transparent'}"
+                     onclick="updateHabit(${habit.id}, ${!habit.is_completed})">
+                </div>
+            </li>
+        `;
+        listContainer.insertAdjacentHTML('beforeend', row);
+    });
+}
+
+// 3. Función para actualizar un hábito (Sincronización real)
+async function updateHabit(id, newState) {
+    const { error } = await _supabase
+        .from('habit_logs')
+        .update({ is_completed: newState })
+        .eq('id', id);
+
+    if (!error) loadHabits(); // Recargar para mostrar el cambio
+}
+
+// Ejecutar al cargar la página
+document.addEventListener('DOMContentLoaded', loadHabits);
