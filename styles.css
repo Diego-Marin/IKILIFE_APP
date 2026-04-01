@@ -58,6 +58,7 @@ header.main-header {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 25px;
+    position: relative; /* Necesario para el menú desplegable */
 }
 
 .logo-area {
@@ -81,18 +82,120 @@ header.main-header {
     font-weight: 700;
 }
 
-.theme-btn {
-    background: none;
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px; 
+}
+
+/* Botón de Tema */
+.icon-btn {
+    background: transparent;
     border: none;
     cursor: pointer;
     color: var(--text-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-radius: 8px;
+    transition: background-color var(--transition), color var(--transition);
 }
 
-.profile-dot {
-    width: 35px;
-    height: 35px;
-    background-color: var(--primary-green);
+.icon-btn:hover {
+    background-color: var(--border-color);
+}
+
+/* Separador visual */
+.header-divider {
+    width: 2px;
+    height: 24px;
+    background-color: var(--border-color);
+    border-radius: 2px;
+}
+
+/* Contenedor y Botón de Perfil */
+.profile-menu-container {
+    position: relative;
+}
+
+.profile-btn {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border-radius: 50%;
+    transition: transform var(--transition);
+}
+
+.profile-btn:hover {
+    transform: scale(1.05);
+}
+
+.profile-pic {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover; 
+    border: 2px solid var(--border-color);
+    background-color: var(--bg-light);
+}
+
+/* Menú Desplegable de Usuario */
+.dropdown-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    background-color: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    width: 160px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 100;
+}
+
+.dark-mode .dropdown-menu {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+.dropdown-header {
+    padding: 10px 15px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    background-color: var(--bg-light);
+    border-bottom: 1px solid var(--border-color);
+    text-transform: uppercase;
+}
+
+.dropdown-item {
+    padding: 12px 15px;
+    background: transparent;
+    border: none;
+    text-align: left;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    cursor: pointer;
+    transition: background-color var(--transition);
+}
+
+.dropdown-item:hover {
+    background-color: var(--bg-light);
+}
+
+.text-danger {
+    color: #e74c3c;
+}
+
+.text-danger:hover {
+    background-color: rgba(231, 76, 60, 0.1);
 }
 
 /**
@@ -161,18 +264,17 @@ header.main-header {
     display: inline-flex;
     justify-content: center;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
     background-color: var(--text-dark);
     color: var(--white);
     font-size: 0.7rem;
     font-weight: 700;
-    text-transform: uppercase;
     cursor: pointer;
     transition: opacity var(--transition);
-    padding: 6px 10px;
+    padding: 6px 12px;
     border-radius: 6px;
     border: none;
-    width: fit-content;
+    width: max-content; /* Asegura que el texto no se rompa en dos líneas */
 }
 
 .add-habit-btn:hover {
@@ -180,8 +282,8 @@ header.main-header {
 }
 
 .add-habit-btn span {
-    font-size: 1.2rem;
-    line-height: 0;
+    font-size: 1.1rem;
+    line-height: 1;
     font-weight: normal;
     display: inline-block;
     transform: translateY(-1px);
