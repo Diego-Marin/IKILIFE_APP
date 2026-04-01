@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,38 +7,29 @@
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-
 <body>
 
     <div class="container">
         <header class="main-header">
             <div class="logo-area">
                 <div class="logo-circle">
-                    <svg width="25" height="25" viewBox="0 0 100 100">
-                        <circle cx="50" cy="50" r="48" fill="none" stroke="currentColor" stroke-width="2" />
-                        <path d="M20 30 L80 30 L50 80 Z" fill="none" stroke="currentColor" stroke-width="2" />
-                        <path d="M50 30 L50 80" fill="none" stroke="currentColor" stroke-width="2" />
+                    <svg width="20" height="20" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="6">
+                        <circle cx="50" cy="50" r="45" />
+                        <path d="M30 40 L70 40 M50 30 L50 70" />
                     </svg>
                 </div>
                 <span class="brand-name">IKILIFE</span>
             </div>
 
-            <div style="display: flex; align-items: center; gap: 15px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
                 <button id="theme-toggle" class="theme-btn" onclick="toggleTheme()" aria-label="Cambiar modo">
-                    <svg class="sun-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2">
+                    <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="5"></circle>
-                        <line x1="12" y1="1" x2="12" y2="3"></line>
-                        <line x1="12" y1="21" x2="12" y2="23"></line>
-                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                        <line x1="1" y1="12" x2="3" y2="12"></line>
-                        <line x1="21" y1="12" x2="23" y2="12"></line>
-                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                        <line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line>
                     </svg>
-                    <svg class="moon-icon hidden" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
+                    <svg class="moon-icon hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                     </svg>
                 </button>
@@ -47,383 +37,55 @@
             </div>
         </header>
 
-        <section class="date-info">
-            <div class="date-header">
-                <h1 class="current-date" id="display-date">Marzo 30</h1>
-                <div class="last-record">
-                    Último registro<br>
-                    <strong>28/03/2026</strong>
-                </div>
-            </div>
-
-            <div class="achievement-rank">
-                <div class="rank-info">
-                    <span class="rank-label">Nivel 14 · <small>En racha (12 días)</small></span>
-                    <span class="rank-percentage">85%</span>
-                </div>
-                <div class="progress-bar-bg">
-                    <div class="progress-bar-fill" style="width: 85%;"></div>
-                </div>
-            </div>
-        </section>
-
         <nav class="tabs">
-            <button class="tab-btn tab-active" onclick="switchTab('habits', this)">Habitos</button>
+            <button class="tab-btn tab-active" onclick="switchTab('habits', this)">Hábitos</button>
             <button class="tab-btn tab-inactive" onclick="switchTab('money', this)">Dinero</button>
         </nav>
 
         <main id="main-content">
             <div id="view-habits" class="view-content active">
-                <section class="category-container">
+                <section class="category">
+                    <div class="category-header">Semana Actual</div>
+                    
+                    <div class="item-list-header habit-grid">
+                        <div class="day-label" style="text-align: left;">Hábito</div>
+                        <div class="day-label">L</div>
+                        <div class="day-label">M</div>
+                        <div class="day-label">M</div>
+                        <div class="day-label">J</div>
+                        <div class="day-label">V</div>
+                        <div class="day-label">S</div>
+                        <div class="day-label">D</div>
+                    </div>
 
-                    <div class="category">
-                        <div class="category-header">1. Rutina Diaria</div>
-                        <div class="item-list-header habit-grid">
-                            <div>Hábito</div>
-                            <div class="day-label">L</div>
-                            <div class="day-label">M</div>
-                            <div class="day-label">M</div>
-                            <div class="day-label">J</div>
-                            <div class="day-label">V</div>
-                            <div class="day-label">S</div>
-                            <div class="day-label">D</div>
-                        </div>
-                        <ul id="list-habits" class="item-list" style="list-style:none;">
-                            <li class="item habit-grid">
-                                <div class="item-name">Meditar</div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                            </li>
-                            <li class="item habit-grid">
-                                <div class="item-name">Ejercicio</div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                            </li>
-                            <li class="item habit-grid">
-                                <div class="item-name">Inglés</div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                            </li>
+                    <ul id="list-habits" style="list-style:none;">
                         </ul>
-                    </div>
+                </section>
 
-                    <div class="category">
-                        <div class="category-header">2. Cosas que amo (Hobbies)</div>
-                        <div class="item-list-header habit-grid">
-                            <div>Actividad</div>
-                            <div class="day-label">L</div>
-                            <div class="day-label">M</div>
-                            <div class="day-label">M</div>
-                            <div class="day-label">J</div>
-                            <div class="day-label">V</div>
-                            <div class="day-label">S</div>
-                            <div class="day-label">D</div>
-                        </div>
-                        <ul id="list-hobbies" class="item-list" style="list-style:none;">
-                            <li class="item habit-grid">
-                                <div class="item-name">Cine/Series</div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                            </li>
-                            <li class="item habit-grid">
-                                <div class="item-name">Fotografía</div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                            </li>
-                            <li class="item habit-grid">
-                                <div class="item-name">Armónica</div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                                <div class="status-circle" onclick="toggleStatus(this)"></div>
-                            </li>
-                        </ul>
-                    </div>
-
-                    <div class="category">
-                        <div class="category-header">3. ¿Qué aprendí hoy?</div>
-                        <div style="padding: 15px;">
-                            <textarea id="daily-learning" rows="4"
-                                style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.9rem; background-color: var(--bg-light); color: var(--text-dark); resize: vertical; font-family: inherit;"
-                                placeholder="Escribe aquí los aprendizajes..."></textarea>
-                            <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
-                                <button onclick="saveLearning()"
-                                    style="padding: 8px 16px; background-color: var(--text-dark); color: var(--white); border: none; border-radius: 6px; cursor: pointer;">Guardar
-                                    Reflexión</button>
-                            </div>
+                <section class="category">
+                    <div class="category-header">Aprendizaje Diario</div>
+                    <div style="padding: 15px;">
+                        <textarea id="daily-learning" rows="3" placeholder="¿Qué aprendiste hoy?"></textarea>
+                        <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+                            <button onclick="saveLearning()" class="btn-save">Guardar</button>
                         </div>
                     </div>
-
                 </section>
             </div>
 
             <div id="view-money" class="view-content">
-                <div id="finance-main-view">
-
-                    <section class="summary-grid">
-                        <div class="summary-card clickable" onclick="toggleFinanceView('income-view')"
-                            style="cursor: pointer;">
-                            <div class="summary-label">Ingresos (Real) →</div>
-                            <div class="summary-value text-income">$3.364.000</div>
-                        </div>
-                        <div class="summary-card">
-                            <div class="summary-label">Costo Vida (Proy.)</div>
-                            <div class="summary-value text-muted" id="costo-vida-total">$0</div>
-                        </div>
-                        <div class="summary-card">
-                            <div class="summary-label">Gastos (Pagado)</div>
-                            <div class="summary-value text-expense">$3.227.200</div>
-                        </div>
-                        <div class="summary-card">
-                            <div class="summary-label">Ahorro / Capital</div>
-                            <div class="summary-value text-savings">$477.800</div>
-                        </div>
-                    </section>
-
-                    <section class="category-container">
-
-                        <div class="category">
-                            <div class="category-header">Obligations</div>
-                            <div class="item-list-header">
-                                <div>Concepto</div>
-                                <div style="text-align:right">Proyectado</div>
-                                <div style="text-align:right">Real</div>
-                            </div>
-                            <ul id="list-obligations" class="item-list" style="list-style:none;">
-                                <li class="item">
-                                    <div class="item-name">Mother</div>
-                                    <div class="item-projected" data-value="500000"
-                                        style="text-align:right; color:var(--text-muted)">$500.000</div>
-                                    <div class="item-actual"><input type="number" class="input-value expense-input"
-                                            value="480000"></div>
-                                </li>
-                                <li class="item">
-                                    <div class="item-name">Alicia's Home</div>
-                                    <div class="item-projected" data-value="150000"
-                                        style="text-align:right; color:var(--text-muted)">$150.000</div>
-                                    <div class="item-actual"><input type="number" class="input-value expense-input"
-                                            value="150000"></div>
-                                </li>
-                                <li class="item">
-                                    <div class="item-name">Seguridad Social</div>
-                                    <div class="item-projected" data-value="542000"
-                                        style="text-align:right; color:var(--text-muted)">$542.000</div>
-                                    <div class="item-actual"><input type="number" class="input-value expense-input"
-                                            value="542000"></div>
-                                </li>
-                                <li class="item">
-                                    <div class="item-name">Credit BBVA</div>
-                                    <div class="item-projected" data-value="80000"
-                                        style="text-align:right; color:var(--text-muted)">$80.000</div>
-                                    <div class="item-actual"><input type="number" class="input-value expense-input"
-                                            value="90000"></div>
-                                </li>
-                                <li class="item">
-                                    <div class="item-name">Transporte</div>
-                                    <div class="item-projected" data-value="180000"
-                                        style="text-align:right; color:var(--text-muted)">$180.000</div>
-                                    <div class="item-actual"><input type="number" class="input-value expense-input"
-                                            value="138000"></div>
-                                </li>
-                            </ul>
-                        </div>
-
-                        <div class="category">
-                            <div class="category-header">Comida</div>
-                            <div class="item-list-header">
-                                <div>Concepto</div>
-                                <div style="text-align:right">Proyectado</div>
-                                <div style="text-align:right">Real</div>
-                            </div>
-                            <ul id="list-comida" class="item-list" style="list-style:none;">
-                                <li class="item">
-                                    <div class="item-name">Food Semanas 1-3</div>
-                                    <div class="item-projected" data-value="450000"
-                                        style="text-align:right; color:var(--text-muted)">$450.000</div>
-                                    <div class="item-actual"><input type="number" class="input-value expense-input"
-                                            value="464000"></div>
-                                </li>
-                            </ul>
-                        </div>
-
-                        <div class="category">
-                            <div class="category-header">Body Care</div>
-                            <div class="item-list-header">
-                                <div>Concepto</div>
-                                <div style="text-align:right">Proyectado</div>
-                                <div style="text-align:right">Real</div>
-                            </div>
-                            <ul id="list-bodycare" class="item-list" style="list-style:none;">
-                                <li class="item">
-                                    <div class="item-name">Peluquería</div>
-                                    <div class="item-projected" data-value="30000"
-                                        style="text-align:right; color:var(--text-muted)">$30.000</div>
-                                    <div class="item-actual"><input type="number" class="input-value expense-input"
-                                            placeholder="0"></div>
-                                </li>
-                            </ul>
-                        </div>
-
-                        <div class="category">
-                            <div class="category-header">Social & Divertion</div>
-                            <div class="item-list-header">
-                                <div>Concepto</div>
-                                <div style="text-align:right">Proyectado</div>
-                                <div style="text-align:right">Real</div>
-                            </div>
-                            <ul id="list-social" class="item-list" style="list-style:none;">
-                                <li class="item">
-                                    <div class="item-name">Salida fin de semana</div>
-                                    <div class="item-projected" data-value="100000"
-                                        style="text-align:right; color:var(--text-muted)">$100.000</div>
-                                    <div class="item-actual"><input type="number" class="input-value expense-input"
-                                            placeholder="0"></div>
-                                </li>
-                            </ul>
-                        </div>
-
-                        <div class="category">
-                            <div class="category-header">Purchases</div>
-                            <div class="item-list-header">
-                                <div>Concepto</div>
-                                <div style="text-align:right">Proyectado</div>
-                                <div style="text-align:right">Real</div>
-                            </div>
-                            <ul id="list-purchases" class="item-list" style="list-style:none;">
-                                <li class="item">
-                                    <div class="item-name">Ropa / Zapatos</div>
-                                    <div class="item-projected" data-value="0"
-                                        style="text-align:right; color:var(--text-muted)">$0</div>
-                                    <div class="item-actual"><input type="number" class="input-value expense-input"
-                                            placeholder="0"></div>
-                                </li>
-                            </ul>
-                        </div>
-
-                        <div class="category">
-                            <div class="category-header">Tools</div>
-                            <div class="item-list-header">
-                                <div>Concepto</div>
-                                <div style="text-align:right">Proyectado</div>
-                                <div style="text-align:right">Real</div>
-                            </div>
-                            <ul id="list-tools" class="item-list" style="list-style:none;">
-                                <li class="item">
-                                    <div class="item-name">Suscripciones (Software)</div>
-                                    <div class="item-projected" data-value="45000"
-                                        style="text-align:right; color:var(--text-muted)">$45.000</div>
-                                    <div class="item-actual"><input type="number" class="input-value expense-input"
-                                            placeholder="0"></div>
-                                </li>
-                            </ul>
-                        </div>
-
-                        <div class="category">
-                            <div class="category-header">Inversion</div>
-                            <div class="item-list-header">
-                                <div>Concepto</div>
-                                <div style="text-align:right">Proyectado</div>
-                                <div style="text-align:right">Real</div>
-                            </div>
-                            <ul id="list-inversion" class="item-list" style="list-style:none;">
-                                <li class="item">
-                                    <div class="item-name">Fondo / Cripto</div>
-                                    <div class="item-projected" data-value="100000"
-                                        style="text-align:right; color:var(--text-muted)">$100.000</div>
-                                    <div class="item-actual"><input type="number" class="input-value expense-input"
-                                            placeholder="0"></div>
-                                </li>
-                            </ul>
-                        </div>
-
-                        <div class="category">
-                            <div class="category-header">Other</div>
-                            <div class="item-list-header">
-                                <div>Concepto</div>
-                                <div style="text-align:right">Proyectado</div>
-                                <div style="text-align:right">Real</div>
-                            </div>
-                            <ul id="list-other" class="item-list" style="list-style:none;">
-                                <li class="item">
-                                    <div class="item-name">Imprevistos</div>
-                                    <div class="item-projected" data-value="50000"
-                                        style="text-align:right; color:var(--text-muted)">$50.000</div>
-                                    <div class="item-actual"><input type="number" class="input-value expense-input"
-                                            placeholder="0"></div>
-                                </li>
-                            </ul>
-                        </div>
-
-                    </section>
-                </div>
-
-                <div id="income-view" class="hidden">
-                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
-                        <button onclick="toggleFinanceView('main')"
-                            style="background:none; border:none; font-size:20px; cursor:pointer; color:var(--text-dark);">←</button>
-                        <h3 style="font-size:16px;">Fuentes de Ingreso</h3>
-                    </div>
-
-                    <div class="summary-card full-width" style="margin-bottom:20px;">
-                        <div class="summary-label">Total Percibido</div>
-                        <div class="summary-value text-income">$3.364.000</div>
-                    </div>
-
-                    <div class="category">
-                        <div class="item-list-header">
-                            <div>Origen</div>
-                            <div style="text-align:right">Esperado</div>
-                            <div style="text-align:right">Real</div>
-                        </div>
-                        <ul id="list-incomes" class="item-list" style="list-style:none;">
-                            <li class="item">
-                                <div class="item-name">Nomina</div>
-                                <div style="text-align:right; color:var(--text-muted)">$3.264k</div>
-                                <div><input type="number" class="input-value income-input" value="3264000"></div>
-                            </li>
-                            <li class="item">
-                                <div class="item-name">Efectivo</div>
-                                <div style="text-align:right; color:var(--text-muted)">$0</div>
-                                <div><input type="number" class="input-value income-input" value="37000"></div>
-                            </li>
-                        </ul>
-                    </div>
+                <div class="category">
+                    <div class="category-header">Finanzas</div>
+                    <p style="padding: 30px; text-align: center; color: var(--text-muted); font-size: 0.9rem;">
+                        Módulo de Dinero en construcción.
+                    </p>
                 </div>
             </div>
         </main>
 
-        <button class="fab">+</button>
+        <button class="fab" onclick="alert('Nuevo hábito (Próximamente)')">+</button>
     </div>
+
     <script src="main.js"></script>
-
 </body>
-
 </html>
