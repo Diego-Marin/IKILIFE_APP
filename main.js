@@ -132,3 +132,94 @@ document.addEventListener('DOMContentLoaded', () => {
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'habit_logs' }, () => loadHabits())
         .subscribe();
 });
+
+
+
+
+
+//modificar filas
+/**
+ * CRUD de Hábitos integrados en la interfaz
+ */
+
+// 1. CARGAR (Con eventos de edición y borrado)
+async function loadHabits() {
+    const { data: habits, error } = await _supabase
+        .from('habit_logs')
+        .select('*')
+        .order('id', { ascending: true });
+
+    if (error) return console.error(error.message);
+
+    const listContainer = document.getElementById('list-habits');
+    listContainer.innerHTML = '';
+
+    const diasSemana = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+
+    habits.forEach(habit => {
+        let circlesHTML = '';
+        diasSemana.forEach(dia => {
+            const isDone = habit[dia];
+            circlesHTML += `
+                <div class="status-circle" 
+                     style="background-color: ${isDone ? 'var(--primary-green)' : 'transparent'}; 
+                            border-color: ${isDone ? 'var(--primary-green)' : '#999'}"
+                     onclick="toggleHabit('${habit.habit_name}', '${dia}', ${isDone})">
+                </div>`;
+        });
+
+        // Eventos: Clic para editar, Click Derecho (oncontextmenu) para eliminar
+        const row = `
+            <li class="habit-grid">
+                <div class="item-name" 
+                     onclick="editHabit('${habit.habit_name}')"
+                     oncontextmenu="event.preventDefault(); deleteHabit('${habit.habit_name}')"
+                     style="cursor: pointer;"
+                     title="Clic: Editar | Click Derecho: Eliminar">
+                    ${habit.habit_name}
+                </div>
+                ${circlesHTML}
+            </li>
+        `;
+        listContainer.insertAdjacentHTML('beforeend', row);
+    });
+}
+
+// 2. CREAR (Desde el '+' de la cabecera)
+async function addHabit() {
+    const name = prompt("Nuevo hábito:");
+    if (!name || name.trim() === "") return;
+
+    const { error } = await _supabase
+        .from('habit_logs')
+        .insert([{ habit_name: name.trim() }]);
+
+    if (error) alert("Error al guardar: " + error.message);
+    // loadHabits() se llamará automáticamente por el canal Realtime
+}
+
+// 3. EDITAR (Clic en el nombre)
+async function editHabit(oldName) {
+    const newName = prompt("Editar nombre:", oldName);
+    if (!newName || newName.trim() === "" || newName === oldName) return;
+
+    const { error } = await _supabase
+        .from('habit_logs')
+        .update({ habit_name: newName.trim() })
+        .eq('habit_name', oldName);
+
+    if (error) alert("Error al editar");
+}
+
+// 4. ELIMINAR (Click derecho en el nombre)
+async function deleteHabit(name) {
+    const confirmDelete = confirm(`¿Deseas eliminar "${name}"?`);
+    if (!confirmDelete) return;
+
+    const { error } = await _supabase
+        .from('habit_logs')
+        .delete()
+        .eq('habit_name', name);
+
+    if (error) alert("Error al eliminar");
+}
