@@ -1,3 +1,8 @@
+/**
+ * ==========================================
+ * VARIABLES CSS
+ * ==========================================
+ */
 :root {
     --primary-green: #74C08A;
     --bg-light: #F8F9FA;
@@ -8,6 +13,7 @@
     --transition: 0.3s ease;
 }
 
+/* Variables para el modo oscuro */
 .dark-mode {
     --bg-light: #121212;
     --text-dark: #E0E0E0;
@@ -16,6 +22,11 @@
     --border-color: #333333;
 }
 
+/**
+ * ==========================================
+ * ESTILOS BASE
+ * ==========================================
+ */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -37,6 +48,11 @@ body {
     margin: 0 auto;
 }
 
+/**
+ * ==========================================
+ * COMPONENTES DE CABECERA
+ * ==========================================
+ */
 header.main-header {
     display: flex;
     justify-content: space-between;
@@ -79,6 +95,11 @@ header.main-header {
     border-radius: 50%;
 }
 
+/**
+ * ==========================================
+ * NAVEGACIÓN (TABS)
+ * ==========================================
+ */
 .tabs {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -95,9 +116,21 @@ header.main-header {
     cursor: pointer;
 }
 
-.tab-active { background-color: var(--primary-green); color: white; }
-.tab-inactive { background-color: var(--bg-light); color: var(--text-dark); }
+.tab-active { 
+    background-color: var(--primary-green); 
+    color: white; 
+}
 
+.tab-inactive { 
+    background-color: var(--bg-light); 
+    color: var(--text-dark); 
+}
+
+/**
+ * ==========================================
+ * CUADRÍCULA DE HÁBITOS
+ * ==========================================
+ */
 .habit-grid {
     display: grid;
     grid-template-columns: 5fr repeat(7, 1fr); 
@@ -132,6 +165,11 @@ header.main-header {
     cursor: pointer;
 }
 
+/**
+ * ==========================================
+ * CONTENEDORES DE CATEGORÍA
+ * ==========================================
+ */
 .category {
     background: var(--white);
     margin-bottom: 15px;
@@ -148,8 +186,15 @@ header.main-header {
     text-transform: uppercase;
 }
 
-.item-list-header { background-color: var(--bg-light); }
+.item-list-header { 
+    background-color: var(--bg-light); 
+}
 
+/**
+ * ==========================================
+ * FORMULARIOS Y BOTONES (Extras)
+ * ==========================================
+ */
 textarea {
     width: 100%;
     padding: 12px;
@@ -184,6 +229,11 @@ textarea {
     box-shadow: 0 4px 10px rgba(0,0,0,0.2);
 }
 
+/**
+ * ==========================================
+ * UTILIDADES
+ * ==========================================
+ */
 .hidden { display: none; }
 .view-content { display: none; }
 .view-content.active { display: block; }
