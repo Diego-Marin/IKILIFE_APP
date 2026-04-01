@@ -7,19 +7,19 @@
     --primary-green: #74C08A;
     --bg-light: #F8F9FA;
     --text-dark: #1A1A1A;
-    --text-muted: #555;
+    --text-muted: #666666; /* Ligeramente más legible */
     --white: #ffffff;
-    --border-color: #e0e0e0;
-    --transition: 0.3s ease;
+    --border-color: #E5E5E5; /* Borde más sutil y limpio */
+    --transition: 0.25s ease;
 }
 
 /* Variables para el modo oscuro */
 .dark-mode {
     --bg-light: #121212;
-    --text-dark: #E0E0E0;
-    --white: #1E1E1E;
-    --text-muted: #A0A0A0;
-    --border-color: #333333;
+    --text-dark: #EAEAEA;
+    --white: #1C1C1C;
+    --text-muted: #888888;
+    --border-color: #2D2D2D;
 }
 
 /**
@@ -31,19 +31,20 @@
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    font-family: 'Segoe UI', Roboto, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; /* Pila tipográfica más nativa y limpia */
 }
 
 body {
-    background-color: var(--white);
+    background-color: var(--bg-light);
     color: var(--text-dark);
     min-height: 100vh;
     transition: background-color var(--transition), color var(--transition);
+    line-height: 1.5;
 }
 
 .container {
     width: 100%;
-    padding: 20px;
+    padding: 24px 20px;
     max-width: 600px;
     margin: 0 auto;
 }
@@ -57,19 +58,19 @@ header.main-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 25px;
-    position: relative; /* Necesario para el menú desplegable */
+    margin-bottom: 28px;
+    position: relative; 
 }
 
 .logo-area {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
 }
 
 .logo-circle {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     border: 1.5px solid var(--text-dark);
     border-radius: 50%;
     display: flex;
@@ -78,14 +79,15 @@ header.main-header {
 }
 
 .brand-name {
-    font-size: 22px;
+    font-size: 1.1rem; /* Más sobrio, menos gigante */
     font-weight: 700;
+    letter-spacing: -0.5px;
 }
 
 .header-actions {
     display: flex;
     align-items: center;
-    gap: 16px; 
+    gap: 12px; 
 }
 
 /* Botón de Tema */
@@ -98,7 +100,7 @@ header.main-header {
     align-items: center;
     justify-content: center;
     padding: 6px;
-    border-radius: 8px;
+    border-radius: 6px;
     transition: background-color var(--transition), color var(--transition);
 }
 
@@ -108,10 +110,9 @@ header.main-header {
 
 /* Separador visual */
 .header-divider {
-    width: 2px;
-    height: 24px;
+    width: 1px;
+    height: 20px;
     background-color: var(--border-color);
-    border-radius: 2px;
 }
 
 /* Contenedor y Botón de Perfil */
@@ -136,24 +137,24 @@ header.main-header {
 }
 
 .profile-pic {
-    width: 38px;
-    height: 38px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     object-fit: cover; 
-    border: 2px solid var(--border-color);
+    border: 1px solid var(--border-color);
     background-color: var(--bg-light);
 }
 
 /* Menú Desplegable de Usuario */
 .dropdown-menu {
     position: absolute;
-    top: calc(100% + 10px);
+    top: calc(100% + 8px);
     right: 0;
     background-color: var(--white);
     border: 1px solid var(--border-color);
-    border-radius: 12px;
-    width: 160px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    width: 150px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -161,26 +162,27 @@ header.main-header {
 }
 
 .dark-mode .dropdown-menu {
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .dropdown-header {
-    padding: 10px 15px;
-    font-size: 0.75rem;
-    font-weight: 700;
+    padding: 10px 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
     color: var(--text-muted);
     background-color: var(--bg-light);
     border-bottom: 1px solid var(--border-color);
     text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .dropdown-item {
-    padding: 12px 15px;
+    padding: 10px 12px;
     background: transparent;
     border: none;
     text-align: left;
     font-size: 0.85rem;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--text-dark);
     cursor: pointer;
     transition: background-color var(--transition);
@@ -195,7 +197,7 @@ header.main-header {
 }
 
 .text-danger:hover {
-    background-color: rgba(231, 76, 60, 0.1);
+    background-color: rgba(231, 76, 60, 0.05);
 }
 
 /**
@@ -206,96 +208,108 @@ header.main-header {
 .tabs {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 20px;
+    gap: 8px;
+    margin-bottom: 24px;
 }
 
 .tab-btn {
-    padding: 12px;
-    border-radius: 10px;
-    border: none;
-    font-size: 15px;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
+    transition: all var(--transition);
 }
 
 .tab-active { 
-    background-color: var(--primary-green); 
-    color: white; 
+    background-color: var(--text-dark); 
+    color: var(--white); 
 }
 
 .tab-inactive { 
-    background-color: var(--bg-light); 
-    color: var(--text-dark); 
+    background-color: var(--white); 
+    color: var(--text-muted);
+    border-color: var(--border-color);
+}
+
+.tab-inactive:hover {
+    color: var(--text-dark);
+    border-color: var(--text-muted);
 }
 
 /**
  * ==========================================
- * CUADRÍCULA DE HÁBITOS
+ * PROGRESO SEMANAL
  * ==========================================
  */
-.habit-grid {
-    display: grid;
-    grid-template-columns: 5fr repeat(7, 1fr); 
-    align-items: center;
-    gap: 2px;
-    padding: 10px;
-    border-bottom: 1px solid var(--border-color);
+.weekly-progress-container {
+    background-color: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 24px;
 }
 
-.item-name {
-    font-size: 0.78rem;
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline; /* Alinea los textos por su base */
+    margin-bottom: 12px;
+}
+
+.week-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+.month-title {
+    font-size: 0.75rem;
     font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    padding-right: 5px;
+    color: var(--text-muted);
+    text-transform: capitalize; /* Más limpio que todo en mayúsculas */
 }
 
-.day-label {
+.progress-bar-segmented {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    height: 4px; /* Más sutil */
+    margin-bottom: 8px;
+}
+
+.day-segment {
+    border-radius: 2px; /* Redondeo acorde a la altura */
+    background-color: var(--border-color);
+    transition: background-color var(--transition);
+}
+
+/* Estados del segmento */
+.day-segment.past {
+    background-color: var(--text-muted);
+    opacity: 0.4;
+}
+
+.day-segment.today {
+    background-color: var(--primary-green);
+}
+
+.day-segment.future {
+    background-color: var(--border-color);
+}
+
+.progress-labels {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+
+.progress-labels span {
     font-size: 0.65rem;
-    font-weight: 800;
+    font-weight: 600;
     color: var(--text-muted);
     text-align: center;
-}
-
-/* Botón para agregar hábito */
-.add-habit-btn {
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    gap: 4px;
-    background-color: var(--text-dark);
-    color: var(--white);
-    font-size: 0.7rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: opacity var(--transition);
-    padding: 6px 12px;
-    border-radius: 6px;
-    border: none;
-    width: max-content; /* Asegura que el texto no se rompa en dos líneas */
-}
-
-.add-habit-btn:hover {
-    opacity: 0.8;
-}
-
-.add-habit-btn span {
-    font-size: 1.1rem;
-    line-height: 1;
-    font-weight: normal;
-    display: inline-block;
-    transform: translateY(-1px);
-}
-
-.status-circle {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    border: 1px solid #999;
-    margin: 0 auto;
-    cursor: pointer;
 }
 
 /**
@@ -305,61 +319,104 @@ header.main-header {
  */
 .category {
     background: var(--white);
-    margin-bottom: 15px;
-    border-radius: 12px;
+    margin-bottom: 16px;
+    border-radius: 8px;
     border: 1px solid var(--border-color);
     overflow: hidden;
 }
 
 .category-header {
-    padding: 10px 15px;
-    font-weight: 700;
+    padding: 12px 16px;
+    font-weight: 600;
     background-color: var(--bg-light);
+    border-bottom: 1px solid var(--border-color);
     font-size: 0.75rem;
     text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
 }
 
 .item-list-header { 
     background-color: var(--bg-light); 
+    border-bottom: 1px solid var(--border-color);
 }
 
 /**
  * ==========================================
- * FORMULARIOS Y BOTONES (Extras)
+ * CUADRÍCULA DE HÁBITOS
  * ==========================================
  */
-textarea {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    background-color: var(--bg-light);
-    color: var(--text-dark);
+.habit-grid {
+    display: grid;
+    grid-template-columns: 3.5fr repeat(7, 1fr); /* Ajuste de proporción para el nombre vs círculos */
+    align-items: center;
+    gap: 2px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.habit-grid:last-child {
+    border-bottom: none;
+}
+
+.item-name {
     font-size: 0.85rem;
-    resize: none;
+    font-weight: 500;
+    color: var(--text-dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 8px;
 }
 
-.btn-save {
-    padding: 8px 16px;
-    background-color: var(--text-dark);
-    color: var(--white);
-    border: none;
-    border-radius: 6px;
+.day-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+/* Botón para agregar hábito unificado */
+.add-habit-btn {
+    display: inline-flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
     cursor: pointer;
+    transition: color var(--transition);
+    padding: 0;
+    border: none;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-.fab {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    width: 50px;
-    height: 50px;
+.add-habit-btn:hover {
+    color: var(--text-dark);
+}
+
+.add-habit-btn span {
+    font-size: 1rem;
+    line-height: 1;
+    font-weight: 400;
+}
+
+.status-circle {
+    width: 18px; /* Ligeramente más grande para mejor tap-target en móvil */
+    height: 18px;
     border-radius: 50%;
-    background: var(--text-dark);
-    color: white;
-    font-size: 22px;
-    border: none;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    border: 1.5px solid var(--border-color);
+    margin: 0 auto;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+/* Cuando se marca, elimina el borde para verse más limpio */
+.status-circle[style*="var(--primary-green)"] {
+    border-color: var(--primary-green) !important;
 }
 
 /**

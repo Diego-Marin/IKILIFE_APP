@@ -54,6 +54,44 @@ function applySavedTheme() {
 
 /**
  * ==========================================
+ * CÁLCULO DE PROGRESO SEMANAL
+ * ==========================================
+ */
+function updateWeeklyProgress() {
+    const today = new Date();
+    const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+    
+    // Asignar mes
+    document.getElementById('current-month-text').textContent = monthNames[today.getMonth()];
+
+    // Calcular semana del mes actual
+    // Usa lógica estándar donde el día 1 al 7 es semana 1, 8 al 14 semana 2, etc.
+    const weekNumber = Math.ceil(today.getDate() / 7);
+    document.getElementById('current-week-text').textContent = `Semana ${weekNumber}`;
+
+    // Identificar día actual (Ajustando ISO: Lunes = 1, Domingo = 7)
+    let currentDay = today.getDay();
+    currentDay = currentDay === 0 ? 7 : currentDay;
+
+    // Actualizar barra de progreso
+    const segments = document.querySelectorAll('.day-segment');
+    segments.forEach((segment, index) => {
+        const segmentDay = index + 1;
+        segment.classList.remove('past', 'today', 'future');
+        
+        if (segmentDay < currentDay) {
+            segment.classList.add('past');
+        } else if (segmentDay === currentDay) {
+            segment.classList.add('today');
+        } else {
+            segment.classList.add('future');
+        }
+    });
+}
+
+
+/**
+ * ==========================================
  * GESTIÓN DE HÁBITOS (CRUD)
  * ==========================================
  */
@@ -230,6 +268,7 @@ async function saveLearning() {
  */
 document.addEventListener('DOMContentLoaded', () => {
     applySavedTheme();
+    updateWeeklyProgress(); // Inicializar el componente de progreso semanal
     loadHabits();
     
     // Suscripción en tiempo real a cambios en la tabla habit_logs

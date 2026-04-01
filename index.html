@@ -57,6 +57,27 @@
             <button class="tab-btn tab-inactive" onclick="switchTab('money', this)">Dinero</button>
         </nav>
 
+        <div class="weekly-progress-container">
+            <div class="progress-header">
+                <span id="current-week-text" class="week-title">Semana --</span>
+                <span id="current-month-text" class="month-title">--</span>
+            </div>
+
+            <div class="progress-bar-segmented">
+                <div class="day-segment"></div>
+                <div class="day-segment"></div>
+                <div class="day-segment"></div>
+                <div class="day-segment"></div>
+                <div class="day-segment"></div>
+                <div class="day-segment"></div>
+                <div class="day-segment"></div>
+            </div>
+
+            <div class="progress-labels">
+                <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
+            </div>
+        </div>
+
         <main id="main-content">
             <div id="view-habits" class="view-content active">
                 <section class="category">
