@@ -6,34 +6,67 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /**
- * Gestión de Hábitos (Modelo Horizontal)
+ * Gestión del Tema (Dark/Light) con Persistencia
+ */
+function toggleTheme() {
+    const body = document.body;
+    const sunIcon = document.querySelector('.sun-icon');
+    const moonIcon = document.querySelector('.moon-icon');
+    
+    body.classList.toggle('dark-mode');
+    
+    // Guardar preferencia
+    const isDark = body.classList.contains('dark-mode');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    
+    // Actualizar iconos
+    if (isDark) {
+        sunIcon.classList.add('hidden');
+        moonIcon.classList.remove('hidden');
+    } else {
+        sunIcon.classList.remove('hidden');
+        moonIcon.classList.add('hidden');
+    }
+}
+
+function applySavedTheme() {
+    const savedTheme = localStorage.getItem('theme');
+    const body = document.body;
+    const sunIcon = document.querySelector('.sun-icon');
+    const moonIcon = document.querySelector('.moon-icon');
+
+    if (savedTheme === 'dark') {
+        body.classList.add('dark-mode');
+        if (sunIcon) sunIcon.classList.add('hidden');
+        if (moonIcon) moonIcon.classList.remove('hidden');
+    } else {
+        body.classList.remove('dark-mode');
+        if (sunIcon) sunIcon.classList.remove('hidden');
+        if (moonIcon) moonIcon.classList.add('hidden');
+    }
+}
+
+/**
+ * Gestión de Hábitos
  */
 async function loadHabits() {
-    // 1. Traer todos los hábitos ordenados por ID
     const { data: habits, error } = await _supabase
         .from('habit_logs')
         .select('*')
         .order('id', { ascending: true });
 
-    if (error) {
-        console.error("Error cargando hábitos:", error.message);
-        return;
-    }
+    if (error) return console.error("Error cargando hábitos:", error.message);
 
     const listContainer = document.getElementById('list-habits');
     if (!listContainer) return;
     listContainer.innerHTML = '';
 
-    // Definición de las columnas de la tabla SQL
     const diasSemana = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
 
     habits.forEach(habit => {
         let circlesHTML = '';
-
         diasSemana.forEach(dia => {
-            // El valor viene directamente de la columna booleana de la fila
-            const isDone = habit[dia]; 
-
+            const isDone = habit[dia];
             circlesHTML += `
                 <div class="status-circle" 
                      style="background-color: ${isDone ? 'var(--primary-green)' : 'transparent'}; 
@@ -43,7 +76,7 @@ async function loadHabits() {
         });
 
         const row = `
-            <li class="item habit-grid">
+            <li class="habit-grid">
                 <div class="item-name" title="${habit.habit_name}">${habit.habit_name}</div>
                 ${circlesHTML}
             </li>
@@ -53,7 +86,6 @@ async function loadHabits() {
 }
 
 async function toggleHabit(habitName, diaColumna, currentState) {
-    // Creamos el objeto de actualización dinámico para la columna clicada
     const updateData = {};
     updateData[diaColumna] = !currentState;
 
@@ -62,33 +94,11 @@ async function toggleHabit(habitName, diaColumna, currentState) {
         .update(updateData)
         .eq('habit_name', habitName);
 
-    if (!error) {
-        loadHabits(); 
-    } else {
-        console.error("Error al actualizar hábito:", error.message);
-    }
+    if (!error) loadHabits();
 }
 
 /**
- * Registro de Aprendizaje
- */
-async function saveLearning() {
-    const textEl = document.getElementById('daily-learning');
-    if (!textEl.value.trim()) return alert("Escribe algo.");
-
-    const { error } = await _supabase.from('journal_logs').insert([
-        { content: textEl.value }
-    ]);
-
-    if (error) alert("Error al sincronizar.");
-    else { 
-        alert("Reflexión guardada."); 
-        textEl.value = ''; 
-    }
-}
-
-/**
- * Utilidades de Interfaz
+ * UI &Tabs
  */
 function switchTab(tab, btn) {
     document.querySelectorAll('.tab-btn').forEach(b => {
@@ -98,29 +108,26 @@ function switchTab(tab, btn) {
     btn.classList.add('tab-active');
     btn.classList.remove('tab-inactive');
 
-    if (tab === 'habits') {
-        document.getElementById('view-habits').classList.add('active');
-        document.getElementById('view-money').classList.remove('active');
-    } else {
-        document.getElementById('view-habits').classList.remove('active');
-        document.getElementById('view-money').classList.add('active');
+    const views = ['view-habits', 'view-money'];
+    views.forEach(v => document.getElementById(v).classList.remove('active'));
+    document.getElementById(`view-${tab}`).classList.add('active');
+}
+
+async function saveLearning() {
+    const textEl = document.getElementById('daily-learning');
+    if (!textEl.value.trim()) return;
+
+    const { error } = await _supabase.from('journal_logs').insert([{ content: textEl.value }]);
+    if (!error) {
+        alert("Guardado");
+        textEl.value = '';
     }
 }
 
-function toggleTheme() {
-    const body = document.body;
-    const sunIcon = document.querySelector('.sun-icon');
-    const moonIcon = document.querySelector('.moon-icon');
-    
-    body.classList.toggle('dark-mode');
-    sunIcon.classList.toggle('hidden');
-    moonIcon.classList.toggle('hidden');
-}
-
 document.addEventListener('DOMContentLoaded', () => {
+    applySavedTheme();
     loadHabits();
     
-    // Escuchar cambios en tiempo real para la tabla horizontal
     _supabase.channel('habit-changes')
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'habit_logs' }, () => loadHabits())
         .subscribe();
