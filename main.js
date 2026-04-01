@@ -119,7 +119,8 @@ async function addHabit() {
     if (error) {
         alert("Error al guardar: " + error.message);
     } else {
-        loadHabits();
+        // Recarga la página tras hacer clic en OK y guardar con éxito
+        window.location.reload();
     }
 }
 
@@ -136,7 +137,9 @@ async function toggleHabit(habitName, diaColumna, currentState) {
     if (error) {
         console.error("Error actualizando hábito:", error.message);
     } else {
-        loadHabits(); // Recargar localmente como fallback (el realtime también lo hará)
+        // Aquí NO recargamos la página completa para evitar una mala experiencia al usuario.
+        // Solo repintamos la lista.
+        loadHabits(); 
     }
 }
 
@@ -153,7 +156,8 @@ async function editHabit(oldName) {
     if (error) {
         alert("Error al editar: " + error.message);
     } else {
-        loadHabits();
+        // Recarga la página tras hacer clic en OK y actualizar con éxito
+        window.location.reload();
     }
 }
 
@@ -170,7 +174,8 @@ async function deleteHabit(name) {
     if (error) {
         alert("Error al eliminar: " + error.message);
     } else {
-        loadHabits();
+        // Recarga la página tras confirmar la eliminación
+        window.location.reload();
     }
 }
 
