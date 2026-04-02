@@ -248,7 +248,7 @@ function switchTab(tab, btn) {
     btn.classList.add('tab-active');
     btn.classList.remove('tab-inactive');
 
-    const views = ['view-habits', 'view-money', 'view-ideas', 'view-escuelas' ];
+    const views = ['view-habits', 'view-money', 'view-ideas', 'view-escuelas', 'view-tareas' ];
     views.forEach(v => {
         const viewEl = document.getElementById(v);
         if (viewEl) viewEl.classList.remove('active');
