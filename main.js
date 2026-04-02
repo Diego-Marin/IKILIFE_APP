@@ -51,12 +51,6 @@ function applySavedTheme() {
     }
 }
 
-
-/**
- * ==========================================
- * CÁLCULO DE PROGRESO SEMANAL Y FECHAS
- * ==========================================
- */
 /**
  * ==========================================
  * CÁLCULO DE PROGRESO SEMANAL Y FECHAS
@@ -254,7 +248,7 @@ function switchTab(tab, btn) {
     btn.classList.add('tab-active');
     btn.classList.remove('tab-inactive');
 
-    const views = ['view-habits', 'view-money'];
+    const views = ['view-habits', 'view-money', 'view-ideas', 'view-escuelas' ];
     views.forEach(v => {
         const viewEl = document.getElementById(v);
         if (viewEl) viewEl.classList.remove('active');
@@ -283,6 +277,114 @@ async function saveLearning() {
 
 /**
  * ==========================================
+ * GESTIÓN DE ESCUELAS (PROGRESO CONTINUO)
+ * ==========================================
+ */
+
+async function loadEscuelas() {
+    const { data: escuelas, error } = await _supabase
+        .from('escuelas_logs')
+        .select('*')
+        .order('id', { ascending: true });
+
+    if (error) {
+        console.error("Error cargando escuelas:", error.message);
+        return;
+    }
+
+    const listContainer = document.getElementById('list-escuelas');
+    if (!listContainer) return;
+    
+    listContainer.innerHTML = '';
+
+    escuelas.forEach(escuela => {
+        const progress = escuela.progress || 0;
+        
+        const row = `
+            <li class="escuela-grid">
+                <div class="item-name" 
+                     onclick="editEscuela('${escuela.name}', ${escuela.id})"
+                     oncontextmenu="event.preventDefault(); deleteEscuela('${escuela.name}', ${escuela.id})"
+                     style="cursor: pointer;"
+                     title="Clic: Editar | Clic Derecho: Eliminar">
+                    ${escuela.name}
+                </div>
+                <div class="progress-wrapper" onclick="incrementEscuelaProgress(${escuela.id}, ${progress})" title="Clic para sumar 1%">
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" style="width: ${progress}%"></div>
+                    </div>
+                    <span class="progress-text">${progress}%</span>
+                </div>
+            </li>
+        `;
+        listContainer.insertAdjacentHTML('beforeend', row);
+    });
+}
+
+async function addEscuela() {
+    const name = prompt("Nuevo aprendizaje/escuela:");
+    if (!name || name.trim() === "") return;
+
+    const { error } = await _supabase
+        .from('escuelas_logs')
+        .insert([{ name: name.trim(), progress: 0 }]);
+
+    if (error) {
+        alert("Error al guardar: " + error.message);
+    } else {
+        loadEscuelas(); // Se llama a loadEscuelas en lugar de recargar la página entera
+    }
+}
+
+async function incrementEscuelaProgress(id, currentProgress) {
+    const newProgress = currentProgress + 1;
+
+    const { error } = await _supabase
+        .from('escuelas_logs')
+        .update({ progress: newProgress })
+        .eq('id', id);
+
+    if (error) {
+        console.error("Error actualizando progreso:", error.message);
+    } else {
+        loadEscuelas(); 
+    }
+}
+
+async function editEscuela(oldName, id) {
+    const newName = prompt("Editar nombre:", oldName);
+    if (!newName || newName.trim() === "" || newName === oldName) return;
+
+    const { error } = await _supabase
+        .from('escuelas_logs')
+        .update({ name: newName.trim() })
+        .eq('id', id);
+
+    if (error) {
+        alert("Error al editar: " + error.message);
+    } else {
+        loadEscuelas();
+    }
+}
+
+async function deleteEscuela(name, id) {
+    const confirmDelete = confirm(`¿Deseas eliminar "${name}"?`);
+    if (!confirmDelete) return;
+
+    const { error } = await _supabase
+        .from('escuelas_logs')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        alert("Error al eliminar: " + error.message);
+    } else {
+        loadEscuelas();
+    }
+}
+
+/**
+ * ==========================================
  * INICIALIZACIÓN
  * ==========================================
  */
@@ -290,6 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
     applySavedTheme();
     updateWeeklyProgress(); 
     loadHabits();
+    loadEscuelas();
     
     _supabase.channel('habit-changes')
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'habit_logs' }, () => loadHabits())

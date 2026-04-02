@@ -430,3 +430,72 @@ div.day-segment.future {
 .hidden { display: none; }
 .view-content { display: none; }
 .view-content.active { display: block; }
+
+
+
+
+/**
+ * ==========================================
+ * SECCIÓN ESCUELAS (PROGRESO)
+ * ==========================================
+ */
+.escuela-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    padding: 12px 16px;
+    background-color: var(--bg-light); 
+    border-bottom: 1px solid var(--border-color);
+}
+
+.escuela-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.header-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-align: right;
+    text-transform: uppercase;
+}
+
+.progress-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: opacity var(--transition);
+}
+
+.progress-wrapper:hover {
+    opacity: 0.8;
+}
+
+.progress-bar-container {
+    flex-grow: 1;
+    height: 12px;
+    background-color: var(--border-color);
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background-color: var(--primary-green);
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    min-width: 45px;
+    text-align: right;
+}
