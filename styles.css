@@ -279,23 +279,27 @@ header.main-header {
     margin-bottom: 8px;
 }
 
+/* Base del segmento */
 .day-segment {
     border-radius: 2px; 
     background-color: var(--border-color);
-    transition: background-color var(--transition);
+    transition: background-color var(--transition), opacity var(--transition);
 }
 
-.day-segment.past {
+/* Modificadores de estado con especificidad aumentada (div.) */
+div.day-segment.past {
     background-color: var(--text-muted);
     opacity: 0.4;
 }
 
-.day-segment.today {
+div.day-segment.today {
     background-color: var(--primary-green);
+    opacity: 1; /* Previene herencia accidental de opacidad */
 }
 
-.day-segment.future {
+div.day-segment.future {
     background-color: var(--border-color);
+    opacity: 1;
 }
 
 .progress-labels {
@@ -347,7 +351,6 @@ header.main-header {
  */
 .habit-grid {
     display: grid;
-    /* Aumentada la proporción a 4.5fr para dar más espacio al texto */
     grid-template-columns: 4.5fr repeat(7, 1fr); 
     align-items: center;
     gap: 4px;
@@ -363,7 +366,6 @@ header.main-header {
     font-size: 0.85rem;
     font-weight: 500;
     color: var(--text-dark);
-    /* Permitir que el texto baje a la siguiente línea */
     line-height: 1.3;
     padding-right: 12px;
     word-break: break-word;

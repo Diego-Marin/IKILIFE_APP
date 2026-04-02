@@ -59,22 +59,32 @@ function applySavedTheme() {
  */
 function updateWeeklyProgress() {
     const today = new Date();
-    const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
     
-    // Asignar mes
-    document.getElementById('current-month-text').textContent = monthNames[today.getMonth()];
+    // Asignar fecha completa (ej. "2 de abril de 2026")
+    const dateElement = document.getElementById('current-month-text');
+    if (dateElement) {
+        const fullDate = new Intl.DateTimeFormat('es-CO', { 
+            day: 'numeric', 
+            month: 'long', 
+            year: 'numeric' 
+        }).format(today);
+        dateElement.textContent = fullDate;
+    }
 
     // Calcular semana del mes actual
     const weekNumber = Math.ceil(today.getDate() / 7);
-    document.getElementById('current-week-text').textContent = `Semana ${weekNumber}`;
+    const weekElement = document.getElementById('current-week-text');
+    if (weekElement) {
+        weekElement.textContent = `Semana ${weekNumber}`;
+    }
 
     // Identificar día actual (Ajustando ISO: Lunes = 1, Domingo = 7)
     let currentDay = today.getDay();
     currentDay = currentDay === 0 ? 7 : currentDay;
 
-    // --- NUEVA LÓGICA: Inyectar las fechas de la semana en la cabecera (01, 02...) ---
+    // Inyectar las fechas de la semana en la cabecera (01, 02...)
     const monday = new Date(today);
-    monday.setDate(today.getDate() - currentDay + 1); // Calcula qué día fue el lunes de esta semana
+    monday.setDate(today.getDate() - currentDay + 1); 
 
     for (let i = 0; i < 7; i++) {
         const dayDate = new Date(monday);
@@ -89,7 +99,7 @@ function updateWeeklyProgress() {
         }
     }
 
-    // Actualizar barra de progreso visual
+    // Actualizar barra de progreso visual (Con inyección directa de estilos)
     const segments = document.querySelectorAll('.day-segment');
     segments.forEach((segment, index) => {
         const segmentDay = index + 1;
@@ -97,10 +107,16 @@ function updateWeeklyProgress() {
         
         if (segmentDay < currentDay) {
             segment.classList.add('past');
+            segment.style.backgroundColor = 'var(--text-muted)';
+            segment.style.opacity = '0.4';
         } else if (segmentDay === currentDay) {
             segment.classList.add('today');
+            segment.style.backgroundColor = 'var(--primary-green)';
+            segment.style.opacity = '1';
         } else {
             segment.classList.add('future');
+            segment.style.backgroundColor = 'var(--border-color)';
+            segment.style.opacity = '1';
         }
     });
 }
