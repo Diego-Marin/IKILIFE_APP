@@ -137,8 +137,8 @@ header.main-header {
 }
 
 .profile-pic {
-    width: 34px;
-    height: 34px;
+    width: 60px;  /* Aumenta este valor (antes era 34px) */
+    height: 60px; /* Asegúrate de que este valor sea igual al width para mantener el círculo */
     border-radius: 50%;
     object-fit: cover; 
     border: 1px solid var(--border-color);
