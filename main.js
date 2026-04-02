@@ -383,6 +383,103 @@ async function deleteEscuela(name, id) {
     }
 }
 
+
+
+
+/**
+ * ==========================================
+ * GESTIÓN DE IDEAS
+ * ==========================================
+ */
+
+async function loadIdeas() {
+    const { data: ideas, error } = await _supabase
+        .from('ideas_logs')
+        .select('*')
+        .order('created_at', { ascending: false }) 
+        .limit(30); 
+
+    if (error) {
+        console.error("Error cargando ideas:", error.message);
+        return;
+    }
+
+    const listContainer = document.getElementById('list-ideas');
+    if (!listContainer) return;
+
+    listContainer.innerHTML = '';
+
+    ideas.forEach(idea => {
+        // Formatear fecha (Ej: 2 abr, 14:30)
+        const dateObj = new Date(idea.created_at);
+        const dateString = dateObj.toLocaleDateString('es-CO', { month: 'short', day: 'numeric' });
+        const timeString = dateObj.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+
+        const row = `
+            <li class="idea-row">
+                <div class="idea-content"
+                     onclick="editIdea(${idea.id}, '${idea.content.replace(/'/g, "\\'")}')"
+                     oncontextmenu="event.preventDefault(); deleteIdea(${idea.id})"
+                     title="Clic: Editar | Clic Derecho: Eliminar">
+                    ${idea.content}
+                </div>
+                <div class="idea-date">${dateString} - ${timeString}</div>
+            </li>
+        `;
+        listContainer.insertAdjacentHTML('beforeend', row);
+    });
+}
+
+async function addIdea() {
+    const content = prompt("Escribe tu nueva idea:");
+    if (!content || content.trim() === "") return;
+
+    const { error } = await _supabase
+        .from('ideas_logs')
+        .insert([{ content: content.trim() }]);
+
+    if (error) {
+        alert("Error al guardar: " + error.message);
+    } else {
+        loadIdeas();
+    }
+}
+
+async function editIdea(id, oldContent) {
+    const newContent = prompt("Editar idea:", oldContent);
+    if (!newContent || newContent.trim() === "" || newContent === oldContent) return;
+
+    const { error } = await _supabase
+        .from('ideas_logs')
+        .update({ content: newContent.trim() })
+        .eq('id', id);
+
+    if (error) {
+        alert("Error al editar: " + error.message);
+    } else {
+        loadIdeas();
+    }
+}
+
+async function deleteIdea(id) {
+    const confirmDelete = confirm("¿Deseas eliminar esta idea?");
+    if (!confirmDelete) return;
+
+    const { error } = await _supabase
+        .from('ideas_logs')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        alert("Error al eliminar: " + error.message);
+    } else {
+        loadIdeas();
+    }
+}
+
+
+
+
 /**
  * ==========================================
  * INICIALIZACIÓN
@@ -393,6 +490,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateWeeklyProgress(); 
     loadHabits();
     loadEscuelas();
+    loadIdeas();
     
     _supabase.channel('habit-changes')
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'habit_logs' }, () => loadHabits())
