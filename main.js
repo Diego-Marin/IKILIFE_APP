@@ -57,10 +57,15 @@ function applySavedTheme() {
  * CÁLCULO DE PROGRESO SEMANAL Y FECHAS
  * ==========================================
  */
+/**
+ * ==========================================
+ * CÁLCULO DE PROGRESO SEMANAL Y FECHAS
+ * ==========================================
+ */
 function updateWeeklyProgress() {
     const today = new Date();
     
-    // Asignar fecha completa (ej. "2 de abril de 2026")
+    // Asignar fecha completa
     const dateElement = document.getElementById('current-month-text');
     if (dateElement) {
         const fullDate = new Intl.DateTimeFormat('es-CO', { 
@@ -75,7 +80,7 @@ function updateWeeklyProgress() {
     const weekNumber = Math.ceil(today.getDate() / 7);
     const weekElement = document.getElementById('current-week-text');
     if (weekElement) {
-        weekElement.textContent = `Semana ${weekNumber}`;
+        weekElement.textContent = `Avance Semana ${weekNumber}`;
     }
 
     // Identificar día actual (Ajustando ISO: Lunes = 1, Domingo = 7)
@@ -105,15 +110,13 @@ function updateWeeklyProgress() {
         const segmentDay = index + 1;
         segment.classList.remove('past', 'today', 'future');
         
-        if (segmentDay < currentDay) {
-            segment.classList.add('past');
-            segment.style.backgroundColor = 'var(--text-muted)';
-            segment.style.opacity = '0.4';
-        } else if (segmentDay === currentDay) {
-            segment.classList.add('today');
+        if (segmentDay <= currentDay) {
+            // Días transcurridos y el actual en verde
+            segment.classList.add(segmentDay === currentDay ? 'today' : 'past');
             segment.style.backgroundColor = 'var(--primary-green)';
             segment.style.opacity = '1';
         } else {
+            // Días futuros en gris
             segment.classList.add('future');
             segment.style.backgroundColor = 'var(--border-color)';
             segment.style.opacity = '1';
@@ -175,7 +178,7 @@ async function loadHabits() {
 }
 
 async function addHabit() {
-    const name = prompt("Nuevo hábito:");
+    const name = prompt("Crea un nuevo hábito:");
     if (!name || name.trim() === "") return;
 
     const { error } = await _supabase

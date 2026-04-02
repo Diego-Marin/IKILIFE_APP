@@ -386,21 +386,18 @@ div.day-segment.future {
     gap: 6px;
     background-color: var(--text-dark); 
     color: var(--bg-light); 
-    font-size: 0.7rem;
-    font-weight: 700;
+    font-size: 0.8rem;
+    font-weight: 600;
     cursor: pointer;
-    transition: transform 0.2s ease, opacity 0.2s ease;
     padding: 6px 12px;
     border-radius: 6px;
     border: none;
-    text-transform: uppercase;
     letter-spacing: 0.5px;
     width: max-content;
 }
 
 .add-habit-btn:hover {
     opacity: 0.85;
-    transform: scale(1.03); 
 }
 
 .add-habit-btn span {
