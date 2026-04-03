@@ -248,7 +248,7 @@ function switchTab(tab, btn) {
     btn.classList.add('tab-active');
     btn.classList.remove('tab-inactive');
 
-    const views = ['view-habits', 'view-money', 'view-ideas', 'view-escuelas', 'view-tareas' ];
+    const views = ['view-habits', 'view-money', 'view-ideas', 'view-escuelas', 'view-tareas', 'view-loves' ];
     views.forEach(v => {
         const viewEl = document.getElementById(v);
         if (viewEl) viewEl.classList.remove('active');
@@ -544,6 +544,114 @@ async function deleteTarea(id) {
 }
 
 
+/**
+ * ==========================================
+ * GESTIÓN DE COSAS QUE AMO
+ * ==========================================
+ */
+
+async function loadLoves() {
+    // Ordena de mayor a menor frecuencia
+    const { data: loves, error } = await _supabase
+        .from('loves_logs')
+        .select('*')
+        .order('count', { ascending: false });
+
+    if (error) {
+        console.error("Error cargando pasiones:", error.message);
+        return;
+    }
+
+    const listContainer = document.getElementById('list-loves');
+    if (!listContainer) return;
+
+    listContainer.innerHTML = '';
+
+    loves.forEach(love => {
+        const currentCount = love.count || 0;
+        
+        const row = `
+            <li class="love-row">
+                <div class="love-content"
+                     onclick="editLove('${love.name}', ${love.id})"
+                     oncontextmenu="event.preventDefault(); deleteLove('${love.name}', ${love.id})"
+                     style="cursor: pointer;"
+                     title="Clic: Editar | Clic Derecho: Eliminar">
+                    ${love.name}
+                </div>
+                <button class="love-counter-btn" onclick="incrementLove(${love.id}, ${currentCount})" title="Sumar +1">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                    ${currentCount}
+                </button>
+            </li>
+        `;
+        listContainer.insertAdjacentHTML('beforeend', row);
+    });
+}
+
+async function addLove() {
+    const name = prompt("Nueva pasión o actividad que amas:");
+    if (!name || name.trim() === "") return;
+
+    const { error } = await _supabase
+        .from('loves_logs')
+        .insert([{ name: name.trim(), count: 0 }]);
+
+    if (error) {
+        alert("Error al guardar: " + error.message);
+    } else {
+        loadLoves();
+    }
+}
+
+async function incrementLove(id, currentCount) {
+    const { error } = await _supabase
+        .from('loves_logs')
+        .update({ count: currentCount + 1 })
+        .eq('id', id);
+
+    if (error) {
+        console.error("Error sumando contador:", error.message);
+    } else {
+        loadLoves(); 
+    }
+}
+
+async function editLove(oldName, id) {
+    const newName = prompt("Editar nombre:", oldName);
+    if (!newName || newName.trim() === "" || newName === oldName) return;
+
+    const { error } = await _supabase
+        .from('loves_logs')
+        .update({ name: newName.trim() })
+        .eq('id', id);
+
+    if (error) {
+        alert("Error al editar: " + error.message);
+    } else {
+        loadLoves();
+    }
+}
+
+async function deleteLove(name, id) {
+    const confirmDelete = confirm(`¿Deseas eliminar "${name}"?`);
+    if (!confirmDelete) return;
+
+    const { error } = await _supabase
+        .from('loves_logs')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        alert("Error al eliminar: " + error.message);
+    } else {
+        loadLoves();
+    }
+}
+
+
 
 
 
@@ -559,6 +667,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadEscuelas();
     loadIdeas();
     loadTareas();
+    loadLoves();
     
     _supabase.channel('habit-changes')
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'habit_logs' }, () => loadHabits())
