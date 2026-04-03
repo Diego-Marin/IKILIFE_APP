@@ -274,6 +274,22 @@ async function saveLearning() {
     }
 }
 
+/**
+ * Alternar entre la vista principal de finanzas y el detalle de ingresos
+ */
+function toggleFinanceView(viewId) {
+    const mainView = document.getElementById('finance-main');
+    const incomeView = document.getElementById('finance-income');
+
+    if (viewId === 'finance-income') {
+        mainView.classList.add('hidden');
+        incomeView.classList.remove('hidden');
+    } else {
+        incomeView.classList.add('hidden');
+        mainView.classList.remove('hidden');
+    }
+}
+
 
 /**
  * ==========================================

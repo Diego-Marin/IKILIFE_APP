@@ -668,3 +668,143 @@ div.day-segment.future {
 .love-counter-btn:active svg {
     transform: scale(1.3); /* Animación de latido al dar clic */
 }
+
+
+
+
+/**
+ * ==========================================
+ * SECCIÓN FINANZAS (MONEY)
+ * ==========================================
+ */
+.finance-top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 0 16px 0;
+}
+
+.finance-top-bar h3 {
+    font-size: 1rem;
+    color: var(--text-dark);
+    margin: 0 auto;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.summary-card {
+    background: var(--white);
+    padding: 16px;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+}
+
+.summary-card.clickable {
+    cursor: pointer;
+    transition: background-color var(--transition), border-color var(--transition);
+}
+
+.summary-card.clickable:hover {
+    background-color: var(--bg-light);
+    border-color: var(--text-muted);
+}
+
+.summary-card.full-width {
+    grid-column: span 2;
+}
+
+.summary-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.summary-value {
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+
+/* Colores Semánticos */
+.text-income { color: var(--primary-green) !important; }
+.text-expense { color: #e74c3c !important; }
+.text-savings { color: #3498db !important; }
+
+/* Grid de Items */
+.finance-item-header {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 8px;
+    padding: 8px 16px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--bg-light);
+    text-transform: uppercase;
+}
+
+.finance-item-header div:nth-child(2),
+.finance-item-header div:nth-child(3) {
+    text-align: right;
+}
+
+.finance-item {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 8px;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.85rem;
+}
+
+.finance-item:last-child {
+    border-bottom: none;
+}
+
+.finance-item-name {
+    color: var(--text-dark);
+    font-weight: 500;
+}
+
+.finance-item-projected {
+    text-align: right;
+    color: var(--text-muted);
+}
+
+/* Inputs de Finanzas */
+.finance-input {
+    width: 100%;
+    padding: 6px;
+    text-align: right;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-family: inherit;
+    font-weight: 600;
+    background-color: transparent;
+    color: var(--text-dark);
+    transition: border-color var(--transition), background-color var(--transition);
+}
+
+.finance-input:focus {
+    outline: none;
+    border-color: var(--border-color);
+    background-color: var(--bg-light);
+}
+
+/* Ocultar flechas en los input number */
+.finance-input::-webkit-outer-spin-button,
+.finance-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
