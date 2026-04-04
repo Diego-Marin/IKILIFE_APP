@@ -808,3 +808,104 @@ div.day-segment.future {
     -webkit-appearance: none;
     margin: 0;
 }
+
+
+
+
+/**
+ * ==========================================
+ * SECCIÓN BLOQUES Y SUBTAREAS
+ * ==========================================
+ */
+.bloque-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background-color: var(--bg-light);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.bloques-wrapper {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.bloque-card {
+    background-color: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.bloque-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background-color: var(--border-color);
+    color: var(--text-dark);
+}
+
+.bloque-card-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.bloque-add-task {
+    background: transparent;
+    border: none;
+    color: var(--text-dark);
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.bloque-add-task:hover {
+    opacity: 0.7;
+}
+
+.bloque-task-list {
+    list-style: none;
+    padding: 0 16px;
+    background-color: var(--white);
+}
+
+.bloque-task-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.bloque-task-item:last-child {
+    border-bottom: none;
+}
+
+.bloque-task-text {
+    flex-grow: 1;
+    font-size: 0.85rem;
+    color: var(--text-dark);
+    cursor: pointer;
+    line-height: 1.4;
+}
+
+/* Checkbox estilizado */
+.task-checkbox {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--primary-green);
+}
+
+.task-done {
+    text-decoration: line-through;
+    opacity: 0.5;
+}

@@ -1,8 +1,3 @@
-/**
- * ==========================================
- * CONFIGURACIÓN DE SUPABASE
- * ==========================================
- */
 const SUPABASE_URL = "https://pgawswfurouzstkapwby.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnYXdzd2Z1cm91enN0a2Fwd2J5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5Nzg0NzEsImV4cCI6MjA5MDU1NDQ3MX0.KciMvGBygkY2lTDtUIE_zztaODNX3XuWb_sEnpzkMHw";
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -248,7 +243,7 @@ function switchTab(tab, btn) {
     btn.classList.add('tab-active');
     btn.classList.remove('tab-inactive');
 
-    const views = ['view-habits', 'view-money', 'view-ideas', 'view-escuelas', 'view-tareas', 'view-loves' ];
+    const views = ['view-habits', 'view-money', 'view-ideas', 'view-escuelas', 'view-tareas', 'view-loves', 'view-bloques' ];
     views.forEach(v => {
         const viewEl = document.getElementById(v);
         if (viewEl) viewEl.classList.remove('active');
@@ -668,6 +663,168 @@ async function deleteLove(name, id) {
 }
 
 
+/**
+ * ==========================================
+ * GESTIÓN DE BLOQUES DE RUTINA (JSONB)
+ * ==========================================
+ */
+
+let bloquesState = {};
+
+async function loadBloques() {
+    const { data: bloques, error } = await _supabase
+        .from('bloques_logs')
+        .select('*')
+        .order('id', { ascending: true });
+
+    if (error) {
+        console.error("Error cargando bloques:", error.message);
+        return;
+    }
+
+    const container = document.getElementById('bloques-container');
+    if (!container) return;
+
+    container.innerHTML = '';
+    bloquesState = {}; // Reset state
+
+    bloques.forEach(bloque => {
+        bloquesState[bloque.id] = bloque; // Guardar en memoria
+        const tasks = bloque.tasks || [];
+        
+        let tasksHTML = '';
+        tasks.forEach((task, index) => {
+            const isDoneClass = task.done ? 'task-done' : '';
+            const isChecked = task.done ? 'checked' : '';
+            
+            tasksHTML += `
+                <li class="bloque-task-item">
+                    <input type="checkbox" class="task-checkbox" ${isChecked} onchange="toggleBloqueTask(${bloque.id}, ${index})">
+                    <div class="bloque-task-text ${isDoneClass}" 
+                         onclick="editBloqueTask(${bloque.id}, ${index})" 
+                         title="Clic para editar tarea">${task.text}</div>
+                    <button class="delete-btn" onclick="deleteBloqueTask(${bloque.id}, ${index})" title="Eliminar tarea">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </li>
+            `;
+        });
+
+        const card = `
+            <div class="bloque-card">
+                <div class="bloque-card-top">
+                    <div class="bloque-card-title" 
+                         onclick="editBloque(${bloque.id})" 
+                         oncontextmenu="event.preventDefault(); deleteBloque(${bloque.id}, '${bloque.name}')" 
+                         title="Clic: Editar Nombre | Clic Derecho: Eliminar Bloque">
+                        ${bloque.name}
+                    </div>
+                    <button class="bloque-add-task" onclick="addBloqueTask(${bloque.id})">
+                        + Tarea
+                    </button>
+                </div>
+                <ul class="bloque-task-list">
+                    ${tasksHTML}
+                </ul>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', card);
+    });
+}
+
+// -- CRUD del Bloque Principal --
+
+async function addBloque() {
+    const name = prompt("Nombre del nuevo bloque (Ej: Mañana):");
+    if (!name || name.trim() === "") return;
+
+    const { error } = await _supabase
+        .from('bloques_logs')
+        .insert([{ name: name.trim(), tasks: [] }]);
+
+    if (error) alert("Error: " + error.message);
+    else loadBloques();
+}
+
+async function editBloque(id) {
+    const currentName = bloquesState[id].name;
+    const newName = prompt("Editar nombre del bloque:", currentName);
+    if (!newName || newName.trim() === "" || newName === currentName) return;
+
+    const { error } = await _supabase
+        .from('bloques_logs')
+        .update({ name: newName.trim() })
+        .eq('id', id);
+
+    if (error) alert("Error: " + error.message);
+    else loadBloques();
+}
+
+async function deleteBloque(id, name) {
+    if (!confirm(`¿Eliminar todo el bloque "${name}" y sus tareas?`)) return;
+
+    const { error } = await _supabase
+        .from('bloques_logs')
+        .delete()
+        .eq('id', id);
+
+    if (error) alert("Error: " + error.message);
+    else loadBloques();
+}
+
+// -- CRUD de las Subtareas (JSONB) --
+
+async function updateTasksDB(id, newTasksArray) {
+    const { error } = await _supabase
+        .from('bloques_logs')
+        .update({ tasks: newTasksArray })
+        .eq('id', id);
+
+    if (error) {
+        console.error("Error actualizando tareas:", error.message);
+    } else {
+        loadBloques();
+    }
+}
+
+function addBloqueTask(id) {
+    const text = prompt("Nueva actividad para este bloque:");
+    if (!text || text.trim() === "") return;
+
+    const tasks = bloquesState[id].tasks || [];
+    tasks.push({ text: text.trim(), done: false });
+    
+    updateTasksDB(id, tasks);
+}
+
+function editBloqueTask(id, taskIndex) {
+    const tasks = bloquesState[id].tasks;
+    const newText = prompt("Editar tarea:", tasks[taskIndex].text);
+    
+    if (!newText || newText.trim() === "" || newText === tasks[taskIndex].text) return;
+
+    tasks[taskIndex].text = newText.trim();
+    updateTasksDB(id, tasks);
+}
+
+function deleteBloqueTask(id, taskIndex) {
+    const tasks = bloquesState[id].tasks;
+    tasks.splice(taskIndex, 1);
+    updateTasksDB(id, tasks);
+}
+
+function toggleBloqueTask(id, taskIndex) {
+    const tasks = bloquesState[id].tasks;
+    tasks[taskIndex].done = !tasks[taskIndex].done;
+    updateTasksDB(id, tasks);
+}
+
+
+
+
 
 
 
@@ -684,6 +841,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadIdeas();
     loadTareas();
     loadLoves();
+    loadBloques();
     
     _supabase.channel('habit-changes')
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'habit_logs' }, () => loadHabits())
