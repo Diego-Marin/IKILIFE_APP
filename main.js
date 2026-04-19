@@ -12,13 +12,13 @@ function toggleTheme() {
     const body = document.body;
     const sunIcon = document.querySelector('.sun-icon');
     const moonIcon = document.querySelector('.moon-icon');
-    
+
     body.classList.toggle('dark-mode');
-    
+
     // Guardar preferencia en localStorage
     const isDark = body.classList.contains('dark-mode');
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    
+
     // Actualizar visibilidad de los iconos
     if (isDark) {
         sunIcon.classList.add('hidden');
@@ -53,14 +53,14 @@ function applySavedTheme() {
  */
 function updateWeeklyProgress() {
     const today = new Date();
-    
+
     // Asignar fecha completa
     const dateElement = document.getElementById('current-month-text');
     if (dateElement) {
-        const fullDate = new Intl.DateTimeFormat('es-CO', { 
-            day: 'numeric', 
-            month: 'long', 
-            year: 'numeric' 
+        const fullDate = new Intl.DateTimeFormat('es-CO', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
         }).format(today);
         dateElement.textContent = fullDate;
     }
@@ -78,14 +78,14 @@ function updateWeeklyProgress() {
 
     // Inyectar las fechas de la semana en la cabecera (01, 02...)
     const monday = new Date(today);
-    monday.setDate(today.getDate() - currentDay + 1); 
+    monday.setDate(today.getDate() - currentDay + 1);
 
     for (let i = 0; i < 7; i++) {
         const dayDate = new Date(monday);
         dayDate.setDate(monday.getDate() + i);
         // Formatea el número a dos dígitos (ej. 1 -> 01)
         const dayString = String(dayDate.getDate()).padStart(2, '0');
-        
+
         // Aplica el número al elemento HTML correspondiente
         const labelEl = document.getElementById(`day-label-${i + 1}`);
         if (labelEl) {
@@ -98,7 +98,7 @@ function updateWeeklyProgress() {
     segments.forEach((segment, index) => {
         const segmentDay = index + 1;
         segment.classList.remove('past', 'today', 'future');
-        
+
         if (segmentDay <= currentDay) {
             // Días transcurridos y el actual en verde
             segment.classList.add(segmentDay === currentDay ? 'today' : 'past');
@@ -116,48 +116,76 @@ function updateWeeklyProgress() {
 
 /**
  * ==========================================
- * GESTIÓN DE HÁBITOS (CRUD)
+ * GESTIÓN DE HÁBITOS (HISTÓRICO Y DINÁMICO)
  * ==========================================
  */
 
+// Utilidad para obtener formato de fecha local correcto (YYYY-MM-DD) sin desfase de zona horaria
+function formatDateLocal(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 async function loadHabits() {
-    const { data: habits, error } = await _supabase
+    const today = new Date();
+    let currentDay = today.getDay();
+    currentDay = currentDay === 0 ? 7 : currentDay;
+
+    // Calcular el Lunes de la semana actual
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - currentDay + 1);
+
+    // Generar el array con las 7 fechas de esta semana
+    const datesOfWeek = [];
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        datesOfWeek.push(formatDateLocal(d));
+    }
+
+    // 1. Obtener la lista completa de hábitos existentes para mostrarlos todos en la vista
+    const { data: allHabitsData, error: err1 } = await _supabase.from('habit_logs').select('habit_name');
+    if (err1) return console.error("Error obteniendo nombres:", err1.message);
+    const uniqueHabits = [...new Set(allHabitsData.map(h => h.habit_name))].sort();
+
+    // 2. Obtener los registros específicos de esta semana para pintar los círculos
+    const { data: weekLogs, error: err2 } = await _supabase
         .from('habit_logs')
         .select('*')
-        .order('id', { ascending: true });
+        .gte('log_date', datesOfWeek[0])
+        .lte('log_date', datesOfWeek[6]);
 
-    if (error) {
-        console.error("Error cargando hábitos:", error.message);
-        return;
-    }
+    if (err2) return console.error("Error cargando logs semanales:", err2.message);
 
     const listContainer = document.getElementById('list-habits');
     if (!listContainer) return;
-    
     listContainer.innerHTML = '';
-    const diasSemana = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
 
-    habits.forEach(habit => {
+    uniqueHabits.forEach(habitName => {
         let circlesHTML = '';
-        
-        diasSemana.forEach(dia => {
-            const isDone = habit[dia];
+
+        datesOfWeek.forEach(dateStr => {
+            const log = weekLogs.find(l => l.habit_name === habitName && l.log_date === dateStr);
+            const isDone = log ? log.is_completed : false;
+
             circlesHTML += `
                 <div class="status-circle" 
                      style="background-color: ${isDone ? 'var(--primary-green)' : 'transparent'}; 
                             border-color: ${isDone ? 'var(--primary-green)' : '#999'}"
-                     onclick="toggleHabit('${habit.habit_name}', '${dia}', ${isDone})">
+                     onclick="toggleHabit('${habitName}', '${dateStr}', ${isDone})">
                 </div>`;
         });
 
         const row = `
             <li class="habit-grid">
                 <div class="item-name" 
-                     onclick="editHabit('${habit.habit_name}')"
-                     oncontextmenu="event.preventDefault(); deleteHabit('${habit.habit_name}')"
+                     onclick="editHabit('${habitName}')"
+                     oncontextmenu="event.preventDefault(); deleteHabit('${habitName}')"
                      style="cursor: pointer;"
-                     title="Clic: Editar | Clic Derecho: Eliminar">
-                    ${habit.habit_name}
+                     title="Clic: Editar | Clic Derecho: Eliminar todo su historial">
+                    ${habitName}
                 </div>
                 ${circlesHTML}
             </li>
@@ -170,37 +198,42 @@ async function addHabit() {
     const name = prompt("Crea un nuevo hábito:");
     if (!name || name.trim() === "") return;
 
+    // Al crear un hábito, insertamos un registro "falso" hoy para que quede registrado en la base de datos
+    const todayStr = formatDateLocal(new Date());
+
     const { error } = await _supabase
         .from('habit_logs')
-        .insert([{ habit_name: name.trim() }]);
+        .insert([{ habit_name: name.trim(), log_date: todayStr, is_completed: false }]);
 
     if (error) {
         alert("Error al guardar: " + error.message);
     } else {
-        window.location.reload();
+        loadHabits();
     }
 }
 
-async function toggleHabit(habitName, diaColumna, currentState) {
-    const updateData = {};
-    updateData[diaColumna] = !currentState;
-
+async function toggleHabit(habitName, dateStr, currentState) {
+    // Upsert usando la restricción de fecha y nombre para no crear duplicados en el mismo día
     const { error } = await _supabase
         .from('habit_logs')
-        .update(updateData)
-        .eq('habit_name', habitName);
+        .upsert({
+            habit_name: habitName,
+            log_date: dateStr,
+            is_completed: !currentState
+        }, { onConflict: 'habit_name, log_date' });
 
     if (error) {
         console.error("Error actualizando hábito:", error.message);
     } else {
-        loadHabits(); 
+        loadHabits();
     }
 }
 
 async function editHabit(oldName) {
-    const newName = prompt("Editar nombre:", oldName);
+    const newName = prompt("Editar nombre (afectará a todo su historial):", oldName);
     if (!newName || newName.trim() === "" || newName === oldName) return;
 
+    // Actualiza el nombre del hábito en todos sus registros históricos
     const { error } = await _supabase
         .from('habit_logs')
         .update({ habit_name: newName.trim() })
@@ -209,12 +242,12 @@ async function editHabit(oldName) {
     if (error) {
         alert("Error al editar: " + error.message);
     } else {
-        window.location.reload();
+        loadHabits();
     }
 }
 
 async function deleteHabit(name) {
-    const confirmDelete = confirm(`¿Deseas eliminar "${name}"?`);
+    const confirmDelete = confirm(`¿Deseas eliminar "${name}" y TODO su registro histórico?`);
     if (!confirmDelete) return;
 
     const { error } = await _supabase
@@ -225,7 +258,7 @@ async function deleteHabit(name) {
     if (error) {
         alert("Error al eliminar: " + error.message);
     } else {
-        window.location.reload();
+        loadHabits();
     }
 }
 
@@ -243,12 +276,12 @@ function switchTab(tab, btn) {
     btn.classList.add('tab-active');
     btn.classList.remove('tab-inactive');
 
-    const views = ['view-habits', 'view-money', 'view-ideas', 'view-escuelas', 'view-tareas', 'view-loves', 'view-bloques' ];
+    const views = ['view-habits', 'view-money', 'view-ideas', 'view-escuelas', 'view-tareas', 'view-loves', 'view-bloques', 'view-metrics'];
     views.forEach(v => {
         const viewEl = document.getElementById(v);
         if (viewEl) viewEl.classList.remove('active');
     });
-    
+
     const targetView = document.getElementById(`view-${tab}`);
     if (targetView) targetView.classList.add('active');
 }
@@ -260,7 +293,7 @@ async function saveLearning() {
     const { error } = await _supabase
         .from('journal_logs')
         .insert([{ content: textEl.value }]);
-        
+
     if (!error) {
         alert("Guardado");
         textEl.value = '';
@@ -305,12 +338,12 @@ async function loadEscuelas() {
 
     const listContainer = document.getElementById('list-escuelas');
     if (!listContainer) return;
-    
+
     listContainer.innerHTML = '';
 
     escuelas.forEach(escuela => {
         const progress = escuela.progress || 0;
-        
+
         const row = `
             <li class="escuela-grid">
                 <div class="item-name" 
@@ -358,7 +391,7 @@ async function incrementEscuelaProgress(id, currentProgress) {
     if (error) {
         console.error("Error actualizando progreso:", error.message);
     } else {
-        loadEscuelas(); 
+        loadEscuelas();
     }
 }
 
@@ -407,8 +440,8 @@ async function loadIdeas() {
     const { data: ideas, error } = await _supabase
         .from('ideas_logs')
         .select('*')
-        .order('created_at', { ascending: false }) 
-        .limit(30); 
+        .order('created_at', { ascending: false })
+        .limit(30);
 
     if (error) {
         console.error("Error cargando ideas:", error.message);
@@ -580,7 +613,7 @@ async function loadLoves() {
 
     loves.forEach(love => {
         const currentCount = love.count || 0;
-        
+
         const row = `
             <li class="love-row">
                 <div class="love-content"
@@ -626,7 +659,7 @@ async function incrementLove(id, currentCount) {
     if (error) {
         console.error("Error sumando contador:", error.message);
     } else {
-        loadLoves(); 
+        loadLoves();
     }
 }
 
@@ -691,12 +724,12 @@ async function loadBloques() {
     bloques.forEach(bloque => {
         bloquesState[bloque.id] = bloque; // Guardar en memoria
         const tasks = bloque.tasks || [];
-        
+
         let tasksHTML = '';
         tasks.forEach((task, index) => {
             const isDoneClass = task.done ? 'task-done' : '';
             const isChecked = task.done ? 'checked' : '';
-            
+
             tasksHTML += `
                 <li class="bloque-task-item">
                     <input type="checkbox" class="task-checkbox" ${isChecked} onchange="toggleBloqueTask(${bloque.id}, ${index})">
@@ -796,14 +829,14 @@ function addBloqueTask(id) {
 
     const tasks = bloquesState[id].tasks || [];
     tasks.push({ text: text.trim(), done: false });
-    
+
     updateTasksDB(id, tasks);
 }
 
 function editBloqueTask(id, taskIndex) {
     const tasks = bloquesState[id].tasks;
     const newText = prompt("Editar tarea:", tasks[taskIndex].text);
-    
+
     if (!newText || newText.trim() === "" || newText === tasks[taskIndex].text) return;
 
     tasks[taskIndex].text = newText.trim();
@@ -823,6 +856,119 @@ function toggleBloqueTask(id, taskIndex) {
 }
 
 
+/**
+ * ==========================================
+ * GESTIÓN DE MÉTRICAS (CHART.JS)
+ * ==========================================
+ */
+let chartInstance = null;
+
+async function loadMetrics() {
+    const { data: logs, error } = await _supabase
+        .from('habit_logs')
+        .select('*')
+        .order('log_date', { ascending: true });
+
+    if (error) return console.error("Error cargando métricas:", error.message);
+
+    // Agrupar datos por fecha
+    const dateStats = {};
+    logs.forEach(log => {
+        if (!dateStats[log.log_date]) {
+            dateStats[log.log_date] = { total: 0, completed: 0 };
+        }
+        dateStats[log.log_date].total += 1;
+        if (log.is_completed) {
+            dateStats[log.log_date].completed += 1;
+        }
+    });
+
+    const labels = Object.keys(dateStats).sort();
+    const dataPoints = labels.map(date => {
+        const stat = dateStats[date];
+        return Math.round((stat.completed / stat.total) * 100);
+    });
+
+    renderChart(labels, dataPoints);
+    renderTable(labels, dateStats);
+}
+
+function renderChart(labels, dataPoints) {
+    const ctx = document.getElementById('metricsChart');
+    if (!ctx) return;
+
+    if (chartInstance) {
+        chartInstance.destroy(); // Destruir instancia previa para evitar superposición
+    }
+
+    const isDark = document.body.classList.contains('dark-mode');
+    const textColor = isDark ? '#EAEAEA' : '#1A1A1A';
+    const gridColor = isDark ? '#2D2D2D' : '#E5E5E5';
+
+    chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Rendimiento Global (%)',
+                data: dataPoints,
+                borderColor: '#74C08A',
+                backgroundColor: 'rgba(116, 192, 138, 0.2)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3,
+                pointBackgroundColor: '#74C08A'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    grid: { color: gridColor },
+                    ticks: { color: textColor }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: textColor }
+                }
+            },
+            plugins: {
+                legend: { labels: { color: textColor } }
+            }
+        }
+    });
+}
+
+function renderTable(labels, dateStats) {
+    const tbody = document.getElementById('metrics-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    // Invertir el array para mostrar los días más recientes primero
+    [...labels].reverse().forEach(date => {
+        const stat = dateStats[date];
+        const pct = Math.round((stat.completed / stat.total) * 100);
+        const row = `
+            <tr>
+                <td>${date}</td>
+                <td>${stat.completed} / ${stat.total}</td>
+                <td><strong>${pct}%</strong></td>
+            </tr>
+        `;
+        tbody.insertAdjacentHTML('beforeend', row);
+    });
+}
+
+
+
+
+
+
+
+
 
 
 
@@ -835,20 +981,18 @@ function toggleBloqueTask(id, taskIndex) {
  */
 document.addEventListener('DOMContentLoaded', () => {
     applySavedTheme();
-    updateWeeklyProgress(); 
+    updateWeeklyProgress();
     loadHabits();
     loadEscuelas();
     loadIdeas();
     loadTareas();
     loadLoves();
     loadBloques();
-    
+    loadMetrics();
+
     _supabase.channel('habit-changes')
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'habit_logs' }, () => loadHabits())
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'habit_logs' }, () => loadHabits())
         .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'habit_logs' }, () => loadHabits())
         .subscribe();
 });
-
-
-
