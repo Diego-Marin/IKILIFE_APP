@@ -116,18 +116,34 @@
 
                     <ul id="list-habits" style="list-style:none;"></ul>
 
-                    <div style="display: flex; justify-content: center; margin-top: 20px; padding-bottom: 10px;">
+                    <div
+                        style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 20px; padding-bottom: 16px;">
+
                         <button class="add-habit-btn" onclick="exportHabitsCSV()"
                             aria-label="Exportar datos a Excel/CSV"
-                            style="background-color: var(--border-color); color: var(--text-dark);">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-dark);">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                                style="margin-right: 4px;">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                                 <polyline points="7 10 12 15 17 10"></polyline>
                                 <line x1="12" y1="15" x2="12" y2="3"></line>
                             </svg>
-                            Exportar Semana (CSV)
+                            Semana (CSV)
                         </button>
+
+                        <button class="add-habit-btn" onclick="exportAllHistoryCSV()" aria-label="Exportar histórico"
+                            style="background-color: var(--text-dark); color: var(--bg-light); border: 1px solid var(--text-dark);">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                                style="margin-right: 4px;">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Historial Completo
+                        </button>
+
                     </div>
                 </section>
             </div>
@@ -375,7 +391,7 @@
                 <section class="category">
                     <div class="category-header">Desglose Reciente</div>
                     <div class="minimal-daily-list" id="metrics-daily-list">
-                        </div>
+                    </div>
                 </section>
             </div>
         </main>

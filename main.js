@@ -1028,7 +1028,70 @@ function renderMinimalList(labels, dateStats, totalHabits) {
         container.insertAdjacentHTML('beforeend', row);
     });
 }
+/**
+ * Exportar TODO el historial de hábitos a CSV
+ */
+async function exportAllHistoryCSV() {
+    // 1. Obtener todos los registros históricos ordenados por fecha
+    const { data: allLogs, error } = await _supabase
+        .from('habit_logs')
+        .select('*')
+        .order('log_date', { ascending: true });
 
+    if (error) return alert("Error al conectar con la base de datos.");
+    if (!allLogs || allLogs.length === 0) return alert("No hay datos históricos para exportar.");
+
+    // 2. Extraer la lista de todos los hábitos únicos creados
+    const uniqueHabits = [...new Set(allLogs.map(l => l.habit_name))].sort();
+
+    // 3. Determinar el rango de fechas continuo (desde el primer registro hasta hoy)
+    const firstDateStr = allLogs[0].log_date;
+    const firstDate = new Date(firstDateStr + 'T00:00:00'); // Evitar desfase horario
+    const today = new Date();
+    
+    const allDates = [];
+    let currentDate = new Date(firstDate);
+    
+    // Rellenar array con TODOS los días intermedios
+    while (currentDate <= today) {
+        allDates.push(formatDateLocal(currentDate));
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    // 4. Construir el archivo CSV
+    let csvContent = "\uFEFF"; // BOM para acentos en Excel
+    csvContent += "Hábito," + allDates.join(",") + ",Total Histórico\n";
+
+    uniqueHabits.forEach(habitName => {
+        let row = `"${habitName}"`;
+        let totalCompletados = 0;
+
+        // Validar día por día
+        allDates.forEach(dateStr => {
+            const log = allLogs.find(l => l.habit_name === habitName && l.log_date === dateStr);
+            const isDone = log ? log.is_completed : false;
+            
+            if (isDone) totalCompletados++;
+            
+            row += isDone ? ",Sí" : ",No"; // Rellena con 'No' si el dato no existe en DB
+        });
+        
+        row += `,${totalCompletados}`;
+        csvContent += row + "\n";
+    });
+
+    // 5. Crear el archivo y forzar la descarga
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute("href", url);
+    link.setAttribute("download", `IKILIFE_Historial_Completo.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
 
 
 
