@@ -963,6 +963,76 @@ function renderTable(labels, dateStats) {
 }
 
 
+/**
+ * Exportar Hábitos de la Semana Actual a CSV
+ */
+async function exportHabitsCSV() {
+    const today = new Date();
+    let currentDay = today.getDay();
+    currentDay = currentDay === 0 ? 7 : currentDay;
+
+    // Calcular el Lunes de la semana actual
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - currentDay + 1);
+
+    const datesOfWeek = [];
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        datesOfWeek.push(formatDateLocal(d));
+    }
+
+    // Traer todos los nombres de hábitos
+    const { data: allHabitsData, error: err1 } = await _supabase.from('habit_logs').select('habit_name');
+    if (err1) return alert("Error al obtener datos para exportar.");
+    const uniqueHabits = [...new Set(allHabitsData.map(h => h.habit_name))].sort();
+
+    // Traer los registros de esta semana
+    const { data: weekLogs, error: err2 } = await _supabase
+        .from('habit_logs')
+        .select('*')
+        .gte('log_date', datesOfWeek[0])
+        .lte('log_date', datesOfWeek[6]);
+        
+    if (err2) return alert("Error al obtener registros de la semana.");
+
+    // Construir el archivo CSV
+    let csvContent = "\uFEFF"; // BOM para que Excel lea los acentos (UTF-8)
+    csvContent += "Hábito," + datesOfWeek.join(",") + ",Total Completados\n";
+
+    uniqueHabits.forEach(habitName => {
+        let row = `"${habitName}"`;
+        let totalCompletados = 0;
+
+        datesOfWeek.forEach(dateStr => {
+            const log = weekLogs.find(l => l.habit_name === habitName && l.log_date === dateStr);
+            const isDone = log ? log.is_completed : false;
+            
+            if(isDone) totalCompletados++;
+            
+            row += isDone ? ",Sí" : ",No";
+        });
+        
+        row += `,${totalCompletados}`;
+        csvContent += row + "\n";
+    });
+
+    // Crear el archivo y forzar la descarga en el navegador
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute("href", url);
+    link.setAttribute("download", `IKILIFE_Habitos_${datesOfWeek[0]}_al_${datesOfWeek[6]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+
+
+
 
 
 
