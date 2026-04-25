@@ -858,12 +858,19 @@ function toggleBloqueTask(id, taskIndex) {
 
 /**
  * ==========================================
- * GESTIÓN DE MÉTRICAS (CHART.JS)
+ * GESTIÓN DE MÉTRICAS (CHART.JS - MINIMALISTA)
  * ==========================================
  */
 let chartInstance = null;
 
 async function loadMetrics() {
+    // 1. Conocer el total absoluto de hábitos creados para usar como base del 100%
+    const { data: allHabitsData, error: errHabits } = await _supabase.from('habit_logs').select('habit_name');
+    if (errHabits) return console.error("Error obteniendo hábitos:", errHabits.message);
+    const uniqueHabits = [...new Set(allHabitsData.map(h => h.habit_name))];
+    const totalHabits = uniqueHabits.length > 0 ? uniqueHabits.length : 1;
+
+    // 2. Traer registros de completado
     const { data: logs, error } = await _supabase
         .from('habit_logs')
         .select('*')
@@ -871,26 +878,55 @@ async function loadMetrics() {
 
     if (error) return console.error("Error cargando métricas:", error.message);
 
-    // Agrupar datos por fecha
+    // 3. Agrupar y filtrar (Ignorar días futuros para no alterar promedios)
+    const todayStr = formatDateLocal(new Date());
     const dateStats = {};
+
     logs.forEach(log => {
+        if (log.log_date > todayStr) return; // Cortar filtro en el día de hoy
+
         if (!dateStats[log.log_date]) {
-            dateStats[log.log_date] = { total: 0, completed: 0 };
+            dateStats[log.log_date] = { completed: 0 };
         }
-        dateStats[log.log_date].total += 1;
         if (log.is_completed) {
             dateStats[log.log_date].completed += 1;
         }
     });
 
-    const labels = Object.keys(dateStats).sort();
-    const dataPoints = labels.map(date => {
+    const allLabels = Object.keys(dateStats).sort();
+    const recentLabels = allLabels.slice(-7); // Máximo últimos 7 días registrados
+
+    let sumPct = 0;
+    let bestDayDate = "--";
+    let bestDayPct = -1;
+
+    // 4. Calcular sobre la base estricta de total de hábitos
+    const dataPoints = recentLabels.map(date => {
         const stat = dateStats[date];
-        return Math.round((stat.completed / stat.total) * 100);
+        const pct = Math.round((stat.completed / totalHabits) * 100);
+
+        sumPct += pct;
+        if (pct > bestDayPct) {
+            bestDayPct = pct;
+            bestDayDate = date;
+        }
+        return pct;
     });
 
-    renderChart(labels, dataPoints);
-    renderTable(labels, dateStats);
+    // KPI Promedio (Solo divide por los días que han pasado)
+    const avgPct = recentLabels.length > 0 ? Math.round(sumPct / recentLabels.length) : 0;
+    document.getElementById('kpi-avg').textContent = `${avgPct}%`;
+
+    // KPI Mejor Día (Mismo formato: "Domingo 26")
+    if (bestDayDate !== "--") {
+        const dObj = new Date(bestDayDate + 'T00:00:00');
+        const weekDayName = dObj.toLocaleDateString('es-CO', { weekday: 'long' });
+        const dayNum = dObj.getDate();
+        document.getElementById('kpi-best').textContent = weekDayName.charAt(0).toUpperCase() + weekDayName.slice(1) + ' ' + dayNum;
+    }
+
+    renderChart(recentLabels, dataPoints);
+    renderMinimalList(recentLabels, dateStats, totalHabits);
 }
 
 function renderChart(labels, dataPoints) {
@@ -898,69 +934,103 @@ function renderChart(labels, dataPoints) {
     if (!ctx) return;
 
     if (chartInstance) {
-        chartInstance.destroy(); // Destruir instancia previa para evitar superposición
+        chartInstance.destroy();
     }
 
     const isDark = document.body.classList.contains('dark-mode');
-    const textColor = isDark ? '#EAEAEA' : '#1A1A1A';
-    const gridColor = isDark ? '#2D2D2D' : '#E5E5E5';
+    const textColor = isDark ? '#888888' : '#666666';
+
+    const shortLabels = labels.map(date => {
+        const d = new Date(date + 'T00:00:00');
+        const weekDayName = d.toLocaleDateString('es-CO', { weekday: 'short' });
+        return weekDayName.charAt(0).toUpperCase() + weekDayName.slice(1) + ' ' + d.getDate();
+    });
 
     chartInstance = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: labels,
+            labels: shortLabels,
             datasets: [{
-                label: 'Rendimiento Global (%)',
                 data: dataPoints,
                 borderColor: '#74C08A',
-                backgroundColor: 'rgba(116, 192, 138, 0.2)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.3,
-                pointBackgroundColor: '#74C08A'
+                borderWidth: 3,
+                fill: false,
+                tension: 0.4,
+                pointBackgroundColor: '#74C08A',
+                pointBorderWidth: 0,
+                pointRadius: 4,
+                pointHoverRadius: 6
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: isDark ? '#1C1C1C' : '#ffffff',
+                    titleColor: isDark ? '#EAEAEA' : '#1A1A1A',
+                    bodyColor: isDark ? '#EAEAEA' : '#1A1A1A',
+                    borderColor: isDark ? '#2D2D2D' : '#E5E5E5',
+                    borderWidth: 1,
+                    displayColors: false,
+                    callbacks: {
+                        label: function (context) { return `${context.parsed.y}% Completado`; }
+                    }
+                }
+            },
             scales: {
                 y: {
                     beginAtZero: true,
-                    max: 100,
-                    grid: { color: gridColor },
-                    ticks: { color: textColor }
+                    max: 110, // ESPACIO EXTRA para que el 100% no se corte
+                    border: { display: false },
+                    grid: { display: false },
+                    ticks: { color: textColor, font: { size: 10 }, stepSize: 25 }
                 },
                 x: {
+                    border: { display: false },
                     grid: { display: false },
-                    ticks: { color: textColor }
+                    ticks: { color: textColor, font: { size: 10 } }
                 }
-            },
-            plugins: {
-                legend: { labels: { color: textColor } }
             }
         }
     });
 }
 
-function renderTable(labels, dateStats) {
-    const tbody = document.getElementById('metrics-tbody');
-    if (!tbody) return;
-    tbody.innerHTML = '';
+function renderMinimalList(labels, dateStats, totalHabits) {
+    const container = document.getElementById('metrics-daily-list');
+    if (!container) return;
+    container.innerHTML = '';
 
-    // Invertir el array para mostrar los días más recientes primero
     [...labels].reverse().forEach(date => {
         const stat = dateStats[date];
-        const pct = Math.round((stat.completed / stat.total) * 100);
+        const pct = Math.round((stat.completed / totalHabits) * 100);
+
+        // Formato "Domingo 26"
+        const dObj = new Date(date + 'T00:00:00');
+        const weekDayName = dObj.toLocaleDateString('es-CO', { weekday: 'long' });
+        const dayNum = dObj.getDate();
+        const displayDate = weekDayName.charAt(0).toUpperCase() + weekDayName.slice(1) + ' ' + dayNum;
+
+        // Inyectando fracción debajo del porcentaje
         const row = `
-            <tr>
-                <td>${date}</td>
-                <td>${stat.completed} / ${stat.total}</td>
-                <td><strong>${pct}%</strong></td>
-            </tr>
+            <div class="daily-row">
+                <div class="daily-date">${displayDate}</div>
+                <div class="daily-bar-bg" title="${stat.completed} de ${totalHabits} completados">
+                    <div class="daily-bar-fill" style="width: ${pct}%;"></div>
+                </div>
+                <div class="daily-pct" style="line-height: 1.2;">
+                    <span style="display:block;">${pct}%</span>
+                    <span style="display:block; font-size: 0.65rem; color: var(--text-muted); font-weight: normal;">${stat.completed}/${totalHabits}</span>
+                </div>
+            </div>
         `;
-        tbody.insertAdjacentHTML('beforeend', row);
+        container.insertAdjacentHTML('beforeend', row);
     });
 }
+
+
+
 
 
 /**
@@ -993,7 +1063,7 @@ async function exportHabitsCSV() {
         .select('*')
         .gte('log_date', datesOfWeek[0])
         .lte('log_date', datesOfWeek[6]);
-        
+
     if (err2) return alert("Error al obtener registros de la semana.");
 
     // Construir el archivo CSV
@@ -1007,12 +1077,12 @@ async function exportHabitsCSV() {
         datesOfWeek.forEach(dateStr => {
             const log = weekLogs.find(l => l.habit_name === habitName && l.log_date === dateStr);
             const isDone = log ? log.is_completed : false;
-            
-            if(isDone) totalCompletados++;
-            
+
+            if (isDone) totalCompletados++;
+
             row += isDone ? ",Sí" : ",No";
         });
-        
+
         row += `,${totalCompletados}`;
         csvContent += row + "\n";
     });
@@ -1021,7 +1091,7 @@ async function exportHabitsCSV() {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
-    
+
     link.setAttribute("href", url);
     link.setAttribute("download", `IKILIFE_Habitos_${datesOfWeek[0]}_al_${datesOfWeek[6]}.csv`);
     link.style.visibility = 'hidden';

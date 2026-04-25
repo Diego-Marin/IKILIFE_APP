@@ -130,10 +130,6 @@
                         </button>
                     </div>
                 </section>
-
-                <section class="category">
-                    <div class="category-header">¿Qué aprendí hoy?</div>
-                </section>
             </div>
 
             <div id="view-money" class="view-content">
@@ -358,28 +354,28 @@
             </div>
 
             <div id="view-metrics" class="view-content">
+                <div class="metrics-kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-label">Promedio (7 días)</div>
+                        <div class="kpi-value" id="kpi-avg">--%</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Mejor Día</div>
+                        <div class="kpi-value" id="kpi-best">--</div>
+                    </div>
+                </div>
+
                 <section class="category">
-                    <div class="category-header">Evolución de Hábitos (% Completado)</div>
-                    <div class="chart-wrapper">
+                    <div class="category-header">Tendencia de Cumplimiento</div>
+                    <div class="chart-wrapper" style="height: 220px;">
                         <canvas id="metricsChart"></canvas>
                     </div>
                 </section>
 
                 <section class="category">
-                    <div class="category-header">Registro Diario</div>
-                    <div class="table-responsive">
-                        <table class="metrics-table">
-                            <thead>
-                                <tr>
-                                    <th>Fecha</th>
-                                    <th>Completados</th>
-                                    <th>Rendimiento</th>
-                                </tr>
-                            </thead>
-                            <tbody id="metrics-tbody">
-                            </tbody>
-                        </table>
-                    </div>
+                    <div class="category-header">Desglose Reciente</div>
+                    <div class="minimal-daily-list" id="metrics-daily-list">
+                        </div>
                 </section>
             </div>
         </main>
