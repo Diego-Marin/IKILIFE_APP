@@ -81,7 +81,7 @@
             <button class="tab-btn tab-active" onclick="switchTab('habits', this)">Habits</button>
             <button class="tab-btn tab-inactive" onclick="switchTab('metrics', this)">Metrics</button>
 
-            <button class="tab-btn tab-inactive" onclick="switchTab('tareas', this)">Tasks</button>
+            <button class="tab-btn tab-inactive" onclick="switchTab('tareas', this)">Acciónes inaplazables</button>
             <button class="tab-btn tab-inactive" onclick="switchTab('money', this)">Finance</button>
 
             <button class="tab-btn tab-inactive" onclick="switchTab('ideas', this)">Ideas</button>
@@ -93,6 +93,7 @@
         </nav>
 
         <main id="main-content">
+
             <div id="view-habits" class="view-content active">
                 <section class="category">
 
@@ -149,133 +150,102 @@
             </div>
 
             <div id="view-money" class="view-content">
-                <div id="finance-main">
-                    <div class="finance-top-bar">
-                        <h3>Marzo 01 - 31</h3>
-                    </div>
 
-                    <section class="summary-grid">
-                        <div class="summary-card clickable" onclick="toggleFinanceView('finance-income')"
-                            title="Ver detalles de ingresos">
-                            <div class="summary-label">Ingresos Totales &#8594;</div>
-                            <div class="summary-value text-income">$3.364.000</div>
-                        </div>
-                        <div class="summary-card">
-                            <div class="summary-label">Ahorro / Capital</div>
-                            <div class="summary-value text-savings">$477.800</div>
-                        </div>
-                        <div class="summary-card full-width">
-                            <div class="summary-label">Gastos Totales (Pagado)</div>
-                            <div class="summary-value text-expense">$3.227.200</div>
-                        </div>
-                    </section>
-
-                    <section class="category">
-                        <div class="category-header">Obligations</div>
-                        <div class="finance-item-header">
-                            <div>Concepto</div>
-                            <div>Proyectado</div>
-                            <div>Real</div>
-                        </div>
-                        <ul style="list-style:none;">
-                            <li class="finance-item">
-                                <div class="finance-item-name">Mother</div>
-                                <div class="finance-item-projected">$500.000</div>
-                                <div><input type="number" class="finance-input text-expense" value="480000"
-                                        placeholder="0"></div>
-                            </li>
-                            <li class="finance-item">
-                                <div class="finance-item-name">Seguridad Social</div>
-                                <div class="finance-item-projected">$542.000</div>
-                                <div><input type="number" class="finance-input text-expense" value="542000"
-                                        placeholder="0"></div>
-                            </li>
-                            <li class="finance-item">
-                                <div class="finance-item-name">Transporte Efectivo</div>
-                                <div class="finance-item-projected">$90.000</div>
-                                <div><input type="number" class="finance-input text-expense" value="58000"
-                                        placeholder="0"></div>
-                            </li>
-                            <li class="finance-item">
-                                <div class="finance-item-name">Credit Bancolombia</div>
-                                <div class="finance-item-projected">$100.000</div>
-                                <div><input type="number" class="finance-input text-expense" value="76000"
-                                        placeholder="0"></div>
-                            </li>
-                        </ul>
-                    </section>
-
-                    <section class="category">
-                        <div class="category-header">Comida</div>
-                        <div class="finance-item-header">
-                            <div>Concepto</div>
-                            <div>Proyectado</div>
-                            <div>Real</div>
-                        </div>
-                        <ul style="list-style:none;">
-                            <li class="finance-item">
-                                <div class="finance-item-name">Food Semana 1</div>
-                                <div class="finance-item-projected">$150.000</div>
-                                <div><input type="number" class="finance-input text-expense" value="180000"
-                                        placeholder="0"></div>
-                            </li>
-                            <li class="finance-item">
-                                <div class="finance-item-name">Food Semana 2</div>
-                                <div class="finance-item-projected">$150.000</div>
-                                <div><input type="number" class="finance-input text-expense" value="160000"
-                                        placeholder="0"></div>
-                            </li>
-                        </ul>
-                    </section>
+                <div class="finance-sub-tabs">
+                    <button class="sub-tab-btn active" onclick="switchFinanceSubTab('finanzas', this)">Finanzas del
+                        Mes</button>
+                    <button class="sub-tab-btn" onclick="switchFinanceSubTab('compras', this)">Lista de Compras</button>
                 </div>
 
-                <div id="finance-income" class="hidden">
-                    <div class="finance-top-bar">
-                        <button class="icon-btn" onclick="toggleFinanceView('finance-main')" aria-label="Volver">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="19" y1="12" x2="5" y2="12"></line>
-                                <polyline points="12 19 5 12 12 5"></polyline>
-                            </svg>
+                <div id="subview-finanzas">
+                    <div id="finance-main">
+                        <section class="summary-grid">
+                            <div class="summary-card clickable" onclick="toggleFinanceView('finance-income')"
+                                title="Ver detalles de ingresos">
+                                <div class="summary-label">Ingresos Totales &#8594;</div>
+                                <div class="summary-value text-income" id="kpi-ingresos">$0</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-label">Ahorro / Capital</div>
+                                <div class="summary-value text-savings" id="kpi-ahorro">$0</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-label">Vida Mensual</div>
+                                <div class="summary-value text-muted" id="kpi-vida" title="Suma de lo proyectado">$0
+                                </div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-label">Gastos Totales</div>
+                                <div class="summary-value text-expense" id="kpi-gastos" title="Suma de lo pagado real">
+                                    $0</div>
+                            </div>
+                        </section>
+
+                        <div id="dynamic-expense-categories"></div>
+
+                        <button class="add-habit-btn" style="width: 100%; margin-top: 8px;"
+                            onclick="addFinanceCategory()">
+                            + Agregar Nueva Categoría
                         </button>
-                        <h3>Ingresos Detallados</h3>
-                        <div style="width: 32px;"></div>
                     </div>
 
-                    <section class="summary-grid">
-                        <div class="summary-card full-width">
-                            <div class="summary-label">Total Percibido</div>
-                            <div class="summary-value text-income">$3.364.000</div>
+                    <div id="finance-income" class="hidden">
+                        <div class="finance-top-bar">
+                            <button class="icon-btn" onclick="toggleFinanceView('finance-main')" aria-label="Volver">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                                    <polyline points="12 19 5 12 12 5"></polyline>
+                                </svg>
+                            </button>
+                            <h3>Ingresos Detallados</h3>
+                            <div style="width: 32px;"></div>
                         </div>
-                    </section>
 
+                        <section class="summary-grid">
+                            <div class="summary-card full-width">
+                                <div class="summary-label">Total Percibido</div>
+                                <div class="summary-value text-income" id="kpi-ingresos-detail">$0</div>
+                            </div>
+                        </section>
+
+                        <section class="category">
+                            <div class="category-header"
+                                style="display:flex; justify-content:space-between; align-items:center;">
+                                Fuentes de Ingreso
+                                <button class="icon-btn" onclick="addFinanceItem('income', 'Fuentes de Ingreso')"
+                                    title="Agregar Ingreso" style="padding: 2px;">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="finance-item-header">
+                                <div>Concepto</div>
+                                <div title="Clic en el número para editar">Proyectado</div>
+                                <div>Real</div>
+                            </div>
+                            <ul id="list-incomes" style="list-style:none;"></ul>
+                        </section>
+                    </div>
+                </div>
+
+                <div id="subview-compras" class="hidden">
                     <section class="category">
-                        <div class="category-header">Fuentes de Ingreso</div>
-                        <div class="finance-item-header">
-                            <div>Concepto</div>
-                            <div>Proyectado</div>
-                            <div>Real</div>
+                        <div class="item-list-header love-header">
+                            <button class="add-habit-btn" onclick="addCompra()" aria-label="Agregar compra objetivo">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                Add Compra
+                            </button>
+                            <div class="header-label">Prioridad (Votos)</div>
                         </div>
-                        <ul style="list-style:none;">
-                            <li class="finance-item">
-                                <div class="finance-item-name">Nomina</div>
-                                <div class="finance-item-projected">$3.264.000</div>
-                                <div><input type="number" class="finance-input text-income" value="3264000"
-                                        placeholder="0"></div>
-                            </li>
-                            <li class="finance-item">
-                                <div class="finance-item-name">Efectivo</div>
-                                <div class="finance-item-projected">$0</div>
-                                <div><input type="number" class="finance-input text-income" value="37000"
-                                        placeholder="0"></div>
-                            </li>
-                            <li class="finance-item">
-                                <div class="finance-item-name">Prestamo</div>
-                                <div class="finance-item-projected">$0</div>
-                                <div><input type="number" class="finance-input text-income" value="50000"
-                                        placeholder="0"></div>
-                            </li>
-                        </ul>
+                        <ul id="list-compras" style="list-style:none;"></ul>
                     </section>
                 </div>
             </div>

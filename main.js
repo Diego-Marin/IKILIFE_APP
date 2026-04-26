@@ -198,35 +198,64 @@ async function addHabit() {
     const name = prompt("Crea un nuevo hábito:");
     if (!name || name.trim() === "") return;
 
-    // Al crear un hábito, insertamos un registro "falso" hoy para que quede registrado en la base de datos
+    const habitName = name.trim();
     const todayStr = formatDateLocal(new Date());
 
-    const { error } = await _supabase
+    console.log("Intentando enviar a Supabase -> Hábito:", habitName, "Fecha:", todayStr);
+
+    // Hacemos un insert simple y usamos .select() para confirmar qué nos devuelve
+    const { data, error } = await _supabase
         .from('habit_logs')
-        .insert([{ habit_name: name.trim(), log_date: todayStr, is_completed: false }]);
+        .insert([{ habit_name: habitName, log_date: todayStr, is_completed: false }])
+        .select(); 
 
     if (error) {
-        alert("Error al guardar: " + error.message);
+        console.error("⛔ ERROR DE SUPABASE:", error);
+        alert("Fallo al guardar. Revisa la Consola (F12). Error: " + error.message);
     } else {
+        console.log("✅ ÉXITO. Datos guardados:", data);
         loadHabits();
     }
 }
 
 async function toggleHabit(habitName, dateStr, currentState) {
-    // Upsert usando la restricción de fecha y nombre para no crear duplicados en el mismo día
-    const { error } = await _supabase
+    // 1. Buscamos si existe un registro de ese hábito en esa fecha exacta
+    const { data, error: fetchError } = await _supabase
         .from('habit_logs')
-        .upsert({
-            habit_name: habitName,
-            log_date: dateStr,
-            is_completed: !currentState
-        }, { onConflict: 'habit_name, log_date' });
+        .select('id')
+        .eq('habit_name', habitName)
+        .eq('log_date', dateStr)
+        .single();
 
-    if (error) {
-        console.error("Error actualizando hábito:", error.message);
-    } else {
-        loadHabits();
+    // PGRST116 significa que la fila no existe. Es normal y lo ignoramos.
+    if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error("Error buscando registro:", fetchError.message);
+        return;
     }
+
+    if (data) {
+        // 2. Si el registro EXISTE, lo actualizamos.
+        const { error: updateError } = await _supabase
+            .from('habit_logs')
+            .update({ is_completed: !currentState })
+            .eq('id', data.id);
+            
+        if (updateError) console.error("Error actualizando:", updateError.message);
+    } else {
+        // 3. Si el registro NO EXISTE, lo insertamos.
+        const { error: insertError } = await _supabase
+            .from('habit_logs')
+            .insert([{ 
+                habit_name: habitName, 
+                log_date: dateStr, 
+                is_completed: !currentState 
+            }]);
+            
+        if (insertError) console.error("Error insertando:", insertError.message);
+    }
+    
+    loadHabits();
+    if (typeof loadMetrics === 'function') loadMetrics(); // Forzar actualización de métricas
 }
 
 async function editHabit(oldName) {
@@ -239,11 +268,8 @@ async function editHabit(oldName) {
         .update({ habit_name: newName.trim() })
         .eq('habit_name', oldName);
 
-    if (error) {
-        alert("Error al editar: " + error.message);
-    } else {
-        loadHabits();
-    }
+    if (error) alert("Error al editar: " + error.message);
+    else loadHabits();
 }
 
 async function deleteHabit(name) {
@@ -255,11 +281,8 @@ async function deleteHabit(name) {
         .delete()
         .eq('habit_name', name);
 
-    if (error) {
-        alert("Error al eliminar: " + error.message);
-    } else {
-        loadHabits();
-    }
+    if (error) alert("Error al eliminar: " + error.message);
+    else loadHabits();
 }
 
 
@@ -1093,9 +1116,6 @@ async function exportAllHistoryCSV() {
     document.body.removeChild(link);
 }
 
-
-
-
 /**
  * Exportar Hábitos de la Semana Actual a CSV
  */
@@ -1164,7 +1184,226 @@ async function exportHabitsCSV() {
 }
 
 
+/**
+ * ==========================================
+ * GESTIÓN DE FINANZAS (DINÁMICO)
+ * ==========================================
+ */
 
+// Formateador de moneda colombiana
+function formatCurrency(num) {
+    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(num || 0);
+}
+
+/**
+ * Alternar Sub-Pestañas en Finanzas
+ */
+function switchFinanceSubTab(tab, btn) {
+    document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    document.getElementById('subview-finanzas').classList.add('hidden');
+    document.getElementById('subview-compras').classList.add('hidden');
+    
+    document.getElementById(`subview-${tab}`).classList.remove('hidden');
+}
+
+/**
+ * ==========================================
+ * GESTIÓN DE FINANZAS DINÁMICAS
+ * ==========================================
+ */
+async function loadFinances() {
+    const { data: finances, error } = await _supabase.from('finance_logs').select('*').order('id', { ascending: true });
+    if (error) return console.error("Error cargando finanzas:", error.message);
+
+    const listIncomes = document.getElementById('list-incomes');
+    const expensesContainer = document.getElementById('dynamic-expense-categories');
+    
+    if (listIncomes) listIncomes.innerHTML = '';
+    if (expensesContainer) expensesContainer.innerHTML = '';
+
+    let totalIngresosReal = 0;
+    let totalGastosReal = 0;
+    let totalVidaProyectado = 0;
+    
+    // Objeto para agrupar dinámicamente cualquier tabla de gasto creada
+    const expensesByCategory = {};
+
+    finances.forEach(item => {
+        const row = `
+            <li class="finance-item" oncontextmenu="event.preventDefault(); deleteFinanceItem(${item.id}, '${item.concept}')" title="Clic derecho para eliminar fila">
+                <div class="finance-item-name" style="cursor:pointer;" onclick="editFinanceConcept(${item.id}, '${item.concept}')" title="Clic para editar nombre">${item.concept}</div>
+                <div class="finance-item-projected" style="cursor:pointer;" onclick="editFinanceProjected(${item.id}, ${item.projected})">${formatCurrency(item.projected)}</div>
+                <div>
+                    <input type="number" class="finance-input ${item.type === 'income' ? 'text-income' : 'text-expense'}" 
+                           value="${item.real}" onchange="updateFinanceReal(${item.id}, this.value)" placeholder="0">
+                </div>
+            </li>
+        `;
+
+        if (item.type === 'income') {
+            totalIngresosReal += Number(item.real);
+            if (listIncomes) listIncomes.insertAdjacentHTML('beforeend', row);
+        } else {
+            totalGastosReal += Number(item.real);
+            totalVidaProyectado += Number(item.projected);
+            
+            if (!expensesByCategory[item.category]) expensesByCategory[item.category] = [];
+            expensesByCategory[item.category].push(row);
+        }
+    });
+
+    // Inyectar tablas de gastos agrupadas
+    for (const [category, itemsRows] of Object.entries(expensesByCategory)) {
+        const sectionHTML = `
+            <section class="category">
+                <div class="category-header" style="display:flex; justify-content:space-between; align-items:center;">
+                    ${category}
+                    <button class="icon-btn" onclick="addFinanceItem('expense', '${category}')" title="Agregar a ${category}" style="padding: 2px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    </button>
+                </div>
+                <div class="finance-item-header">
+                    <div>Concepto</div>
+                    <div title="Clic en el número para editar">Proyectado</div>
+                    <div>Real</div>
+                </div>
+                <ul style="list-style:none;">
+                    ${itemsRows.join('')}
+                </ul>
+            </section>
+        `;
+        expensesContainer.insertAdjacentHTML('beforeend', sectionHTML);
+    }
+
+    // Actualizar KPIs
+    const totalAhorro = totalIngresosReal - totalGastosReal;
+    document.getElementById('kpi-ingresos').textContent = formatCurrency(totalIngresosReal);
+    if(document.getElementById('kpi-ingresos-detail')) document.getElementById('kpi-ingresos-detail').textContent = formatCurrency(totalIngresosReal);
+    document.getElementById('kpi-vida').textContent = formatCurrency(totalVidaProyectado);
+    document.getElementById('kpi-gastos').textContent = formatCurrency(totalGastosReal);
+    document.getElementById('kpi-ahorro').textContent = formatCurrency(totalAhorro);
+}
+
+// Función exclusiva para crear un nuevo bloque de categoría
+async function addFinanceCategory() {
+    const categoryName = prompt("Nombre de la nueva categoría (Ej: Transporte, Suscripciones):");
+    if (!categoryName || categoryName.trim() === "") return;
+    
+    // Al pedir el primer item, la tabla se crea automáticamente por agrupación en loadFinances
+    addFinanceItem('expense', categoryName.trim());
+}
+
+/**
+ * ==========================================
+ * GESTIÓN DE COMPRAS (VOTACIONES)
+ * ==========================================
+ */
+async function loadCompras() {
+    const { data: compras, error } = await _supabase.from('compras_logs').select('*').order('votes', { ascending: false });
+    if (error) return console.error("Error cargando compras:", error.message);
+
+    const listContainer = document.getElementById('list-compras');
+    if (!listContainer) return;
+    listContainer.innerHTML = '';
+
+    compras.forEach(compra => {
+        const row = `
+            <li class="love-row">
+                <div class="love-content"
+                     onclick="editCompra('${compra.name}', ${compra.id})"
+                     oncontextmenu="event.preventDefault(); deleteCompra('${compra.name}', ${compra.id})"
+                     style="cursor: pointer;" title="Clic: Editar | Clic Derecho: Eliminar">
+                    ${compra.name}
+                </div>
+                <button class="love-counter-btn" onclick="incrementCompra(${compra.id}, ${compra.votes})" title="Sumar Prioridad" style="color: var(--primary-green); border-color: var(--primary-green);">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="18 15 12 9 6 15"></polyline>
+                    </svg>
+                    ${compra.votes}
+                </button>
+            </li>
+        `;
+        listContainer.insertAdjacentHTML('beforeend', row);
+    });
+}
+
+async function addCompra() {
+    const name = prompt("Elemento que deseas comprar:");
+    if (!name || name.trim() === "") return;
+    const { error } = await _supabase.from('compras_logs').insert([{ name: name.trim(), votes: 0 }]);
+    if (error) alert("Error: " + error.message);
+    else loadCompras();
+}
+
+async function incrementCompra(id, currentVotes) {
+    const { error } = await _supabase.from('compras_logs').update({ votes: currentVotes + 1 }).eq('id', id);
+    if (!error) loadCompras();
+}
+
+async function editCompra(oldName, id) {
+    const newName = prompt("Editar nombre:", oldName);
+    if (!newName || newName.trim() === "" || newName === oldName) return;
+    const { error } = await _supabase.from('compras_logs').update({ name: newName.trim() }).eq('id', id);
+    if (!error) loadCompras();
+}
+
+async function deleteCompra(name, id) {
+    if (!confirm(`¿Deseas eliminar "${name}" de tu lista?`)) return;
+    const { error } = await _supabase.from('compras_logs').delete().eq('id', id);
+    if (!error) loadCompras();
+}
+
+async function addFinanceItem(type, category) {
+    const concept = prompt(`Nuevo concepto en ${category}:`);
+    if (!concept || concept.trim() === "") return;
+
+    const projectedStr = prompt(`Valor proyectado para "${concept}" (Sin puntos ni signos):`, "0");
+    const projected = Number(projectedStr) || 0;
+
+    const { error } = await _supabase
+        .from('finance_logs')
+        .insert([{ type, category, concept: concept.trim(), projected, real: 0 }]);
+
+    if (error) alert("Error al guardar: " + error.message);
+    else loadFinances();
+}
+
+async function editFinanceConcept(id, oldConcept) {
+    const newConcept = prompt("Editar nombre del concepto:", oldConcept);
+    if (!newConcept || newConcept.trim() === "" || newConcept === oldConcept) return;
+
+    const { error } = await _supabase.from('finance_logs').update({ concept: newConcept.trim() }).eq('id', id);
+    if (error) alert("Error al editar: " + error.message);
+    else loadFinances();
+}
+
+async function editFinanceProjected(id, oldValue) {
+    const newValStr = prompt("Editar valor proyectado (Sin puntos ni signos):", oldValue);
+    if (newValStr === null) return; 
+    const newVal = Number(newValStr) || 0;
+
+    const { error } = await _supabase.from('finance_logs').update({ projected: newVal }).eq('id', id);
+    if (error) alert("Error al editar: " + error.message);
+    else loadFinances();
+}
+
+async function updateFinanceReal(id, newValue) {
+    const newVal = Number(newValue) || 0;
+    const { error } = await _supabase.from('finance_logs').update({ real: newVal }).eq('id', id);
+    
+    if (error) console.error("Error al actualizar gasto real:", error.message);
+    else loadFinances(); // Recalcula KPIs inmediatamente
+}
+
+async function deleteFinanceItem(id, concept) {
+    if (!confirm(`¿Eliminar la fila "${concept}" permanentemente?`)) return;
+
+    const { error } = await _supabase.from('finance_logs').delete().eq('id', id);
+    if (error) alert("Error al eliminar: " + error.message);
+    else loadFinances();
+}
 
 
 
@@ -1192,6 +1431,8 @@ document.addEventListener('DOMContentLoaded', () => {
     loadLoves();
     loadBloques();
     loadMetrics();
+    loadFinances();
+    loadCompras();
 
     _supabase.channel('habit-changes')
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'habit_logs' }, () => loadHabits())
