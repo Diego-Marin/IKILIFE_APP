@@ -97,6 +97,25 @@
             <div id="view-habits" class="view-content active">
                 <section class="category">
 
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; background-color: var(--bg-light); border-bottom: 1px solid var(--border-color);">
+                        <button class="icon-btn" onclick="changeWeek(-1)" title="Semana anterior">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="15 18 9 12 15 6"></polyline>
+                            </svg>
+                        </button>
+                        <span id="habit-week-label"
+                            style="font-size: 0.85rem; font-weight: 700; color: var(--text-dark);">Semana Actual</span>
+                        <button class="icon-btn" id="btn-next-week" onclick="changeWeek(1)" title="Semana siguiente"
+                            disabled style="opacity: 0.3; cursor: default;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+
                     <div class="item-list-header habit-grid">
                         <button class="add-habit-btn" onclick="addHabit()" aria-label="Agregar nuevo hábito">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -119,7 +138,6 @@
 
                     <div
                         style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 20px; padding-bottom: 16px;">
-
                         <button class="add-habit-btn" onclick="exportHabitsCSV()"
                             aria-label="Exportar datos a Excel/CSV"
                             style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-dark);">
@@ -132,7 +150,6 @@
                             </svg>
                             Semana (CSV)
                         </button>
-
                         <button class="add-habit-btn" onclick="exportAllHistoryCSV()" aria-label="Exportar histórico"
                             style="background-color: var(--text-dark); color: var(--bg-light); border: 1px solid var(--text-dark);">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -144,7 +161,6 @@
                             </svg>
                             Historial Completo
                         </button>
-
                     </div>
                 </section>
             </div>

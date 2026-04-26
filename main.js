@@ -128,29 +128,88 @@ function formatDateLocal(date) {
     return `${year}-${month}-${day}`;
 }
 
+let currentWeekOffset = 0; // 0 = actual, -1 = pasada, etc.
+
+function changeWeek(delta) {
+    currentWeekOffset += delta;
+    if (currentWeekOffset > 0) currentWeekOffset = 0; // No permitir ir al futuro
+    loadHabits();
+}
+
+function formatDateLocal(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 async function loadHabits() {
     const today = new Date();
     let currentDay = today.getDay();
     currentDay = currentDay === 0 ? 7 : currentDay;
 
-    // Calcular el Lunes de la semana actual
+    // Calcular el Lunes aplicando el offset de la paginación
     const monday = new Date(today);
-    monday.setDate(today.getDate() - currentDay + 1);
+    monday.setDate(today.getDate() - currentDay + 1 + (currentWeekOffset * 7));
 
-    // Generar el array con las 7 fechas de esta semana
+    // Generar el array con las fechas y actualizar las cabeceras HTML (01, 02...)
     const datesOfWeek = [];
+    let sunday; // Guardaremos el objeto Date del domingo aquí
+
     for (let i = 0; i < 7; i++) {
         const d = new Date(monday);
         d.setDate(monday.getDate() + i);
         datesOfWeek.push(formatDateLocal(d));
+        
+        if (i === 6) sunday = d; // El último día del bucle es el domingo
+
+        const labelEl = document.getElementById(`day-label-${i + 1}`);
+        if (labelEl) {
+            labelEl.textContent = String(d.getDate()).padStart(2, '0');
+        }
     }
 
-    // 1. Obtener la lista completa de hábitos existentes para mostrarlos todos en la vista
+    // ==========================================
+    // NUEVA LÓGICA: Formatear título de la semana
+    // ==========================================
+    const monthStart = monday.toLocaleDateString('es-CO', { month: 'long' });
+    const monthEnd = sunday.toLocaleDateString('es-CO', { month: 'long' });
+    const dayStart = monday.getDate();
+    const dayEnd = sunday.getDate();
+
+    let weekTitleStr = "";
+    if (monthStart === monthEnd) {
+        // Si la semana ocurre dentro del mismo mes
+        weekTitleStr = `Semana del ${dayStart} al ${dayEnd} de ${monthStart}`;
+    } else {
+        // Si la semana empieza en un mes y termina en otro
+        weekTitleStr = `Semana del ${dayStart} de ${monthStart} al ${dayEnd} de ${monthEnd}`;
+    }
+
+    // Actualizar UI de Paginación
+    const weekLabel = document.getElementById('habit-week-label');
+    const nextBtn = document.getElementById('btn-next-week');
+    if (weekLabel && nextBtn) {
+        if (currentWeekOffset === 0) {
+            weekLabel.textContent = "Semana Actual";
+            nextBtn.disabled = true;
+            nextBtn.style.opacity = '0.3';
+            nextBtn.style.cursor = 'default';
+        } else {
+            // Aplicamos el nuevo texto formateado
+            weekLabel.textContent = weekTitleStr; 
+            nextBtn.disabled = false;
+            nextBtn.style.opacity = '1';
+            nextBtn.style.cursor = 'pointer';
+        }
+    }
+
+    // 1. Obtener la lista completa de hábitos
     const { data: allHabitsData, error: err1 } = await _supabase.from('habit_logs').select('habit_name');
     if (err1) return console.error("Error obteniendo nombres:", err1.message);
     const uniqueHabits = [...new Set(allHabitsData.map(h => h.habit_name))].sort();
 
-    // 2. Obtener los registros específicos de esta semana para pintar los círculos
+    // 2. Obtener los registros específicos del rango de fechas visualizado
     const { data: weekLogs, error: err2 } = await _supabase
         .from('habit_logs')
         .select('*')
@@ -449,7 +508,6 @@ async function deleteEscuela(name, id) {
         loadEscuelas();
     }
 }
-
 
 
 
