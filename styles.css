@@ -1,4 +1,4 @@
-    /**
+/**
     * ==========================================
     * VARIABLES CSS
     * ==========================================
@@ -813,7 +813,8 @@
  /* ==========================================
      * SUB-TABS (ESTILO PÍLDORA / SEGMENTED CONTROL)
      * ========================================== */
-    .finance-sub-tabs {
+    .finance-sub-tabs, /* Mantenemos este para no romper finanzas si no actualizaste el HTML */
+    .sub-tabs-container { /* Agregamos este para el nuevo diseño genérico */
         display: flex;
         background-color: var(--border-color);
         border-radius: 10px;
@@ -822,7 +823,8 @@
         gap: 4px;
     }
 
-    .dark-mode .finance-sub-tabs {
+    .dark-mode .finance-sub-tabs,
+    .dark-mode .sub-tabs-container {
         background-color: rgba(255, 255, 255, 0.05);
     }
 

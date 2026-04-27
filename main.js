@@ -609,6 +609,26 @@ async function deleteIdea(id) {
  * ==========================================
  */
 
+/**
+ * Alternar Sub-Pestañas en Tareas
+ */
+function switchTareasSubTab(tab, btn) {
+    const container = btn.closest('.sub-tabs-container');
+    container.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    document.getElementById('subview-tareas-dia').classList.add('hidden');
+    document.getElementById('subview-tareas-semana').classList.add('hidden');
+    
+    document.getElementById(`subview-tareas-${tab}`).classList.remove('hidden');
+}
+
+/**
+ * ==========================================
+ * GESTIÓN DE TAREAS
+ * ==========================================
+ */
+
 async function loadTareas() {
     const { data: tareas, error } = await _supabase
         .from('tareas_logs')
@@ -620,12 +640,16 @@ async function loadTareas() {
         return;
     }
 
-    const listContainer = document.getElementById('list-tareas');
-    if (!listContainer) return;
-
-    listContainer.innerHTML = '';
+    const listDia = document.getElementById('list-tareas-dia');
+    const listSemana = document.getElementById('list-tareas-semana');
+    
+    if (listDia) listDia.innerHTML = '';
+    if (listSemana) listSemana.innerHTML = '';
 
     tareas.forEach(tarea => {
+        // Por defecto será 'dia' si no tiene tipo asignado (para compatibilidad con tareas viejas)
+        const isSemana = tarea.type === 'semana'; 
+
         const row = `
             <li class="tarea-row">
                 <div class="tarea-content">${tarea.name}</div>
@@ -636,24 +660,33 @@ async function loadTareas() {
                 </button>
             </li>
         `;
-        listContainer.insertAdjacentHTML('beforeend', row);
+
+        if (isSemana && listSemana) {
+            listSemana.insertAdjacentHTML('beforeend', row);
+        } else if (listDia) {
+            listDia.insertAdjacentHTML('beforeend', row);
+        }
     });
 }
 
-async function addTarea() {
-    const name = prompt("Nueva obligación:");
+async function addTarea(type = 'dia') {
+    const promptText = type === 'semana' ? "Nueva obligación para la semana:" : "Nueva obligación para hoy:";
+    const name = prompt(promptText);
+    
     if (!name || name.trim() === "") return;
 
     const { error } = await _supabase
         .from('tareas_logs')
-        .insert([{ name: name.trim() }]);
+        .insert([{ name: name.trim(), type: type }]);
 
     if (error) {
-        alert("Error al guardar: " + error.message);
+        alert("Error al guardar: " + error.message + "\n\n⚠️ Asegúrate de haber agregado la columna 'type' (Texto) en tu tabla 'tareas_logs' en Supabase.");
     } else {
         loadTareas();
     }
 }
+
+// deleteTarea(id) se mantiene exactamente igual a como la tienes.
 
 async function deleteTarea(id) {
     const { error } = await _supabase
