@@ -324,7 +324,6 @@ function switchTab(tab, btn) {
     if (targetView) targetView.classList.add('active');
 }
 
-// Alternar Sub-Pestañas en Metrics
 function switchMetricsSubTab(tab, btn) {
     const container = btn.closest('.sub-tabs-container');
     container.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
@@ -336,7 +335,6 @@ function switchMetricsSubTab(tab, btn) {
     document.getElementById(`subview-metrics-${tab}`).classList.remove('hidden');
 }
 
-// Alternar Sub-Pestañas en Loves
 function switchLovesSubTab(tab, btn) {
     const container = btn.closest('.sub-tabs-container');
     container.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
@@ -348,25 +346,23 @@ function switchLovesSubTab(tab, btn) {
     document.getElementById(`subview-loves-${tab}`).classList.remove('hidden');
 }
 
-// Alternar Sub-Pestañas en Tareas
 function switchTareasSubTab(tab, btn) {
     const container = btn.closest('.sub-tabs-container');
-    container.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-
-    document.getElementById('subview-tareas-dia').classList.add('hidden');
-    document.getElementById('subview-tareas-semana').classList.add('hidden');
-    
-    document.getElementById(`subview-tareas-${tab}`).classList.remove('hidden');
+    if(container) {
+        container.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
 }
 
-// Alternar Sub-Pestañas en Finanzas
+// Nueva función para alternar Sub-Pestañas en Finanzas
 function switchFinanceSubTab(tab, btn) {
-    document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
+    const container = btn.closest('.finance-sub-tabs');
+    container.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
 
     document.getElementById('subview-finanzas').classList.add('hidden');
     document.getElementById('subview-compras').classList.add('hidden');
+    document.getElementById('subview-inversiones').classList.add('hidden');
     
     document.getElementById(`subview-${tab}`).classList.remove('hidden');
 }
@@ -598,76 +594,204 @@ async function deleteIdea(id) {
 
 /**
  * ==========================================
- * GESTIÓN DE TAREAS
+ * GESTIÓN DE TAREAS (Única Lista)
  * ==========================================
  */
 async function loadTareas() {
-    const { data: tareas, error } = await _supabase
-        .from('tareas_logs')
-        .select('*')
-        .order('id', { ascending: true });
-
-    if (error) {
-        console.error("Error cargando tareas:", error.message);
-        return;
-    }
+    const { data: tareas, error } = await _supabase.from('tareas_logs').select('*').order('id', { ascending: true });
+    if (error) return console.error("Error cargando tareas:", error.message);
 
     const listDia = document.getElementById('list-tareas-dia');
-    const listSemana = document.getElementById('list-tareas-semana');
-    
     if (listDia) listDia.innerHTML = '';
-    if (listSemana) listSemana.innerHTML = '';
 
     tareas.forEach(tarea => {
-        const isSemana = tarea.type === 'semana'; 
-
         const row = `
             <li class="tarea-row">
                 <div class="tarea-content">${tarea.name}</div>
                 <button class="delete-btn" onclick="deleteTarea(${tarea.id})" aria-label="Completar" title="Completar tarea">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                 </button>
             </li>
         `;
-
-        if (isSemana && listSemana) {
-            listSemana.insertAdjacentHTML('beforeend', row);
-        } else if (listDia) {
-            listDia.insertAdjacentHTML('beforeend', row);
-        }
+        if (listDia) listDia.insertAdjacentHTML('beforeend', row);
     });
 }
 
-async function addTarea(type = 'dia') {
-    const promptText = type === 'semana' ? "Nueva obligación para la semana:" : "Nueva obligación para hoy:";
-    const name = prompt(promptText);
-    
+async function addTarea() {
+    const name = prompt("Nueva obligación:");
     if (!name || name.trim() === "") return;
-
-    const { error } = await _supabase
-        .from('tareas_logs')
-        .insert([{ name: name.trim(), type: type }]);
-
-    if (error) {
-        alert("Error al guardar: " + error.message);
-    } else {
-        loadTareas();
-    }
+    const { error } = await _supabase.from('tareas_logs').insert([{ name: name.trim(), type: 'dia' }]);
+    if (error) alert("Error al guardar: " + error.message);
+    else loadTareas();
 }
 
 async function deleteTarea(id) {
+    const { error } = await _supabase.from('tareas_logs').delete().eq('id', id);
+    if (error) console.error("Error al eliminar tarea:", error.message);
+    else loadTareas();
+}
+
+/**
+ * ==========================================
+ * GESTIÓN DE INVERSIONES Y DEUDAS (JSONB - CUOTAS)
+ * ==========================================
+ */
+let inversionesState = {};
+
+async function loadInversiones() {
+    const { data: inversiones, error } = await _supabase
+        .from('inversiones_logs')
+        .select('*')
+        .order('id', { ascending: true });
+
+    if (error) {
+        console.error("Error cargando inversiones:", error.message);
+        return;
+    }
+
+    const container = document.getElementById('inversiones-container');
+    if (!container) return;
+
+    container.innerHTML = '';
+    inversionesState = {}; 
+
+    inversiones.forEach(inv => {
+        inversionesState[inv.id] = inv; 
+        const cuotas = inv.cuotas || [];
+
+        let cuotasHTML = '';
+        cuotas.forEach((cuota, index) => {
+            const isDoneClass = cuota.done ? 'cuota-done' : '';
+            const isChecked = cuota.done ? 'checked' : '';
+
+            cuotasHTML += `
+                <li class="cuota-item">
+                    <input type="checkbox" class="task-checkbox" ${isChecked} onchange="toggleCuota(${inv.id}, ${index})">
+                    <div class="cuota-text ${isDoneClass}" 
+                         onclick="editCuota(${inv.id}, ${index})" 
+                         title="Clic para editar cuota">${cuota.text}</div>
+                    <button class="delete-btn" onclick="deleteCuota(${inv.id}, ${index})" title="Eliminar cuota">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </li>
+            `;
+        });
+
+        const card = `
+            <div class="inversion-card">
+                <div class="inversion-card-top">
+                    <div class="inversion-card-title" 
+                         onclick="editInversionName(${inv.id})" 
+                         oncontextmenu="event.preventDefault(); deleteInversionFull(${inv.id}, '${inv.name}')" 
+                         title="Clic: Editar Nombre | Clic Derecho: Eliminar Deuda Completa">
+                        ${inv.name}
+                    </div>
+                    <button class="inversion-add-cuota" onclick="addCuota(${inv.id})">
+                        + Cuota
+                    </button>
+                </div>
+                <ul class="cuota-list">
+                    ${cuotasHTML}
+                </ul>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', card);
+    });
+}
+
+async function addInversion() {
+    const name = prompt("Nombre de la Deuda/Inversión (Ej: Bolso Totto):");
+    if (!name || name.trim() === "") return;
+
+    const numCuotasStr = prompt("¿Cuántas cuotas iniciales tiene? (Escribe un número, 0 si no sabes):", "1");
+    const numCuotas = parseInt(numCuotasStr) || 0;
+    
+    let cuotasIniciales = [];
+    for(let i = 1; i <= numCuotas; i++) {
+        cuotasIniciales.push({ text: `Cuota ${i}`, done: false });
+    }
+
     const { error } = await _supabase
-        .from('tareas_logs')
+        .from('inversiones_logs')
+        .insert([{ name: name.trim(), cuotas: cuotasIniciales }]);
+
+    if (error) alert("Error: " + error.message);
+    else loadInversiones();
+}
+
+async function editInversionName(id) {
+    const currentName = inversionesState[id].name;
+    const newName = prompt("Editar nombre de la deuda:", currentName);
+    if (!newName || newName.trim() === "" || newName === currentName) return;
+
+    const { error } = await _supabase
+        .from('inversiones_logs')
+        .update({ name: newName.trim() })
+        .eq('id', id);
+
+    if (error) alert("Error: " + error.message);
+    else loadInversiones();
+}
+
+async function deleteInversionFull(id, name) {
+    if (!confirm(`¿Eliminar la deuda "${name}" y todo su historial de cuotas?`)) return;
+
+    const { error } = await _supabase
+        .from('inversiones_logs')
         .delete()
         .eq('id', id);
 
+    if (error) alert("Error: " + error.message);
+    else loadInversiones();
+}
+
+async function updateCuotasDB(id, newCuotasArray) {
+    const { error } = await _supabase
+        .from('inversiones_logs')
+        .update({ cuotas: newCuotasArray })
+        .eq('id', id);
+
     if (error) {
-        console.error("Error al eliminar tarea:", error.message);
+        console.error("Error actualizando cuotas:", error.message);
     } else {
-        loadTareas();
+        loadInversiones();
     }
+}
+
+function addCuota(id) {
+    const text = prompt("Detalle de la cuota (Ej: Cuota 2 - $50.000):");
+    if (!text || text.trim() === "") return;
+
+    const cuotas = inversionesState[id].cuotas || [];
+    cuotas.push({ text: text.trim(), done: false });
+
+    updateCuotasDB(id, cuotas);
+}
+
+function editCuota(id, cuotaIndex) {
+    const cuotas = inversionesState[id].cuotas;
+    const newText = prompt("Editar cuota:", cuotas[cuotaIndex].text);
+
+    if (!newText || newText.trim() === "" || newText === cuotas[cuotaIndex].text) return;
+
+    cuotas[cuotaIndex].text = newText.trim();
+    updateCuotasDB(id, cuotas);
+}
+
+function deleteCuota(id, cuotaIndex) {
+    if(!confirm("¿Eliminar esta cuota?")) return;
+    const cuotas = inversionesState[id].cuotas;
+    cuotas.splice(cuotaIndex, 1);
+    updateCuotasDB(id, cuotas);
+}
+
+function toggleCuota(id, cuotaIndex) {
+    const cuotas = inversionesState[id].cuotas;
+    cuotas[cuotaIndex].done = !cuotas[cuotaIndex].done;
+    updateCuotasDB(id, cuotas);
 }
 
 /**
@@ -1216,7 +1340,7 @@ async function exportHabitsCSV() {
 
 /**
  * ==========================================
- * GESTIÓN DE FINANZAS (DINÁMICO)
+ * GESTIÓN DE FINANZAS (DINÁMICO - ACUMULATIVO)
  * ==========================================
  */
 function formatCurrency(num) {
@@ -1235,27 +1359,29 @@ async function loadFinances() {
 
     let totalIngresosReal = 0;
     let totalGastosReal = 0;
-    
     const expensesByCategory = {};
 
     finances.forEach(item => {
+        const isIncome = item.type === 'income';
+        const textColorClass = isIncome ? 'text-income' : 'text-expense';
+        
         const row = `
-            <li class="finance-item" oncontextmenu="event.preventDefault(); deleteFinanceItem(${item.id}, '${item.concept}')" title="Clic derecho para eliminar fila">
-                <div class="finance-item-name" style="cursor:pointer;" onclick="editFinanceConcept(${item.id}, '${item.concept}')" title="Clic para editar nombre">${item.concept}</div>
-                <div class="finance-item-projected" style="cursor:pointer;" onclick="editFinanceProjected(${item.id}, ${item.projected})">${formatCurrency(item.projected)}</div>
+            <li class="finance-item" style="display: grid; grid-template-columns: 2fr 1fr 1fr 60px; gap: 8px; align-items: center;" oncontextmenu="event.preventDefault(); deleteFinanceItem(${item.id}, '${item.concept}')">
+                <div class="finance-item-name" style="cursor:pointer; overflow:hidden; text-overflow:ellipsis;" onclick="editFinanceConcept(${item.id}, '${item.concept}')">${item.concept}</div>
+                <div class="finance-item-projected" style="font-size: 0.85rem; cursor:pointer;" onclick="editFinanceProjected(${item.id}, ${item.projected})">${formatCurrency(item.projected)}</div>
+                <div class="${textColorClass}" style="font-weight:bold; font-size: 0.9rem; text-align:right; cursor:pointer;" onclick="editFinanceRealTotal(${item.id}, ${item.real})" title="Total acumulado (Clic para corregir)">${formatCurrency(item.real)}</div>
                 <div>
-                    <input type="number" class="finance-input ${item.type === 'income' ? 'text-income' : 'text-expense'}" 
-                           value="${item.real}" onchange="updateFinanceReal(${item.id}, this.value)" placeholder="0">
+                    <input type="number" class="finance-input" style="width: 100%; padding: 4px; text-align:center;" 
+                           onchange="addFinanceReal(${item.id}, ${item.real}, this.value)" placeholder="+">
                 </div>
             </li>
         `;
 
-        if (item.type === 'income') {
+        if (isIncome) {
             totalIngresosReal += Number(item.real);
             if (listIncomes) listIncomes.insertAdjacentHTML('beforeend', row);
         } else {
             totalGastosReal += Number(item.real);
-            
             if (!expensesByCategory[item.category]) expensesByCategory[item.category] = [];
             expensesByCategory[item.category].push(row);
         }
@@ -1290,6 +1416,68 @@ async function addFinanceCategory() {
     if (!categoryName || categoryName.trim() === "") return;
     
     addFinanceItem('expense', categoryName.trim());
+}
+
+async function addFinanceReal(id, currentReal, addedValue) {
+    if (!addedValue) return;
+    const newVal = Number(addedValue);
+    if (isNaN(newVal)) return;
+
+    const total = Number(currentReal) + newVal;
+    const { error } = await _supabase.from('finance_logs').update({ real: total }).eq('id', id);
+    
+    if (error) console.error("Error al sumar cantidad:", error.message);
+    else loadFinances(); 
+}
+
+async function editFinanceRealTotal(id, currentTotal) {
+    const newValStr = prompt("Corregir total acumulado manualmente (Sin puntos):", currentTotal);
+    if (newValStr === null) return; 
+    const newVal = Number(newValStr) || 0;
+    const { error } = await _supabase.from('finance_logs').update({ real: newVal }).eq('id', id);
+    if (!error) loadFinances();
+}
+
+async function addFinanceItem(type, category) {
+    const concept = prompt(`Nuevo concepto en ${category}:`);
+    if (!concept || concept.trim() === "") return;
+
+    const projectedStr = prompt(`Valor proyectado para "${concept}" (Sin puntos ni signos):`, "0");
+    const projected = Number(projectedStr) || 0;
+
+    const { error } = await _supabase
+        .from('finance_logs')
+        .insert([{ type, category, concept: concept.trim(), projected, real: 0 }]);
+
+    if (error) alert("Error al guardar: " + error.message);
+    else loadFinances();
+}
+
+async function editFinanceConcept(id, oldConcept) {
+    const newConcept = prompt("Editar nombre del concepto:", oldConcept);
+    if (!newConcept || newConcept.trim() === "" || newConcept === oldConcept) return;
+
+    const { error } = await _supabase.from('finance_logs').update({ concept: newConcept.trim() }).eq('id', id);
+    if (error) alert("Error al editar: " + error.message);
+    else loadFinances();
+}
+
+async function editFinanceProjected(id, oldValue) {
+    const newValStr = prompt("Editar valor proyectado (Sin puntos ni signos):", oldValue);
+    if (newValStr === null) return; 
+    const newVal = Number(newValStr) || 0;
+
+    const { error } = await _supabase.from('finance_logs').update({ projected: newVal }).eq('id', id);
+    if (error) alert("Error al editar: " + error.message);
+    else loadFinances();
+}
+
+async function deleteFinanceItem(id, concept) {
+    if (!confirm(`¿Eliminar la fila "${concept}" permanentemente?`)) return;
+
+    const { error } = await _supabase.from('finance_logs').delete().eq('id', id);
+    if (error) alert("Error al eliminar: " + error.message);
+    else loadFinances();
 }
 
 /**
@@ -1352,56 +1540,6 @@ async function deleteCompra(name, id) {
     if (!error) loadCompras();
 }
 
-async function addFinanceItem(type, category) {
-    const concept = prompt(`Nuevo concepto en ${category}:`);
-    if (!concept || concept.trim() === "") return;
-
-    const projectedStr = prompt(`Valor proyectado para "${concept}" (Sin puntos ni signos):`, "0");
-    const projected = Number(projectedStr) || 0;
-
-    const { error } = await _supabase
-        .from('finance_logs')
-        .insert([{ type, category, concept: concept.trim(), projected, real: 0 }]);
-
-    if (error) alert("Error al guardar: " + error.message);
-    else loadFinances();
-}
-
-async function editFinanceConcept(id, oldConcept) {
-    const newConcept = prompt("Editar nombre del concepto:", oldConcept);
-    if (!newConcept || newConcept.trim() === "" || newConcept === oldConcept) return;
-
-    const { error } = await _supabase.from('finance_logs').update({ concept: newConcept.trim() }).eq('id', id);
-    if (error) alert("Error al editar: " + error.message);
-    else loadFinances();
-}
-
-async function editFinanceProjected(id, oldValue) {
-    const newValStr = prompt("Editar valor proyectado (Sin puntos ni signos):", oldValue);
-    if (newValStr === null) return; 
-    const newVal = Number(newValStr) || 0;
-
-    const { error } = await _supabase.from('finance_logs').update({ projected: newVal }).eq('id', id);
-    if (error) alert("Error al editar: " + error.message);
-    else loadFinances();
-}
-
-async function updateFinanceReal(id, newValue) {
-    const newVal = Number(newValue) || 0;
-    const { error } = await _supabase.from('finance_logs').update({ real: newVal }).eq('id', id);
-    
-    if (error) console.error("Error al actualizar gasto real:", error.message);
-    else loadFinances(); 
-}
-
-async function deleteFinanceItem(id, concept) {
-    if (!confirm(`¿Eliminar la fila "${concept}" permanentemente?`)) return;
-
-    const { error } = await _supabase.from('finance_logs').delete().eq('id', id);
-    if (error) alert("Error al eliminar: " + error.message);
-    else loadFinances();
-}
-
 /**
  * ==========================================
  * INICIALIZACIÓN
@@ -1414,6 +1552,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadEscuelas();
     loadIdeas();
     loadTareas();
+    loadInversiones();
     loadLoves();
     loadBloques();
     loadMetrics();
