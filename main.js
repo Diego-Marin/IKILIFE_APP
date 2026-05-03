@@ -2,7 +2,6 @@ const SUPABASE_URL = "https://pgawswfurouzstkapwby.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnYXdzd2Z1cm91enN0a2Fwd2J5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5Nzg0NzEsImV4cCI6MjA5MDU1NDQ3MX0.KciMvGBygkY2lTDtUIE_zztaODNX3XuWb_sEnpzkMHw";
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-
 /**
  * ==========================================
  * GESTIÓN DEL TEMA (MODO CLARO / OSCURO)
@@ -136,13 +135,6 @@ function changeWeek(delta) {
     loadHabits();
 }
 
-function formatDateLocal(date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
-
 async function loadHabits() {
     const today = new Date();
     let currentDay = today.getDay();
@@ -169,9 +161,7 @@ async function loadHabits() {
         }
     }
 
-    // ==========================================
-    // NUEVA LÓGICA: Formatear título de la semana
-    // ==========================================
+    // Formatear título de la semana
     const monthStart = monday.toLocaleDateString('es-CO', { month: 'long' });
     const monthEnd = sunday.toLocaleDateString('es-CO', { month: 'long' });
     const dayStart = monday.getDate();
@@ -262,7 +252,6 @@ async function addHabit() {
 
     console.log("Intentando enviar a Supabase -> Hábito:", habitName, "Fecha:", todayStr);
 
-    // Hacemos un insert simple y usamos .select() para confirmar qué nos devuelve
     const { data, error } = await _supabase
         .from('habit_logs')
         .insert([{ habit_name: habitName, log_date: todayStr, is_completed: false }])
@@ -278,7 +267,6 @@ async function addHabit() {
 }
 
 async function toggleHabit(habitName, dateStr, currentState) {
-    // 1. Buscamos si existe un registro de ese hábito en esa fecha exacta
     const { data, error: fetchError } = await _supabase
         .from('habit_logs')
         .select('id')
@@ -286,14 +274,12 @@ async function toggleHabit(habitName, dateStr, currentState) {
         .eq('log_date', dateStr)
         .single();
 
-    // PGRST116 significa que la fila no existe. Es normal y lo ignoramos.
     if (fetchError && fetchError.code !== 'PGRST116') {
         console.error("Error buscando registro:", fetchError.message);
         return;
     }
 
     if (data) {
-        // 2. Si el registro EXISTE, lo actualizamos.
         const { error: updateError } = await _supabase
             .from('habit_logs')
             .update({ is_completed: !currentState })
@@ -301,7 +287,6 @@ async function toggleHabit(habitName, dateStr, currentState) {
             
         if (updateError) console.error("Error actualizando:", updateError.message);
     } else {
-        // 3. Si el registro NO EXISTE, lo insertamos.
         const { error: insertError } = await _supabase
             .from('habit_logs')
             .insert([{ 
@@ -314,14 +299,13 @@ async function toggleHabit(habitName, dateStr, currentState) {
     }
     
     loadHabits();
-    if (typeof loadMetrics === 'function') loadMetrics(); // Forzar actualización de métricas
+    if (typeof loadMetrics === 'function') loadMetrics(); 
 }
 
 async function editHabit(oldName) {
     const newName = prompt("Editar nombre (afectará a todo su historial):", oldName);
     if (!newName || newName.trim() === "" || newName === oldName) return;
 
-    // Actualiza el nombre del hábito en todos sus registros históricos
     const { error } = await _supabase
         .from('habit_logs')
         .update({ habit_name: newName.trim() })
@@ -358,7 +342,8 @@ function switchTab(tab, btn) {
     btn.classList.add('tab-active');
     btn.classList.remove('tab-inactive');
 
-    const views = ['view-habits', 'view-money', 'view-ideas', 'view-escuelas', 'view-tareas', 'view-loves', 'view-bloques', 'view-metrics'];
+    // Modificado para coincidir con las 6 pestañas principales actuales
+    const views = ['view-habits', 'view-metrics', 'view-tareas', 'view-money', 'view-ideas', 'view-loves'];
     views.forEach(v => {
         const viewEl = document.getElementById(v);
         if (viewEl) viewEl.classList.remove('active');
@@ -366,6 +351,53 @@ function switchTab(tab, btn) {
 
     const targetView = document.getElementById(`view-${tab}`);
     if (targetView) targetView.classList.add('active');
+}
+
+// Alternar Sub-Pestañas en Habits
+function switchHabitsSubTab(tab, btn) {
+    const container = btn.closest('.sub-tabs-container');
+    container.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    document.getElementById('subview-habits-tracker').classList.add('hidden');
+    document.getElementById('subview-habits-bloques').classList.add('hidden');
+    
+    document.getElementById(`subview-habits-${tab}`).classList.remove('hidden');
+}
+
+// Alternar Sub-Pestañas en Loves
+function switchLovesSubTab(tab, btn) {
+    const container = btn.closest('.sub-tabs-container');
+    container.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    document.getElementById('subview-loves-pasiones').classList.add('hidden');
+    document.getElementById('subview-loves-escuelas').classList.add('hidden');
+    
+    document.getElementById(`subview-loves-${tab}`).classList.remove('hidden');
+}
+
+// Alternar Sub-Pestañas en Tareas
+function switchTareasSubTab(tab, btn) {
+    const container = btn.closest('.sub-tabs-container');
+    container.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    document.getElementById('subview-tareas-dia').classList.add('hidden');
+    document.getElementById('subview-tareas-semana').classList.add('hidden');
+    
+    document.getElementById(`subview-tareas-${tab}`).classList.remove('hidden');
+}
+
+// Alternar Sub-Pestañas en Finanzas
+function switchFinanceSubTab(tab, btn) {
+    document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    document.getElementById('subview-finanzas').classList.add('hidden');
+    document.getElementById('subview-compras').classList.add('hidden');
+    
+    document.getElementById(`subview-${tab}`).classList.remove('hidden');
 }
 
 async function saveLearning() {
@@ -384,9 +416,6 @@ async function saveLearning() {
     }
 }
 
-/**
- * Alternar entre la vista principal de finanzas y el detalle de ingresos
- */
 function toggleFinanceView(viewId) {
     const mainView = document.getElementById('finance-main');
     const incomeView = document.getElementById('finance-income');
@@ -458,7 +487,7 @@ async function addEscuela() {
     if (error) {
         alert("Error al guardar: " + error.message);
     } else {
-        loadEscuelas(); // Se llama a loadEscuelas en lugar de recargar la página entera
+        loadEscuelas(); 
     }
 }
 
@@ -609,26 +638,6 @@ async function deleteIdea(id) {
  * ==========================================
  */
 
-/**
- * Alternar Sub-Pestañas en Tareas
- */
-function switchTareasSubTab(tab, btn) {
-    const container = btn.closest('.sub-tabs-container');
-    container.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-
-    document.getElementById('subview-tareas-dia').classList.add('hidden');
-    document.getElementById('subview-tareas-semana').classList.add('hidden');
-    
-    document.getElementById(`subview-tareas-${tab}`).classList.remove('hidden');
-}
-
-/**
- * ==========================================
- * GESTIÓN DE TAREAS
- * ==========================================
- */
-
 async function loadTareas() {
     const { data: tareas, error } = await _supabase
         .from('tareas_logs')
@@ -647,7 +656,6 @@ async function loadTareas() {
     if (listSemana) listSemana.innerHTML = '';
 
     tareas.forEach(tarea => {
-        // Por defecto será 'dia' si no tiene tipo asignado (para compatibilidad con tareas viejas)
         const isSemana = tarea.type === 'semana'; 
 
         const row = `
@@ -686,8 +694,6 @@ async function addTarea(type = 'dia') {
     }
 }
 
-// deleteTarea(id) se mantiene exactamente igual a como la tienes.
-
 async function deleteTarea(id) {
     const { error } = await _supabase
         .from('tareas_logs')
@@ -709,7 +715,6 @@ async function deleteTarea(id) {
  */
 
 async function loadLoves() {
-    // Ordena de mayor a menor frecuencia
     const { data: loves, error } = await _supabase
         .from('loves_logs')
         .select('*')
@@ -978,13 +983,11 @@ function toggleBloqueTask(id, taskIndex) {
 let chartInstance = null;
 
 async function loadMetrics() {
-    // 1. Conocer el total absoluto de hábitos creados para usar como base del 100%
     const { data: allHabitsData, error: errHabits } = await _supabase.from('habit_logs').select('habit_name');
     if (errHabits) return console.error("Error obteniendo hábitos:", errHabits.message);
     const uniqueHabits = [...new Set(allHabitsData.map(h => h.habit_name))];
     const totalHabits = uniqueHabits.length > 0 ? uniqueHabits.length : 1;
 
-    // 2. Traer registros de completado
     const { data: logs, error } = await _supabase
         .from('habit_logs')
         .select('*')
@@ -992,12 +995,11 @@ async function loadMetrics() {
 
     if (error) return console.error("Error cargando métricas:", error.message);
 
-    // 3. Agrupar y filtrar (Ignorar días futuros para no alterar promedios)
     const todayStr = formatDateLocal(new Date());
     const dateStats = {};
 
     logs.forEach(log => {
-        if (log.log_date > todayStr) return; // Cortar filtro en el día de hoy
+        if (log.log_date > todayStr) return;
 
         if (!dateStats[log.log_date]) {
             dateStats[log.log_date] = { completed: 0 };
@@ -1008,13 +1010,12 @@ async function loadMetrics() {
     });
 
     const allLabels = Object.keys(dateStats).sort();
-    const recentLabels = allLabels.slice(-7); // Máximo últimos 7 días registrados
+    const recentLabels = allLabels.slice(-7); 
 
     let sumPct = 0;
     let bestDayDate = "--";
     let bestDayPct = -1;
 
-    // 4. Calcular sobre la base estricta de total de hábitos
     const dataPoints = recentLabels.map(date => {
         const stat = dateStats[date];
         const pct = Math.round((stat.completed / totalHabits) * 100);
@@ -1027,11 +1028,9 @@ async function loadMetrics() {
         return pct;
     });
 
-    // KPI Promedio (Solo divide por los días que han pasado)
     const avgPct = recentLabels.length > 0 ? Math.round(sumPct / recentLabels.length) : 0;
     document.getElementById('kpi-avg').textContent = `${avgPct}%`;
 
-    // KPI Mejor Día (Mismo formato: "Domingo 26")
     if (bestDayDate !== "--") {
         const dObj = new Date(bestDayDate + 'T00:00:00');
         const weekDayName = dObj.toLocaleDateString('es-CO', { weekday: 'long' });
@@ -1096,7 +1095,7 @@ function renderChart(labels, dataPoints) {
             scales: {
                 y: {
                     beginAtZero: true,
-                    max: 110, // ESPACIO EXTRA para que el 100% no se corte
+                    max: 110, 
                     border: { display: false },
                     grid: { display: false },
                     ticks: { color: textColor, font: { size: 10 }, stepSize: 25 }
@@ -1120,13 +1119,11 @@ function renderMinimalList(labels, dateStats, totalHabits) {
         const stat = dateStats[date];
         const pct = Math.round((stat.completed / totalHabits) * 100);
 
-        // Formato "Domingo 26"
         const dObj = new Date(date + 'T00:00:00');
         const weekDayName = dObj.toLocaleDateString('es-CO', { weekday: 'long' });
         const dayNum = dObj.getDate();
         const displayDate = weekDayName.charAt(0).toUpperCase() + weekDayName.slice(1) + ' ' + dayNum;
 
-        // Inyectando fracción debajo del porcentaje
         const row = `
             <div class="daily-row">
                 <div class="daily-date">${displayDate}</div>
@@ -1142,11 +1139,11 @@ function renderMinimalList(labels, dateStats, totalHabits) {
         container.insertAdjacentHTML('beforeend', row);
     });
 }
+
 /**
  * Exportar TODO el historial de hábitos a CSV
  */
 async function exportAllHistoryCSV() {
-    // 1. Obtener todos los registros históricos ordenados por fecha
     const { data: allLogs, error } = await _supabase
         .from('habit_logs')
         .select('*')
@@ -1155,46 +1152,40 @@ async function exportAllHistoryCSV() {
     if (error) return alert("Error al conectar con la base de datos.");
     if (!allLogs || allLogs.length === 0) return alert("No hay datos históricos para exportar.");
 
-    // 2. Extraer la lista de todos los hábitos únicos creados
     const uniqueHabits = [...new Set(allLogs.map(l => l.habit_name))].sort();
 
-    // 3. Determinar el rango de fechas continuo (desde el primer registro hasta hoy)
     const firstDateStr = allLogs[0].log_date;
-    const firstDate = new Date(firstDateStr + 'T00:00:00'); // Evitar desfase horario
+    const firstDate = new Date(firstDateStr + 'T00:00:00'); 
     const today = new Date();
     
     const allDates = [];
     let currentDate = new Date(firstDate);
     
-    // Rellenar array con TODOS los días intermedios
     while (currentDate <= today) {
         allDates.push(formatDateLocal(currentDate));
         currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    // 4. Construir el archivo CSV
-    let csvContent = "\uFEFF"; // BOM para acentos en Excel
+    let csvContent = "\uFEFF"; 
     csvContent += "Hábito," + allDates.join(",") + ",Total Histórico\n";
 
     uniqueHabits.forEach(habitName => {
         let row = `"${habitName}"`;
         let totalCompletados = 0;
 
-        // Validar día por día
         allDates.forEach(dateStr => {
             const log = allLogs.find(l => l.habit_name === habitName && l.log_date === dateStr);
             const isDone = log ? log.is_completed : false;
             
             if (isDone) totalCompletados++;
             
-            row += isDone ? ",Sí" : ",No"; // Rellena con 'No' si el dato no existe en DB
+            row += isDone ? ",Sí" : ",No"; 
         });
         
         row += `,${totalCompletados}`;
         csvContent += row + "\n";
     });
 
-    // 5. Crear el archivo y forzar la descarga
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
@@ -1215,7 +1206,6 @@ async function exportHabitsCSV() {
     let currentDay = today.getDay();
     currentDay = currentDay === 0 ? 7 : currentDay;
 
-    // Calcular el Lunes de la semana actual
     const monday = new Date(today);
     monday.setDate(today.getDate() - currentDay + 1);
 
@@ -1226,12 +1216,10 @@ async function exportHabitsCSV() {
         datesOfWeek.push(formatDateLocal(d));
     }
 
-    // Traer todos los nombres de hábitos
     const { data: allHabitsData, error: err1 } = await _supabase.from('habit_logs').select('habit_name');
     if (err1) return alert("Error al obtener datos para exportar.");
     const uniqueHabits = [...new Set(allHabitsData.map(h => h.habit_name))].sort();
 
-    // Traer los registros de esta semana
     const { data: weekLogs, error: err2 } = await _supabase
         .from('habit_logs')
         .select('*')
@@ -1240,8 +1228,7 @@ async function exportHabitsCSV() {
 
     if (err2) return alert("Error al obtener registros de la semana.");
 
-    // Construir el archivo CSV
-    let csvContent = "\uFEFF"; // BOM para que Excel lea los acentos (UTF-8)
+    let csvContent = "\uFEFF"; 
     csvContent += "Hábito," + datesOfWeek.join(",") + ",Total Completados\n";
 
     uniqueHabits.forEach(habitName => {
@@ -1261,7 +1248,6 @@ async function exportHabitsCSV() {
         csvContent += row + "\n";
     });
 
-    // Crear el archivo y forzar la descarga en el navegador
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
@@ -1281,29 +1267,10 @@ async function exportHabitsCSV() {
  * ==========================================
  */
 
-// Formateador de moneda colombiana
 function formatCurrency(num) {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(num || 0);
 }
 
-/**
- * Alternar Sub-Pestañas en Finanzas
- */
-function switchFinanceSubTab(tab, btn) {
-    document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-
-    document.getElementById('subview-finanzas').classList.add('hidden');
-    document.getElementById('subview-compras').classList.add('hidden');
-    
-    document.getElementById(`subview-${tab}`).classList.remove('hidden');
-}
-
-/**
- * ==========================================
- * GESTIÓN DE FINANZAS DINÁMICAS
- * ==========================================
- */
 async function loadFinances() {
     const { data: finances, error } = await _supabase.from('finance_logs').select('*').order('id', { ascending: true });
     if (error) return console.error("Error cargando finanzas:", error.message);
@@ -1318,7 +1285,6 @@ async function loadFinances() {
     let totalGastosReal = 0;
     let totalVidaProyectado = 0;
     
-    // Objeto para agrupar dinámicamente cualquier tabla de gasto creada
     const expensesByCategory = {};
 
     finances.forEach(item => {
@@ -1345,7 +1311,6 @@ async function loadFinances() {
         }
     });
 
-    // Inyectar tablas de gastos agrupadas
     for (const [category, itemsRows] of Object.entries(expensesByCategory)) {
         const sectionHTML = `
             <section class="category">
@@ -1368,7 +1333,6 @@ async function loadFinances() {
         expensesContainer.insertAdjacentHTML('beforeend', sectionHTML);
     }
 
-    // Actualizar KPIs
     const totalAhorro = totalIngresosReal - totalGastosReal;
     document.getElementById('kpi-ingresos').textContent = formatCurrency(totalIngresosReal);
     if(document.getElementById('kpi-ingresos-detail')) document.getElementById('kpi-ingresos-detail').textContent = formatCurrency(totalIngresosReal);
@@ -1377,12 +1341,10 @@ async function loadFinances() {
     document.getElementById('kpi-ahorro').textContent = formatCurrency(totalAhorro);
 }
 
-// Función exclusiva para crear un nuevo bloque de categoría
 async function addFinanceCategory() {
     const categoryName = prompt("Nombre de la nueva categoría (Ej: Transporte, Suscripciones):");
     if (!categoryName || categoryName.trim() === "") return;
     
-    // Al pedir el primer item, la tabla se crea automáticamente por agrupación en loadFinances
     addFinanceItem('expense', categoryName.trim());
 }
 
@@ -1485,7 +1447,7 @@ async function updateFinanceReal(id, newValue) {
     const { error } = await _supabase.from('finance_logs').update({ real: newVal }).eq('id', id);
     
     if (error) console.error("Error al actualizar gasto real:", error.message);
-    else loadFinances(); // Recalcula KPIs inmediatamente
+    else loadFinances(); 
 }
 
 async function deleteFinanceItem(id, concept) {
@@ -1495,16 +1457,6 @@ async function deleteFinanceItem(id, concept) {
     if (error) alert("Error al eliminar: " + error.message);
     else loadFinances();
 }
-
-
-
-
-
-
-
-
-
-
 
 
 /**
