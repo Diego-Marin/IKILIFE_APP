@@ -137,8 +137,8 @@
     }
 
     .profile-pic {
-        width: 60px;  /* Aumenta este valor (antes era 34px) */
-        height: 60px; /* Asegúrate de que este valor sea igual al width para mantener el círculo */
+        width: 60px;  
+        height: 60px; 
         border-radius: 50%;
         object-fit: cover; 
         border: 1px solid var(--border-color);
@@ -431,9 +431,6 @@
     .view-content { display: none; }
     .view-content.active { display: block; }
 
-
-
-
     /**
     * ==========================================
     * SECCIÓN ESCUELAS (PROGRESO)
@@ -500,7 +497,6 @@
         text-align: right;
     }
 
-
     /**
     * ==========================================
     * SECCIÓN IDEAS
@@ -540,8 +536,6 @@
         color: var(--text-muted);
         text-transform: uppercase;
     }
-
-
 
     /**
     * ==========================================
@@ -598,8 +592,6 @@
         border-color: var(--primary-green);
         color: var(--bg-light);
     }
-
-
 
     /**
     * ==========================================
@@ -668,9 +660,6 @@
     .love-counter-btn:active svg {
         transform: scale(1.3); /* Animación de latido al dar clic */
     }
-
-
-
 
     /**
     * ==========================================
@@ -786,7 +775,7 @@
         width: 100%;
         padding: 6px 8px;
         text-align: right;
-        border: 1px dashed var(--text-muted); /* Borde punteado indica edición */
+        border: 1px dashed var(--text-muted); 
         border-radius: 6px;
         font-size: 0.85rem;
         font-family: inherit;
@@ -810,55 +799,60 @@
         margin: 0;
     }
 
- /* ==========================================
-     * SUB-TABS (ESTILO PÍLDORA / SEGMENTED CONTROL)
+    /* ==========================================
+     * SUB-TABS (ESTILO NAVEGACIÓN PRINCIPAL)
      * ========================================== */
-    .finance-sub-tabs, /* Mantenemos este para no romper finanzas si no actualizaste el HTML */
-    .sub-tabs-container { /* Agregamos este para el nuevo diseño genérico */
-        display: flex;
-        background-color: var(--border-color);
-        border-radius: 10px;
-        padding: 4px;
+    .finance-sub-tabs,
+    .sub-tabs-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
         margin-bottom: 24px;
-        gap: 4px;
+        background-color: transparent; 
+        padding: 0;
+        border-radius: 0;
     }
 
     .dark-mode .finance-sub-tabs,
     .dark-mode .sub-tabs-container {
-        background-color: rgba(255, 255, 255, 0.05);
+        background-color: transparent; 
     }
 
     .sub-tab-btn {
-        flex: 1;
-        background: transparent;
-        border: none;
+        padding: 10px;
+        border-radius: 8px;
         font-size: 0.85rem;
         font-weight: 600;
-        color: var(--text-muted);
         cursor: pointer;
-        padding: 8px 12px;
-        border-radius: 8px;
         transition: all var(--transition);
         text-align: center;
+        background-color: var(--white); 
+        color: var(--text-muted);
+        border: 1px solid var(--border-color);
     }
 
     .sub-tab-btn:hover:not(.active) {
         color: var(--text-dark);
+        border-color: var(--text-muted);
     }
 
     .sub-tab-btn.active {
-        background-color: var(--white);
-        color: var(--text-dark);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        background-color: var(--text-dark);
+        color: var(--white);
+        border-color: transparent;
+        box-shadow: none;
+    }
+
+    /* Ajustes específicos para Dark Mode */
+    .dark-mode .sub-tab-btn:not(.active) {
+        background-color: var(--white); /* Referencia a la variable --white que en dark-mode es #1C1C1C */
+        border-color: var(--border-color);
     }
 
     .dark-mode .sub-tab-btn.active {
-        background-color: #2D2D2D; 
-        color: #EAEAEA;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        background-color: var(--text-dark); /* Referencia a #EAEAEA */
+        color: var(--bg-light); /* Texto oscuro sobre fondo claro */
     }
-
-
 
     /**
     * ==========================================
@@ -958,91 +952,91 @@
         opacity: 0.5;
     }
 
-/**
- * ==========================================
- * SECCIÓN MÉTRICAS (MINIMALISTA)
- * ==========================================
- */
-.metrics-kpi-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 16px;
-}
+    /**
+    * ==========================================
+    * SECCIÓN MÉTRICAS (MINIMALISTA)
+    * ==========================================
+    */
+    .metrics-kpi-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
 
-.kpi-card {
-    background-color: var(--white);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 16px;
-    text-align: center;
-}
+    .kpi-card {
+        background-color: var(--white);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 16px;
+        text-align: center;
+    }
 
-.kpi-label {
-    font-size: 0.65rem;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 6px;
-    font-weight: 600;
-}
+    .kpi-label {
+        font-size: 0.65rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 6px;
+        font-weight: 600;
+    }
 
-.kpi-value {
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: var(--text-dark);
-    line-height: 1;
-}
+    .kpi-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--text-dark);
+        line-height: 1;
+    }
 
-.chart-wrapper {
-    position: relative;
-    width: 100%;
-    padding: 16px 16px 8px 16px;
-    background-color: var(--white);
-}
+    .chart-wrapper {
+        position: relative;
+        width: 100%;
+        padding: 16px 16px 8px 16px;
+        background-color: var(--white);
+    }
 
-.minimal-daily-list {
-    padding: 8px 16px;
-    background-color: var(--white);
-}
+    .minimal-daily-list {
+        padding: 8px 16px;
+        background-color: var(--white);
+    }
 
-.daily-row {
-    display: grid;
-    grid-template-columns: 105px 1fr 50px; /* Anchuras adaptadas para fecha larga y fracción */
-    align-items: center;
-    gap: 16px;
-    padding: 12px 0;
-    border-bottom: 1px solid var(--border-color);
-}
+    .daily-row {
+        display: grid;
+        grid-template-columns: 105px 1fr 50px; 
+        align-items: center;
+        gap: 16px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border-color);
+    }
 
-.daily-row:last-child {
-    border-bottom: none;
-}
+    .daily-row:last-child {
+        border-bottom: none;
+    }
 
-.daily-date {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    font-weight: 500;
-}
+    .daily-date {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
 
-.daily-bar-bg {
-    height: 4px;
-    background-color: var(--border-color);
-    border-radius: 2px;
-    overflow: hidden;
-    width: 100%;
-}
+    .daily-bar-bg {
+        height: 4px;
+        background-color: var(--border-color);
+        border-radius: 2px;
+        overflow: hidden;
+        width: 100%;
+    }
 
-.daily-bar-fill {
-    height: 100%;
-    background-color: var(--primary-green);
-    border-radius: 2px;
-    transition: width 0.5s ease;
-}
+    .daily-bar-fill {
+        height: 100%;
+        background-color: var(--primary-green);
+        border-radius: 2px;
+        transition: width 0.5s ease;
+    }
 
-.daily-pct {
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: var(--text-dark);
-    text-align: right;
-}
+    .daily-pct {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--text-dark);
+        text-align: right;
+    }
