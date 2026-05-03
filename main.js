@@ -1366,13 +1366,15 @@ async function loadFinances() {
         const textColorClass = isIncome ? 'text-income' : 'text-expense';
         
         const row = `
-            <li class="finance-item" style="display: grid; grid-template-columns: 2fr 1fr 1fr 60px; gap: 8px; align-items: center;" oncontextmenu="event.preventDefault(); deleteFinanceItem(${item.id}, '${item.concept}')">
-                <div class="finance-item-name" style="cursor:pointer; overflow:hidden; text-overflow:ellipsis;" onclick="editFinanceConcept(${item.id}, '${item.concept}')">${item.concept}</div>
-                <div class="finance-item-projected" style="font-size: 0.85rem; cursor:pointer;" onclick="editFinanceProjected(${item.id}, ${item.projected})">${formatCurrency(item.projected)}</div>
-                <div class="${textColorClass}" style="font-weight:bold; font-size: 0.9rem; text-align:right; cursor:pointer;" onclick="editFinanceRealTotal(${item.id}, ${item.real})" title="Total acumulado (Clic para corregir)">${formatCurrency(item.real)}</div>
+            <li class="finance-item" oncontextmenu="event.preventDefault(); deleteFinanceItem(${item.id}, '${item.concept}')">
+                <div class="finance-item-name" style="cursor:pointer; overflow:hidden; text-overflow:ellipsis;" onclick="editFinanceConcept(${item.id}, '${item.concept}')" title="Clic para editar nombre | Clic Derecho para eliminar">
+                    ${item.concept}
+                </div>
+                <div class="${textColorClass}" style="font-weight:bold; font-size: 0.95rem; text-align:right; cursor:pointer;" onclick="editFinanceRealTotal(${item.id}, ${item.real})" title="Total acumulado (Clic para corregir manualmente)">
+                    ${formatCurrency(item.real)}
+                </div>
                 <div>
-                    <input type="number" class="finance-input" style="width: 100%; padding: 4px; text-align:center;" 
-                           onchange="addFinanceReal(${item.id}, ${item.real}, this.value)" placeholder="+">
+                    <input type="number" class="finance-input" onchange="addFinanceReal(${item.id}, ${item.real}, this.value)" placeholder="+ Sumar" title="Escribe un valor y presiona Enter">
                 </div>
             </li>
         `;
@@ -1442,12 +1444,9 @@ async function addFinanceItem(type, category) {
     const concept = prompt(`Nuevo concepto en ${category}:`);
     if (!concept || concept.trim() === "") return;
 
-    const projectedStr = prompt(`Valor proyectado para "${concept}" (Sin puntos ni signos):`, "0");
-    const projected = Number(projectedStr) || 0;
-
     const { error } = await _supabase
         .from('finance_logs')
-        .insert([{ type, category, concept: concept.trim(), projected, real: 0 }]);
+        .insert([{ type, category, concept: concept.trim(), projected: 0, real: 0 }]);
 
     if (error) alert("Error al guardar: " + error.message);
     else loadFinances();
@@ -1458,16 +1457,6 @@ async function editFinanceConcept(id, oldConcept) {
     if (!newConcept || newConcept.trim() === "" || newConcept === oldConcept) return;
 
     const { error } = await _supabase.from('finance_logs').update({ concept: newConcept.trim() }).eq('id', id);
-    if (error) alert("Error al editar: " + error.message);
-    else loadFinances();
-}
-
-async function editFinanceProjected(id, oldValue) {
-    const newValStr = prompt("Editar valor proyectado (Sin puntos ni signos):", oldValue);
-    if (newValStr === null) return; 
-    const newVal = Number(newValStr) || 0;
-
-    const { error } = await _supabase.from('finance_logs').update({ projected: newVal }).eq('id', id);
     if (error) alert("Error al editar: " + error.message);
     else loadFinances();
 }

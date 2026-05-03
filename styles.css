@@ -657,8 +657,8 @@ div.day-segment.future {
 
 .finance-item-header {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr;
-    gap: 8px;
+    grid-template-columns: 1fr auto 80px;
+    gap: 12px;
     padding: 8px 16px;
     font-size: 0.65rem;
     font-weight: 600;
@@ -668,15 +668,14 @@ div.day-segment.future {
     text-transform: uppercase;
 }
 
-.finance-item-header div:nth-child(2),
-.finance-item-header div:nth-child(3) {
+.finance-item-header div:nth-child(2) {
     text-align: right;
 }
 
 .finance-item {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr;
-    gap: 8px;
+    grid-template-columns: 1fr auto 85px; 
+    gap: 12px;
     align-items: center;
     padding: 12px 16px;
     border-bottom: 1px solid var(--border-color);
@@ -692,18 +691,13 @@ div.day-segment.future {
     font-weight: 500;
 }
 
-.finance-item-projected {
-    text-align: right;
-    color: var(--text-muted);
-}
-
 .finance-input {
     width: 100%;
-    padding: 6px 8px;
-    text-align: right;
+    padding: 6px 4px;
+    text-align: center;
     border: 1px dashed var(--text-muted); 
     border-radius: 6px;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-family: inherit;
     font-weight: 700;
     background-color: transparent;
@@ -714,9 +708,10 @@ div.day-segment.future {
 .finance-input:hover, .finance-input:focus {
     outline: none;
     border-style: solid;
-    border-color: var(--text-dark);
+    border-color: var(--primary-green);
     background-color: transparent;
 }
+
 .finance-input::-webkit-outer-spin-button,
 .finance-input::-webkit-inner-spin-button {
     -webkit-appearance: none;
