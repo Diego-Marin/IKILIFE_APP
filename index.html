@@ -259,22 +259,18 @@
                     <div id="subview-finanzas" style="padding: 16px;">
                         <div id="finance-main">
                             <section class="summary-grid">
-                                <div class="summary-card clickable" onclick="toggleFinanceView('finance-income')"
+                                <div class="summary-card full-width clickable" onclick="toggleFinanceView('finance-income')"
                                     title="Ver detalles de ingresos">
-                                    <div class="summary-label">Ingresos Totales &#8594;</div>
+                                    <div class="summary-label">Ingresos</div>
                                     <div class="summary-value text-income" id="kpi-ingresos">$0</div>
-                                </div>
-                                <div class="summary-card">
-                                    <div class="summary-label">Ahorro / Capital</div>
-                                    <div class="summary-value text-savings" id="kpi-ahorro">$0</div>
-                                </div>
-                                <div class="summary-card">
-                                    <div class="summary-label">Vida Mensual</div>
-                                    <div class="summary-value text-muted" id="kpi-vida" title="Suma de lo proyectado">$0</div>
                                 </div>
                                 <div class="summary-card">
                                     <div class="summary-label">Gastos Totales</div>
                                     <div class="summary-value text-expense" id="kpi-gastos" title="Suma de lo pagado real">$0</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-label">Ahorro / Capital</div>
+                                    <div class="summary-value text-savings" id="kpi-ahorro">$0</div>
                                 </div>
                             </section>
 
@@ -318,11 +314,6 @@
                                             <line x1="5" y1="12" x2="19" y2="12"></line>
                                         </svg>
                                     </button>
-                                </div>
-                                <div class="finance-item-header">
-                                    <div>Concepto</div>
-                                    <div title="Clic en el número para editar">Proyectado</div>
-                                    <div>Real</div>
                                 </div>
                                 <ul id="list-incomes" style="list-style:none;"></ul>
                             </div>

@@ -1235,7 +1235,6 @@ async function loadFinances() {
 
     let totalIngresosReal = 0;
     let totalGastosReal = 0;
-    let totalVidaProyectado = 0;
     
     const expensesByCategory = {};
 
@@ -1256,7 +1255,6 @@ async function loadFinances() {
             if (listIncomes) listIncomes.insertAdjacentHTML('beforeend', row);
         } else {
             totalGastosReal += Number(item.real);
-            totalVidaProyectado += Number(item.projected);
             
             if (!expensesByCategory[item.category]) expensesByCategory[item.category] = [];
             expensesByCategory[item.category].push(row);
@@ -1272,11 +1270,6 @@ async function loadFinances() {
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                     </button>
                 </div>
-                <div class="finance-item-header">
-                    <div>Concepto</div>
-                    <div title="Clic en el número para editar">Proyectado</div>
-                    <div>Real</div>
-                </div>
                 <ul style="list-style:none;">
                     ${itemsRows.join('')}
                 </ul>
@@ -1288,7 +1281,6 @@ async function loadFinances() {
     const totalAhorro = totalIngresosReal - totalGastosReal;
     document.getElementById('kpi-ingresos').textContent = formatCurrency(totalIngresosReal);
     if(document.getElementById('kpi-ingresos-detail')) document.getElementById('kpi-ingresos-detail').textContent = formatCurrency(totalIngresosReal);
-    document.getElementById('kpi-vida').textContent = formatCurrency(totalVidaProyectado);
     document.getElementById('kpi-gastos').textContent = formatCurrency(totalGastosReal);
     document.getElementById('kpi-ahorro').textContent = formatCurrency(totalAhorro);
 }
