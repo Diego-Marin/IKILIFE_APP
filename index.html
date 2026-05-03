@@ -7,7 +7,6 @@
     <title>IKILIFE</title>
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌱</text></svg>">
-
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -80,91 +79,119 @@
         <nav class="tabs">
             <button class="tab-btn tab-active" onclick="switchTab('habits', this)">Habits</button>
             <button class="tab-btn tab-inactive" onclick="switchTab('metrics', this)">Metrics</button>
-
             <button class="tab-btn tab-inactive" onclick="switchTab('tareas', this)">Obligations</button>
             <button class="tab-btn tab-inactive" onclick="switchTab('money', this)">Finance</button>
-
             <button class="tab-btn tab-inactive" onclick="switchTab('ideas', this)">Brain Dump</button>
             <button class="tab-btn tab-inactive" onclick="switchTab('loves', this)">Loves</button>
         </nav>
 
         <main id="main-content">
 
-            <!-- HABITS & BLOCKS -->
+            <!-- HABITS -->
             <div id="view-habits" class="view-content active">
                 <section class="category">
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; background-color: transparent; border-bottom: 1px solid var(--border-color);">
+                        <button class="icon-btn" onclick="changeWeek(-1)" title="Semana anterior">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="15 18 9 12 15 6"></polyline>
+                            </svg>
+                        </button>
+                        <span id="habit-week-label" style="font-size: 0.85rem; font-weight: 700; color: var(--text-dark);">Semana Actual</span>
+                        <button class="icon-btn" id="btn-next-week" onclick="changeWeek(1)" title="Semana siguiente"
+                            disabled style="opacity: 0.3; cursor: default;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="item-list-header habit-grid">
+                        <button class="add-habit-btn" onclick="addHabit()" aria-label="Agregar nuevo hábito">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            Add Habit
+                        </button>
+                        <div class="day-label" id="day-label-1">--</div>
+                        <div class="day-label" id="day-label-2">--</div>
+                        <div class="day-label" id="day-label-3">--</div>
+                        <div class="day-label" id="day-label-4">--</div>
+                        <div class="day-label" id="day-label-5">--</div>
+                        <div class="day-label" id="day-label-6">--</div>
+                        <div class="day-label" id="day-label-7">--</div>
+                    </div>
+
+                    <ul id="list-habits" style="list-style:none;"></ul>
+
+                    <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 20px; padding-bottom: 16px;">
+                        <button class="add-habit-btn" onclick="exportHabitsCSV()"
+                            aria-label="Exportar datos a Excel/CSV"
+                            style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-dark);">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                                style="margin-right: 4px;">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Semana (CSV)
+                        </button>
+                        <button class="add-habit-btn" onclick="exportAllHistoryCSV()" aria-label="Exportar histórico"
+                            style="background-color: var(--text-dark); color: var(--bg-light); border: 1px solid var(--text-dark);">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                                style="margin-right: 4px;">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Historial Completo
+                        </button>
+                    </div>
+                </section>
+            </div>
+
+            <!-- METRICS & BLOCKS -->
+            <div id="view-metrics" class="view-content">
+                <section class="category">
                     <div class="sub-tabs-container">
-                        <button class="sub-tab-btn active" onclick="switchHabitsSubTab('tracker', this)">Tracker</button>
-                        <button class="sub-tab-btn" onclick="switchHabitsSubTab('bloques', this)">Blocks</button>
+                        <button class="sub-tab-btn active" onclick="switchMetricsSubTab('stats', this)">Estadísticas</button>
+                        <button class="sub-tab-btn" onclick="switchMetricsSubTab('bloques', this)">Bloques de Rutina</button>
                     </div>
 
-                    <div id="subview-habits-tracker">
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; background-color: transparent; border-bottom: 1px solid var(--border-color);">
-                            <button class="icon-btn" onclick="changeWeek(-1)" title="Semana anterior">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="15 18 9 12 15 6"></polyline>
-                                </svg>
-                            </button>
-                            <span id="habit-week-label"
-                                style="font-size: 0.85rem; font-weight: 700; color: var(--text-dark);">Semana Actual</span>
-                            <button class="icon-btn" id="btn-next-week" onclick="changeWeek(1)" title="Semana siguiente"
-                                disabled style="opacity: 0.3; cursor: default;">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="9 18 15 12 9 6"></polyline>
-                                </svg>
-                            </button>
+                    <!-- ESTADISTICAS -->
+                    <div id="subview-metrics-stats">
+                        <div class="metrics-kpi-grid" style="padding: 16px 16px 0;">
+                            <div class="kpi-card">
+                                <div class="kpi-label">Promedio (7 días)</div>
+                                <div class="kpi-value" id="kpi-avg">--%</div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="kpi-label">Mejor Día</div>
+                                <div class="kpi-value kpi-highlight" id="kpi-best">--</div>
+                            </div>
                         </div>
 
-                        <div class="item-list-header habit-grid">
-                            <button class="add-habit-btn" onclick="addHabit()" aria-label="Agregar nuevo hábito">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
-                                Add Habit
-                            </button>
-                            <div class="day-label" id="day-label-1">--</div>
-                            <div class="day-label" id="day-label-2">--</div>
-                            <div class="day-label" id="day-label-3">--</div>
-                            <div class="day-label" id="day-label-4">--</div>
-                            <div class="day-label" id="day-label-5">--</div>
-                            <div class="day-label" id="day-label-6">--</div>
-                            <div class="day-label" id="day-label-7">--</div>
+                        <div style="border-top: 1px solid var(--border-color); margin-top: 16px;">
+                            <div class="category-header" style="border-bottom: none;">Tendencia de Cumplimiento</div>
+                            <div class="chart-wrapper" style="height: 220px; border: none; box-shadow: none; margin-bottom: 0; border-radius: 0;">
+                                <canvas id="metricsChart"></canvas>
+                            </div>
                         </div>
 
-                        <ul id="list-habits" style="list-style:none;"></ul>
-
-                        <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 20px; padding-bottom: 16px;">
-                            <button class="add-habit-btn" onclick="exportHabitsCSV()"
-                                aria-label="Exportar datos a Excel/CSV"
-                                style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-dark);">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-                                    style="margin-right: 4px;">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="7 10 12 15 17 10"></polyline>
-                                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                                </svg>
-                                Semana (CSV)
-                            </button>
-                            <button class="add-habit-btn" onclick="exportAllHistoryCSV()" aria-label="Exportar histórico"
-                                style="background-color: var(--text-dark); color: var(--bg-light); border: 1px solid var(--text-dark);">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-                                    style="margin-right: 4px;">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="7 10 12 15 17 10"></polyline>
-                                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                                </svg>
-                                Historial Completo
-                            </button>
+                        <div style="border-top: 1px solid var(--border-color);">
+                            <div class="category-header" style="border-bottom: none;">Desglose Reciente</div>
+                            <div class="minimal-daily-list" id="metrics-daily-list" style="border: none; box-shadow: none; border-radius: 0;">
+                            </div>
                         </div>
                     </div>
 
-                    <div id="subview-habits-bloques" class="hidden">
+                    <!-- BLOQUES -->
+                    <div id="subview-metrics-bloques" class="hidden">
                         <div class="item-list-header bloque-header">
                             <button class="add-habit-btn" onclick="addBloque()" aria-label="Agregar bloque">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -177,6 +204,46 @@
                             <div class="header-label">Rutinas Diarias</div>
                         </div>
                         <div id="bloques-container" class="bloques-wrapper"></div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- TAREAS -->
+            <div id="view-tareas" class="view-content">
+                <section class="category">
+                    <div class="sub-tabs-container">
+                        <button class="sub-tab-btn active" onclick="switchTareasSubTab('dia', this)">Tareas del Día</button>
+                        <button class="sub-tab-btn" onclick="switchTareasSubTab('semana', this)">Tareas de la Semana</button>
+                    </div>
+
+                    <div id="subview-tareas-dia">
+                        <div class="item-list-header tarea-header">
+                            <button class="add-habit-btn" onclick="addTarea('dia')"
+                                aria-label="Agregar obligación diaria">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                New Daily
+                            </button>
+                        </div>
+                        <ul id="list-tareas-dia" style="list-style:none;"></ul>
+                    </div>
+
+                    <div id="subview-tareas-semana" class="hidden">
+                        <div class="item-list-header tarea-header">
+                            <button class="add-habit-btn" onclick="addTarea('semana')"
+                                aria-label="Agregar obligación semanal">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                New Weekly
+                            </button>
+                        </div>
+                        <ul id="list-tareas-semana" style="list-style:none;"></ul>
                     </div>
                 </section>
             </div>
@@ -299,48 +366,6 @@
                 </section>
             </div>
 
-            <!-- TAREAS -->
-            <div id="view-tareas" class="view-content">
-                <section class="category">
-                    <div class="sub-tabs-container">
-                        <button class="sub-tab-btn active" onclick="switchTareasSubTab('dia', this)">Tareas del Día</button>
-                        <button class="sub-tab-btn" onclick="switchTareasSubTab('semana', this)">Tareas de la Semana</button>
-                    </div>
-
-                    <div id="subview-tareas-dia">
-                        <div class="item-list-header tarea-header">
-                            <button class="add-habit-btn" onclick="addTarea('dia')"
-                                aria-label="Agregar obligación diaria">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
-                                New Daily
-                            </button>
-                            <div class="header-label">Obligaciones de Hoy</div>
-                        </div>
-                        <ul id="list-tareas-dia" style="list-style:none;"></ul>
-                    </div>
-
-                    <div id="subview-tareas-semana" class="hidden">
-                        <div class="item-list-header tarea-header">
-                            <button class="add-habit-btn" onclick="addTarea('semana')"
-                                aria-label="Agregar obligación semanal">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
-                                New Weekly
-                            </button>
-                            <div class="header-label">Obligaciones Semanales</div>
-                        </div>
-                        <ul id="list-tareas-semana" style="list-style:none;"></ul>
-                    </div>
-                </section>
-            </div>
-
             <!-- LOVES & ESCUELAS -->
             <div id="view-loves" class="view-content">
                 <section class="category">
@@ -377,35 +402,6 @@
                             <div class="header-label">Progreso Acumulado</div>
                         </div>
                         <ul id="list-escuelas" style="list-style:none;"></ul>
-                    </div>
-                </section>
-            </div>
-
-            <!-- METRICS -->
-            <div id="view-metrics" class="view-content">
-                <section class="category" style="padding-top: 16px;">
-                    <div class="metrics-kpi-grid" style="padding: 0 16px;">
-                        <div class="kpi-card">
-                            <div class="kpi-label">Promedio (7 días)</div>
-                            <div class="kpi-value" id="kpi-avg">--%</div>
-                        </div>
-                        <div class="kpi-card">
-                            <div class="kpi-label">Mejor Día</div>
-                            <div class="kpi-value" id="kpi-best">--</div>
-                        </div>
-                    </div>
-
-                    <div style="border-top: 1px solid var(--border-color); margin-top: 8px;">
-                        <div class="category-header" style="border-bottom: none;">Tendencia de Cumplimiento</div>
-                        <div class="chart-wrapper" style="height: 220px; border: none; box-shadow: none; margin-bottom: 0; border-radius: 0;">
-                            <canvas id="metricsChart"></canvas>
-                        </div>
-                    </div>
-
-                    <div style="border-top: 1px solid var(--border-color);">
-                        <div class="category-header" style="border-bottom: none;">Desglose Reciente</div>
-                        <div class="minimal-daily-list" id="metrics-daily-list" style="border: none; box-shadow: none; border-radius: 0;">
-                        </div>
                     </div>
                 </section>
             </div>

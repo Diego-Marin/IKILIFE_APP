@@ -14,11 +14,9 @@ function toggleTheme() {
 
     body.classList.toggle('dark-mode');
 
-    // Guardar preferencia en localStorage
     const isDark = body.classList.contains('dark-mode');
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
 
-    // Actualizar visibilidad de los iconos
     if (isDark) {
         sunIcon.classList.add('hidden');
         moonIcon.classList.remove('hidden');
@@ -53,7 +51,6 @@ function applySavedTheme() {
 function updateWeeklyProgress() {
     const today = new Date();
 
-    // Asignar fecha completa
     const dateElement = document.getElementById('current-month-text');
     if (dateElement) {
         const fullDate = new Intl.DateTimeFormat('es-CO', {
@@ -64,47 +61,39 @@ function updateWeeklyProgress() {
         dateElement.textContent = fullDate;
     }
 
-    // Calcular semana del mes actual
     const weekNumber = Math.ceil(today.getDate() / 7);
     const weekElement = document.getElementById('current-week-text');
     if (weekElement) {
         weekElement.textContent = `Avance Semana ${weekNumber}`;
     }
 
-    // Identificar día actual (Ajustando ISO: Lunes = 1, Domingo = 7)
     let currentDay = today.getDay();
     currentDay = currentDay === 0 ? 7 : currentDay;
 
-    // Inyectar las fechas de la semana en la cabecera (01, 02...)
     const monday = new Date(today);
     monday.setDate(today.getDate() - currentDay + 1);
 
     for (let i = 0; i < 7; i++) {
         const dayDate = new Date(monday);
         dayDate.setDate(monday.getDate() + i);
-        // Formatea el número a dos dígitos (ej. 1 -> 01)
         const dayString = String(dayDate.getDate()).padStart(2, '0');
 
-        // Aplica el número al elemento HTML correspondiente
         const labelEl = document.getElementById(`day-label-${i + 1}`);
         if (labelEl) {
             labelEl.textContent = dayString;
         }
     }
 
-    // Actualizar barra de progreso visual (Con inyección directa de estilos)
     const segments = document.querySelectorAll('.day-segment');
     segments.forEach((segment, index) => {
         const segmentDay = index + 1;
         segment.classList.remove('past', 'today', 'future');
 
         if (segmentDay <= currentDay) {
-            // Días transcurridos y el actual en verde
             segment.classList.add(segmentDay === currentDay ? 'today' : 'past');
             segment.style.backgroundColor = 'var(--primary-green)';
             segment.style.opacity = '1';
         } else {
-            // Días futuros en gris
             segment.classList.add('future');
             segment.style.backgroundColor = 'var(--border-color)';
             segment.style.opacity = '1';
@@ -112,14 +101,11 @@ function updateWeeklyProgress() {
     });
 }
 
-
 /**
  * ==========================================
  * GESTIÓN DE HÁBITOS (HISTÓRICO Y DINÁMICO)
  * ==========================================
  */
-
-// Utilidad para obtener formato de fecha local correcto (YYYY-MM-DD) sin desfase de zona horaria
 function formatDateLocal(date) {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -127,11 +113,11 @@ function formatDateLocal(date) {
     return `${year}-${month}-${day}`;
 }
 
-let currentWeekOffset = 0; // 0 = actual, -1 = pasada, etc.
+let currentWeekOffset = 0;
 
 function changeWeek(delta) {
     currentWeekOffset += delta;
-    if (currentWeekOffset > 0) currentWeekOffset = 0; // No permitir ir al futuro
+    if (currentWeekOffset > 0) currentWeekOffset = 0;
     loadHabits();
 }
 
@@ -140,20 +126,18 @@ async function loadHabits() {
     let currentDay = today.getDay();
     currentDay = currentDay === 0 ? 7 : currentDay;
 
-    // Calcular el Lunes aplicando el offset de la paginación
     const monday = new Date(today);
     monday.setDate(today.getDate() - currentDay + 1 + (currentWeekOffset * 7));
 
-    // Generar el array con las fechas y actualizar las cabeceras HTML (01, 02...)
     const datesOfWeek = [];
-    let sunday; // Guardaremos el objeto Date del domingo aquí
+    let sunday;
 
     for (let i = 0; i < 7; i++) {
         const d = new Date(monday);
         d.setDate(monday.getDate() + i);
         datesOfWeek.push(formatDateLocal(d));
         
-        if (i === 6) sunday = d; // El último día del bucle es el domingo
+        if (i === 6) sunday = d;
 
         const labelEl = document.getElementById(`day-label-${i + 1}`);
         if (labelEl) {
@@ -161,7 +145,6 @@ async function loadHabits() {
         }
     }
 
-    // Formatear título de la semana
     const monthStart = monday.toLocaleDateString('es-CO', { month: 'long' });
     const monthEnd = sunday.toLocaleDateString('es-CO', { month: 'long' });
     const dayStart = monday.getDate();
@@ -169,14 +152,11 @@ async function loadHabits() {
 
     let weekTitleStr = "";
     if (monthStart === monthEnd) {
-        // Si la semana ocurre dentro del mismo mes
         weekTitleStr = `Semana del ${dayStart} al ${dayEnd} de ${monthStart}`;
     } else {
-        // Si la semana empieza en un mes y termina en otro
         weekTitleStr = `Semana del ${dayStart} de ${monthStart} al ${dayEnd} de ${monthEnd}`;
     }
 
-    // Actualizar UI de Paginación
     const weekLabel = document.getElementById('habit-week-label');
     const nextBtn = document.getElementById('btn-next-week');
     if (weekLabel && nextBtn) {
@@ -186,7 +166,6 @@ async function loadHabits() {
             nextBtn.style.opacity = '0.3';
             nextBtn.style.cursor = 'default';
         } else {
-            // Aplicamos el nuevo texto formateado
             weekLabel.textContent = weekTitleStr; 
             nextBtn.disabled = false;
             nextBtn.style.opacity = '1';
@@ -194,12 +173,10 @@ async function loadHabits() {
         }
     }
 
-    // 1. Obtener la lista completa de hábitos
     const { data: allHabitsData, error: err1 } = await _supabase.from('habit_logs').select('habit_name');
     if (err1) return console.error("Error obteniendo nombres:", err1.message);
     const uniqueHabits = [...new Set(allHabitsData.map(h => h.habit_name))].sort();
 
-    // 2. Obtener los registros específicos del rango de fechas visualizado
     const { data: weekLogs, error: err2 } = await _supabase
         .from('habit_logs')
         .select('*')
@@ -250,18 +227,14 @@ async function addHabit() {
     const habitName = name.trim();
     const todayStr = formatDateLocal(new Date());
 
-    console.log("Intentando enviar a Supabase -> Hábito:", habitName, "Fecha:", todayStr);
-
     const { data, error } = await _supabase
         .from('habit_logs')
         .insert([{ habit_name: habitName, log_date: todayStr, is_completed: false }])
         .select(); 
 
     if (error) {
-        console.error("⛔ ERROR DE SUPABASE:", error);
         alert("Fallo al guardar. Revisa la Consola (F12). Error: " + error.message);
     } else {
-        console.log("✅ ÉXITO. Datos guardados:", data);
         loadHabits();
     }
 }
@@ -328,7 +301,6 @@ async function deleteHabit(name) {
     else loadHabits();
 }
 
-
 /**
  * ==========================================
  * INTERFAZ DE USUARIO (TABS Y OTROS)
@@ -342,7 +314,6 @@ function switchTab(tab, btn) {
     btn.classList.add('tab-active');
     btn.classList.remove('tab-inactive');
 
-    // Modificado para coincidir con las 6 pestañas principales actuales
     const views = ['view-habits', 'view-metrics', 'view-tareas', 'view-money', 'view-ideas', 'view-loves'];
     views.forEach(v => {
         const viewEl = document.getElementById(v);
@@ -353,16 +324,16 @@ function switchTab(tab, btn) {
     if (targetView) targetView.classList.add('active');
 }
 
-// Alternar Sub-Pestañas en Habits
-function switchHabitsSubTab(tab, btn) {
+// Alternar Sub-Pestañas en Metrics
+function switchMetricsSubTab(tab, btn) {
     const container = btn.closest('.sub-tabs-container');
     container.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
 
-    document.getElementById('subview-habits-tracker').classList.add('hidden');
-    document.getElementById('subview-habits-bloques').classList.add('hidden');
+    document.getElementById('subview-metrics-stats').classList.add('hidden');
+    document.getElementById('subview-metrics-bloques').classList.add('hidden');
     
-    document.getElementById(`subview-habits-${tab}`).classList.remove('hidden');
+    document.getElementById(`subview-metrics-${tab}`).classList.remove('hidden');
 }
 
 // Alternar Sub-Pestañas en Loves
@@ -429,13 +400,11 @@ function toggleFinanceView(viewId) {
     }
 }
 
-
 /**
  * ==========================================
  * GESTIÓN DE ESCUELAS (PROGRESO CONTINUO)
  * ==========================================
  */
-
 async function loadEscuelas() {
     const { data: escuelas, error } = await _supabase
         .from('escuelas_logs')
@@ -538,14 +507,11 @@ async function deleteEscuela(name, id) {
     }
 }
 
-
-
 /**
  * ==========================================
  * GESTIÓN DE IDEAS
  * ==========================================
  */
-
 async function loadIdeas() {
     const { data: ideas, error } = await _supabase
         .from('ideas_logs')
@@ -564,7 +530,6 @@ async function loadIdeas() {
     listContainer.innerHTML = '';
 
     ideas.forEach(idea => {
-        // Formatear fecha (Ej: 2 abr, 14:30)
         const dateObj = new Date(idea.created_at);
         const dateString = dateObj.toLocaleDateString('es-CO', { month: 'short', day: 'numeric' });
         const timeString = dateObj.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
@@ -631,13 +596,11 @@ async function deleteIdea(id) {
     }
 }
 
-
 /**
  * ==========================================
  * GESTIÓN DE TAREAS
  * ==========================================
  */
-
 async function loadTareas() {
     const { data: tareas, error } = await _supabase
         .from('tareas_logs')
@@ -688,7 +651,7 @@ async function addTarea(type = 'dia') {
         .insert([{ name: name.trim(), type: type }]);
 
     if (error) {
-        alert("Error al guardar: " + error.message + "\n\n⚠️ Asegúrate de haber agregado la columna 'type' (Texto) en tu tabla 'tareas_logs' en Supabase.");
+        alert("Error al guardar: " + error.message);
     } else {
         loadTareas();
     }
@@ -707,13 +670,11 @@ async function deleteTarea(id) {
     }
 }
 
-
 /**
  * ==========================================
  * GESTIÓN DE COSAS QUE AMO
  * ==========================================
  */
-
 async function loadLoves() {
     const { data: loves, error } = await _supabase
         .from('loves_logs')
@@ -814,13 +775,11 @@ async function deleteLove(name, id) {
     }
 }
 
-
 /**
  * ==========================================
  * GESTIÓN DE BLOQUES DE RUTINA (JSONB)
  * ==========================================
  */
-
 let bloquesState = {};
 
 async function loadBloques() {
@@ -838,10 +797,10 @@ async function loadBloques() {
     if (!container) return;
 
     container.innerHTML = '';
-    bloquesState = {}; // Reset state
+    bloquesState = {}; 
 
     bloques.forEach(bloque => {
-        bloquesState[bloque.id] = bloque; // Guardar en memoria
+        bloquesState[bloque.id] = bloque; 
         const tasks = bloque.tasks || [];
 
         let tasksHTML = '';
@@ -887,8 +846,6 @@ async function loadBloques() {
     });
 }
 
-// -- CRUD del Bloque Principal --
-
 async function addBloque() {
     const name = prompt("Nombre del nuevo bloque (Ej: Mañana):");
     if (!name || name.trim() === "") return;
@@ -926,8 +883,6 @@ async function deleteBloque(id, name) {
     if (error) alert("Error: " + error.message);
     else loadBloques();
 }
-
-// -- CRUD de las Subtareas (JSONB) --
 
 async function updateTasksDB(id, newTasksArray) {
     const { error } = await _supabase
@@ -973,7 +928,6 @@ function toggleBloqueTask(id, taskIndex) {
     tasks[taskIndex].done = !tasks[taskIndex].done;
     updateTasksDB(id, tasks);
 }
-
 
 /**
  * ==========================================
@@ -1260,13 +1214,11 @@ async function exportHabitsCSV() {
     document.body.removeChild(link);
 }
 
-
 /**
  * ==========================================
  * GESTIÓN DE FINANZAS (DINÁMICO)
  * ==========================================
  */
-
 function formatCurrency(num) {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(num || 0);
 }
@@ -1457,7 +1409,6 @@ async function deleteFinanceItem(id, concept) {
     if (error) alert("Error al eliminar: " + error.message);
     else loadFinances();
 }
-
 
 /**
  * ==========================================

@@ -70,16 +70,6 @@
         gap: 12px;
     }
 
-    .logo-circle {
-        width: 36px;
-        height: 36px;
-        border: 1.5px solid var(--text-dark);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
     .brand-name {
         font-size: 2.3rem; 
         font-weight: 700;
@@ -147,7 +137,7 @@
         background-color: transparent;
     }
 
-    /* Menú Desplegable de Usuario (Mantiene fondo blanco para superponerse) */
+    /* Menú Desplegable de Usuario */
     .dropdown-menu {
         position: absolute;
         top: calc(100% + 8px);
@@ -877,7 +867,7 @@
 
     /**
     * ==========================================
-    * SECCIÓN MÉTRICAS
+    * SECCIÓN MÉTRICAS (KPI MEJORADOS)
     * ==========================================
     */
     .metrics-kpi-grid {
@@ -888,27 +878,32 @@
     }
 
     .kpi-card {
-        background-color: transparent;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        padding: 16px;
+        background-color: var(--bg-header);
+        border: none;
+        border-radius: 12px;
+        padding: 20px 16px;
         text-align: center;
+        transition: transform var(--transition);
     }
 
     .kpi-label {
-        font-size: 0.65rem;
+        font-size: 0.75rem;
         color: var(--text-muted);
         text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 6px;
-        font-weight: 600;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+        font-weight: 700;
     }
 
     .kpi-value {
-        font-size: 1.8rem;
-        font-weight: 700;
-        color: var(--text-dark);
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--primary-green);
         line-height: 1;
+    }
+
+    .kpi-highlight {
+        color: var(--text-dark);
     }
 
     .chart-wrapper {
