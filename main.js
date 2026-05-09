@@ -136,7 +136,7 @@ async function loadHabits() {
         const d = new Date(monday);
         d.setDate(monday.getDate() + i);
         datesOfWeek.push(formatDateLocal(d));
-        
+
         if (i === 6) sunday = d;
 
         const labelEl = document.getElementById(`day-label-${i + 1}`);
@@ -166,7 +166,7 @@ async function loadHabits() {
             nextBtn.style.opacity = '0.3';
             nextBtn.style.cursor = 'default';
         } else {
-            weekLabel.textContent = weekTitleStr; 
+            weekLabel.textContent = weekTitleStr;
             nextBtn.disabled = false;
             nextBtn.style.opacity = '1';
             nextBtn.style.cursor = 'pointer';
@@ -230,7 +230,7 @@ async function addHabit() {
     const { data, error } = await _supabase
         .from('habit_logs')
         .insert([{ habit_name: habitName, log_date: todayStr, is_completed: false }])
-        .select(); 
+        .select();
 
     if (error) {
         alert("Fallo al guardar. Revisa la Consola (F12). Error: " + error.message);
@@ -257,22 +257,22 @@ async function toggleHabit(habitName, dateStr, currentState) {
             .from('habit_logs')
             .update({ is_completed: !currentState })
             .eq('id', data.id);
-            
+
         if (updateError) console.error("Error actualizando:", updateError.message);
     } else {
         const { error: insertError } = await _supabase
             .from('habit_logs')
-            .insert([{ 
-                habit_name: habitName, 
-                log_date: dateStr, 
-                is_completed: !currentState 
+            .insert([{
+                habit_name: habitName,
+                log_date: dateStr,
+                is_completed: !currentState
             }]);
-            
+
         if (insertError) console.error("Error insertando:", insertError.message);
     }
-    
+
     loadHabits();
-    if (typeof loadMetrics === 'function') loadMetrics(); 
+    if (typeof loadMetrics === 'function') loadMetrics();
 }
 
 async function editHabit(oldName) {
@@ -331,7 +331,7 @@ function switchMetricsSubTab(tab, btn) {
 
     document.getElementById('subview-metrics-stats').classList.add('hidden');
     document.getElementById('subview-metrics-bloques').classList.add('hidden');
-    
+
     document.getElementById(`subview-metrics-${tab}`).classList.remove('hidden');
 }
 
@@ -343,13 +343,13 @@ function switchLovesSubTab(tab, btn) {
     document.getElementById('subview-loves-agradecimientos').classList.add('hidden');
     document.getElementById('subview-loves-escuelas').classList.add('hidden');
     document.getElementById('subview-loves-pasiones').classList.add('hidden');
-    
+
     document.getElementById(`subview-loves-${tab}`).classList.remove('hidden');
 }
 
 function switchTareasSubTab(tab, btn) {
     const container = btn.closest('.sub-tabs-container');
-    if(container) {
+    if (container) {
         container.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
     }
@@ -363,7 +363,7 @@ function switchFinanceSubTab(tab, btn) {
     document.getElementById('subview-finanzas').classList.add('hidden');
     document.getElementById('subview-compras').classList.add('hidden');
     document.getElementById('subview-inversiones').classList.add('hidden');
-    
+
     document.getElementById(`subview-${tab}`).classList.remove('hidden');
 }
 
@@ -452,7 +452,7 @@ async function addEscuela() {
     if (error) {
         alert("Error al guardar: " + error.message);
     } else {
-        loadEscuelas(); 
+        loadEscuelas();
     }
 }
 
@@ -602,9 +602,9 @@ function parseContentAndTags(rawText) {
     // Limpiar el texto de hashtags manuales para la base de datos
     const cleanContent = rawText.replace(tagRegex, '').trim();
 
-    return { 
-        content: cleanContent, 
-        tags: Array.from(tags) 
+    return {
+        content: cleanContent,
+        tags: Array.from(tags)
     };
 }
 
@@ -617,7 +617,7 @@ async function loadIdeas() {
     const { data: ideas, error } = await _supabase
         .from('ideas_logs')
         .select('*')
-        .or('type.eq.idea,type.is.null') 
+        .or('type.eq.idea,type.is.null')
         .order('created_at', { ascending: false })
         .limit(30);
 
@@ -786,7 +786,7 @@ async function showRandomVictory() {
     const victory = data[randomIndex];
     const dateStr = new Date(victory.created_at).toLocaleDateString('es-CO');
     const tagsStr = victory.tags && victory.tags.length > 0 ? victory.tags.join(', ') : 'Sin etiquetas';
-    
+
     alert(`🔥 Evidencia contra el Impostor:\n\n"${victory.content}"\n\n📅 Fecha: ${dateStr}\n🏷️ Etiquetas: ${tagsStr}`);
 }
 
@@ -851,10 +851,10 @@ async function loadInversiones() {
     if (!container) return;
 
     container.innerHTML = '';
-    inversionesState = {}; 
+    inversionesState = {};
 
     inversiones.forEach(inv => {
-        inversionesState[inv.id] = inv; 
+        inversionesState[inv.id] = inv;
         const cuotas = inv.cuotas || [];
 
         let cuotasHTML = '';
@@ -906,9 +906,9 @@ async function addInversion() {
 
     const numCuotasStr = prompt("¿Cuántas cuotas iniciales tiene? (Escribe un número, 0 si no sabes):", "1");
     const numCuotas = parseInt(numCuotasStr) || 0;
-    
+
     let cuotasIniciales = [];
-    for(let i = 1; i <= numCuotas; i++) {
+    for (let i = 1; i <= numCuotas; i++) {
         cuotasIniciales.push({ text: `Cuota ${i}`, done: false });
     }
 
@@ -980,7 +980,7 @@ function editCuota(id, cuotaIndex) {
 }
 
 function deleteCuota(id, cuotaIndex) {
-    if(!confirm("¿Eliminar esta cuota?")) return;
+    if (!confirm("¿Eliminar esta cuota?")) return;
     const cuotas = inversionesState[id].cuotas;
     cuotas.splice(cuotaIndex, 1);
     updateCuotasDB(id, cuotas);
@@ -1119,10 +1119,10 @@ async function loadBloques() {
     if (!container) return;
 
     container.innerHTML = '';
-    bloquesState = {}; 
+    bloquesState = {};
 
     bloques.forEach(bloque => {
-        bloquesState[bloque.id] = bloque; 
+        bloquesState[bloque.id] = bloque;
         const tasks = bloque.tasks || [];
 
         let tasksHTML = '';
@@ -1286,7 +1286,7 @@ async function loadMetrics() {
     });
 
     const allLabels = Object.keys(dateStats).sort();
-    const recentLabels = allLabels.slice(-7); 
+    const recentLabels = allLabels.slice(-7);
 
     let sumPct = 0;
     let bestDayDate = "--";
@@ -1371,7 +1371,7 @@ function renderChart(labels, dataPoints) {
             scales: {
                 y: {
                     beginAtZero: true,
-                    max: 110, 
+                    max: 110,
                     border: { display: false },
                     grid: { display: false },
                     ticks: { color: textColor, font: { size: 10 }, stepSize: 25 }
@@ -1431,18 +1431,18 @@ async function exportAllHistoryCSV() {
     const uniqueHabits = [...new Set(allLogs.map(l => l.habit_name))].sort();
 
     const firstDateStr = allLogs[0].log_date;
-    const firstDate = new Date(firstDateStr + 'T00:00:00'); 
+    const firstDate = new Date(firstDateStr + 'T00:00:00');
     const today = new Date();
-    
+
     const allDates = [];
     let currentDate = new Date(firstDate);
-    
+
     while (currentDate <= today) {
         allDates.push(formatDateLocal(currentDate));
         currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    let csvContent = "\uFEFF"; 
+    let csvContent = "\uFEFF";
     csvContent += "Hábito," + allDates.join(",") + ",Total Histórico\n";
 
     uniqueHabits.forEach(habitName => {
@@ -1452,12 +1452,12 @@ async function exportAllHistoryCSV() {
         allDates.forEach(dateStr => {
             const log = allLogs.find(l => l.habit_name === habitName && l.log_date === dateStr);
             const isDone = log ? log.is_completed : false;
-            
+
             if (isDone) totalCompletados++;
-            
-            row += isDone ? ",Sí" : ",No"; 
+
+            row += isDone ? ",Sí" : ",No";
         });
-        
+
         row += `,${totalCompletados}`;
         csvContent += row + "\n";
     });
@@ -1465,7 +1465,7 @@ async function exportAllHistoryCSV() {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
-    
+
     link.setAttribute("href", url);
     link.setAttribute("download", `IKILIFE_Historial_Completo.csv`);
     link.style.visibility = 'hidden';
@@ -1504,7 +1504,7 @@ async function exportHabitsCSV() {
 
     if (err2) return alert("Error al obtener registros de la semana.");
 
-    let csvContent = "\uFEFF"; 
+    let csvContent = "\uFEFF";
     csvContent += "Hábito," + datesOfWeek.join(",") + ",Total Completados\n";
 
     uniqueHabits.forEach(habitName => {
@@ -1551,7 +1551,7 @@ async function loadFinances() {
 
     const listIncomes = document.getElementById('list-incomes');
     const expensesContainer = document.getElementById('dynamic-expense-categories');
-    
+
     if (listIncomes) listIncomes.innerHTML = '';
     if (expensesContainer) expensesContainer.innerHTML = '';
 
@@ -1562,7 +1562,7 @@ async function loadFinances() {
     finances.forEach(item => {
         const isIncome = item.type === 'income';
         const textColorClass = isIncome ? 'text-income' : 'text-expense';
-        
+
         const row = `
             <li class="finance-item" oncontextmenu="event.preventDefault(); deleteFinanceItem(${item.id}, '${item.concept}')">
                 <div class="finance-item-name" style="cursor:pointer; overflow:hidden; text-overflow:ellipsis;" onclick="editFinanceConcept(${item.id}, '${item.concept}')" title="Clic para editar nombre | Clic Derecho para eliminar">
@@ -1606,7 +1606,7 @@ async function loadFinances() {
 
     const totalAhorro = totalIngresosReal - totalGastosReal;
     document.getElementById('kpi-ingresos').textContent = formatCurrency(totalIngresosReal);
-    if(document.getElementById('kpi-ingresos-detail')) document.getElementById('kpi-ingresos-detail').textContent = formatCurrency(totalIngresosReal);
+    if (document.getElementById('kpi-ingresos-detail')) document.getElementById('kpi-ingresos-detail').textContent = formatCurrency(totalIngresosReal);
     document.getElementById('kpi-gastos').textContent = formatCurrency(totalGastosReal);
     document.getElementById('kpi-ahorro').textContent = formatCurrency(totalAhorro);
 }
@@ -1614,7 +1614,7 @@ async function loadFinances() {
 async function addFinanceCategory() {
     const categoryName = prompt("Nombre de la nueva categoría (Ej: Transporte, Suscripciones):");
     if (!categoryName || categoryName.trim() === "") return;
-    
+
     addFinanceItem('expense', categoryName.trim());
 }
 
@@ -1625,14 +1625,14 @@ async function addFinanceReal(id, currentReal, addedValue) {
 
     const total = Number(currentReal) + newVal;
     const { error } = await _supabase.from('finance_logs').update({ real: total }).eq('id', id);
-    
+
     if (error) console.error("Error al sumar cantidad:", error.message);
-    else loadFinances(); 
+    else loadFinances();
 }
 
 async function editFinanceRealTotal(id, currentTotal) {
     const newValStr = prompt("Corregir total acumulado manualmente (Sin puntos):", currentTotal);
-    if (newValStr === null) return; 
+    if (newValStr === null) return;
     const newVal = Number(newValStr) || 0;
     const { error } = await _supabase.from('finance_logs').update({ real: newVal }).eq('id', id);
     if (!error) loadFinances();
@@ -1776,12 +1776,35 @@ async function generateInsights() {
         if (error) throw new Error("Error en Supabase: " + error.message);
         if (!ideas || ideas.length === 0) throw new Error("No hay ideas suficientes en la base de datos.");
 
-        if (focoEl) focoEl.textContent = "2. Conectando con Gemini AI...";
+        if (focoEl) focoEl.textContent = "2. Detectando modelo de IA disponible...";
+        
+        // REEMPLAZA CON TU NUEVA API KEY
+        const apiKey = 'AIzaSyDdHXsO9Ns8KZFHkDGGeiEurvXmt42Ntck'; 
+        
+        // 1. Obtener la lista de modelos permitidos para tu cuenta
+        const reqModels = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+        const resModels = await reqModels.json();
+        
+        if (!reqModels.ok) throw new Error("Error listando modelos: " + (resModels.error?.message || "Revisa tu API key"));
+        
+        // 2. Seleccionar el primer modelo que soporte generación de texto (priorizando flash)
+        let selectedModel = "";
+        for (const m of resModels.models) {
+            if (m.supportedGenerationMethods?.includes("generateContent")) {
+                selectedModel = m.name; 
+                if (m.name.includes("flash")) break;
+            }
+        }
+        
+        if (!selectedModel) throw new Error("Tu API Key no tiene acceso a ningún modelo de texto.");
+
+        if (focoEl) focoEl.textContent = `3. Analizando con ${selectedModel.replace('models/', '')}...`;
+        
         const textos = ideas.map(i => i.content).join("\n- ");
         const prompt = `Analiza estas entradas de mi diario. Devuelve SOLO un JSON con: {"foco_mental": "frase corta de 8 palabras max", "patrones": ["tema1", "tema2"], "frase_representativa": "resumen profundo"}. Entradas:\n${textos}`;
 
-        const apiKey = 'AIzaSyDdHXsO9Ns8KZFHkDGGeiEurvXmt42Ntck';
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`, {
+        // 3. Ejecutar análisis con el modelo dinámico
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/${selectedModel}:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1795,10 +1818,9 @@ async function generateInsights() {
             throw new Error("HTTP " + response.status + ": " + errText);
         }
 
-        if (focoEl) focoEl.textContent = "3. Procesando datos...";
+        if (focoEl) focoEl.textContent = "4. Procesando datos...";
         const result = await response.json();
         
-        // Limpieza estricta de formato markdown que suele romper el JSON
         const rawText = result.candidates[0].content.parts[0].text.replace(/```json/g, '').replace(/```/g, '').trim();
         const data = JSON.parse(rawText);
 
@@ -1807,7 +1829,6 @@ async function generateInsights() {
         if (fraseEl) fraseEl.textContent = `"${data.frase_representativa || ''}"`;
 
     } catch (err) {
-        // Muestra el error exacto en la cara del usuario
         alert("Falla en el análisis:\n\n" + err.message);
         if (focoEl) focoEl.textContent = "Error de ejecución.";
     }
