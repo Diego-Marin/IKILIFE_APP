@@ -87,7 +87,6 @@
 
         <main id="main-content">
 
-            <!-- HABITS -->
             <div id="view-habits" class="view-content active">
                 <section class="category">
                     <div
@@ -158,7 +157,6 @@
                 </section>
             </div>
 
-            <!-- METRICS & BLOCKS -->
             <div id="view-metrics" class="view-content">
                 <section class="category">
                     <div class="sub-tabs-container">
@@ -168,7 +166,6 @@
                             Rutina</button>
                     </div>
 
-                    <!-- ESTADISTICAS -->
                     <div id="subview-metrics-stats">
                         <div class="metrics-kpi-grid" style="padding: 16px 16px 0;">
                             <div class="kpi-card">
@@ -197,7 +194,6 @@
                         </div>
                     </div>
 
-                    <!-- BLOQUES -->
                     <div id="subview-metrics-bloques" class="hidden">
                         <div class="item-list-header bloque-header">
                             <button class="add-habit-btn" onclick="addBloque()" aria-label="Agregar bloque">
@@ -215,7 +211,6 @@
                 </section>
             </div>
 
-            <!-- TAREAS (Única Lista) -->
             <div id="view-tareas" class="view-content">
                 <section class="category">
                     <div id="subview-tareas-dia">
@@ -234,7 +229,6 @@
                 </section>
             </div>
 
-            <!-- MONEY -->
             <div id="view-money" class="view-content">
                 <section class="category">
                     <div class="finance-sub-tabs">
@@ -244,7 +238,6 @@
                         <button class="sub-tab-btn" onclick="switchFinanceSubTab('inversiones', this)">Deudas</button>
                     </div>
 
-                    <!-- FINANZAS DEL MES -->
                     <div id="subview-finanzas" style="padding: 16px;">
                         <div id="finance-main">
                             <section class="summary-grid">
@@ -313,7 +306,6 @@
                         </div>
                     </div>
 
-                    <!-- COMPRAS -->
                     <div id="subview-compras" class="hidden" style="padding: 16px;">
                         <div class="item-list-header love-header">
                             <button class="add-habit-btn" onclick="addCompra()" aria-label="Agregar compra objetivo">
@@ -329,7 +321,6 @@
                         <ul id="list-compras" style="list-style:none;"></ul>
                     </div>
 
-                    <!-- INVERSIONES / DEUDAS -->
                     <div id="subview-inversiones" class="hidden" style="padding: 16px;">
                         <div class="item-list-header">
                             <button class="add-habit-btn" onclick="addInversion()">
@@ -346,35 +337,33 @@
                 </section>
             </div>
 
-            <!-- IDEAS -->
             <div id="view-ideas" class="view-content">
-                <section class="category">
-                    <div id="insight-dashboard" class="view-content"
-                        style="border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                        <h3 style="margin-top: 0; color: var(--primary-green);">Estado Actual</h3>
-                        <p><strong>Foco Mental:</strong> <span id="insight-foco">Analizando...</span></p>
-                        <p><strong>Patrones Detectados:</strong> <span id="insight-patrones">...</span></p>
-                        <blockquote id="insight-frase"
-                            style="font-style: italic; color: var(--text-muted); border-left: 3px solid var(--primary-green); padding-left: 10px;">
-                        </blockquote>
-                        <button class="add-habit-btn" onclick="generateInsights()" style="margin-top: 10px;">Refrescar
-                            Análisis</button>
-                    </div>
-                    <div class="item-list-header idea-header">
-                        <button class="add-habit-btn" onclick="addIdea()" aria-label="Agregar nueva idea">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
-                            Nueva Idea
-                        </button>
-                    </div>
-                    <ul id="list-ideas" style="list-style:none;"></ul>
-                </section>
-            </div>
+    <section class="category">
+        <div id="insight-dashboard" 
+            style="border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <h3 style="margin-top: 0; color: var(--primary-green);">Estado Actual</h3>
+            <p><strong>Foco Mental:</strong> <span id="insight-foco">Esperando análisis...</span></p>
+            <p><strong>Patrones Detectados:</strong> <span id="insight-patrones">...</span></p>
+            <blockquote id="insight-frase"
+                style="font-style: italic; color: var(--text-muted); border-left: 3px solid var(--primary-green); padding-left: 10px;">
+            </blockquote>
+            <button class="add-habit-btn" onclick="generateInsights()" style="margin-top: 10px;">Refrescar Análisis</button>
+        </div>
 
-            <!-- LOVES & ESCUELAS -->
+        <div class="item-list-header idea-header">
+            <button class="add-habit-btn" onclick="addIdea()" aria-label="Agregar nueva idea">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Nueva Idea
+            </button>
+        </div>
+        <ul id="list-ideas" style="list-style:none;"></ul>
+    </section>
+</div>
+
             <div id="view-loves" class="view-content">
                 <section class="category">
                     <div class="sub-tabs-container">
@@ -398,7 +387,7 @@
                         </div>
                         <ul id="list-agradecimientos" style="list-style:none;"></ul>
                         <button class="add-habit-btn" onclick="showRandomVictory()"
-                            style="background-color: var(--primary-green); color: white;">
+                            style="background-color: var(--primary-green); color: white; margin-top: 15px;">
                             Evidencia de Victoria
                         </button>
                     </div>

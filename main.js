@@ -1760,76 +1760,55 @@ document.addEventListener('DOMContentLoaded', () => {
  * ==========================================
  */
 async function generateInsights() {
-    // 1. Obtener las últimas 20 ideas
-    const { data: ideas, error } = await _supabase
-        .from('ideas_logs')
-        .select('content')
-        .order('created_at', { ascending: false })
-        .limit(20);
-
-    if (error || !ideas.length) {
-        document.getElementById('insight-foco').textContent = "No hay suficientes ideas.";
-        return console.error("Error obteniendo ideas");
-    }
-
-    // Feedback visual temporal
-    document.getElementById('insight-foco').textContent = "Analizando tu estado...";
-    document.getElementById('insight-patrones').textContent = "...";
-    document.getElementById('insight-frase').textContent = "";
-
-    // Extraer solo el texto
-    const textos = ideas.map(i => i.content).join("\n- ");
-
-    // 2. Definir el Prompt Estricto para el LLM
-    const prompt = `
-    Analiza las siguientes entradas de un diario personal. Identifica patrones, contexto y el estado mental subyacente. 
-    Devuelve ÚNICAMENTE un objeto JSON válido con la siguiente estructura, sin texto adicional ni bloques de código markdown:
-    {
-        "foco_mental": "Una frase corta de máximo 8 palabras describiendo el estado emocional o mental actual.",
-        "patrones": ["Palabra/Concepto 1", "Concepto 2", "Concepto 3"],
-        "frase_representativa": "Una frase generada por ti que resuma la actitud o el aprendizaje principal de estas entradas."
-    }
-    
-    Entradas:
-    - ${textos}
-    `;
+    const focoEl = document.getElementById('insight-foco');
+    const patronesEl = document.getElementById('insight-patrones');
+    const fraseEl = document.getElementById('insight-frase');
 
     try {
-        // 3. Llamada a la API de Gemini (Directa)
-        const apiKey = 'AIzaSyDdHXsO9Ns8KZFHkDGGeiEurvXmt42Ntck';
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
+        if (focoEl) focoEl.textContent = "1. Leyendo base de datos...";
 
-        const response = await fetch(url, {
+        const { data: ideas, error } = await _supabase
+            .from('ideas_logs')
+            .select('content')
+            .order('created_at', { ascending: false })
+            .limit(20);
+
+        if (error) throw new Error("Error en Supabase: " + error.message);
+        if (!ideas || ideas.length === 0) throw new Error("No hay ideas suficientes en la base de datos.");
+
+        if (focoEl) focoEl.textContent = "2. Conectando con Gemini AI...";
+        const textos = ideas.map(i => i.content).join("\n- ");
+        const prompt = `Analiza estas entradas de mi diario. Devuelve SOLO un JSON con: {"foco_mental": "frase corta de 8 palabras max", "patrones": ["tema1", "tema2"], "frase_representativa": "resumen profundo"}. Entradas:\n${textos}`;
+
+        const apiKey = 'AIzaSyDdHXsO9Ns8KZFHkDGGeiEurvXmt42Ntck';
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                contents: [{
-                    parts: [{ text: prompt }]
-                }],
-                generationConfig: {
-                    responseMimeType: "application/json"
-                }
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { responseMimeType: "application/json" }
             })
         });
 
         if (!response.ok) {
-            throw new Error(`Error en la API: ${response.status}`);
+            const errText = await response.text();
+            throw new Error("HTTP " + response.status + ": " + errText);
         }
 
+        if (focoEl) focoEl.textContent = "3. Procesando datos...";
         const result = await response.json();
         
-        // 4. Extracción de datos y actualización de interfaz
-        const rawJsonStr = result.candidates[0].content.parts[0].text; 
-        const insightData = JSON.parse(rawJsonStr);
+        // Limpieza estricta de formato markdown que suele romper el JSON
+        const rawText = result.candidates[0].content.parts[0].text.replace(/```json/g, '').replace(/```/g, '').trim();
+        const data = JSON.parse(rawText);
 
-        document.getElementById('insight-foco').textContent = insightData.foco_mental;
-        document.getElementById('insight-patrones').textContent = insightData.patrones.join(', ');
-        document.getElementById('insight-frase').textContent = `"${insightData.frase_representativa}"`;
+        if (focoEl) focoEl.textContent = data.foco_mental || "Sin foco";
+        if (patronesEl) patronesEl.textContent = (data.patrones || []).join(' • ');
+        if (fraseEl) fraseEl.textContent = `"${data.frase_representativa || ''}"`;
 
     } catch (err) {
-        console.error("Error generando insights:", err);
-        document.getElementById('insight-foco').textContent = "Error de análisis. Verifica la consola.";
+        // Muestra el error exacto en la cara del usuario
+        alert("Falla en el análisis:\n\n" + err.message);
+        if (focoEl) focoEl.textContent = "Error de ejecución.";
     }
 }
