@@ -508,18 +508,104 @@ async function deleteEscuela(name, id) {
  * PARSER DE ETIQUETAS (INSIGHT MINING)
  * ==========================================
  */
+/**
+ * Detecta categorías automáticamente basándose en palabras clave
+ * sin necesidad de escribir hashtags.
+ */
 function parseContentAndTags(rawText) {
-    const tagRegex = /#(\w+)/g;
-    const tags = [];
-    let match;
-    
-    while ((match = tagRegex.exec(rawText)) !== null) {
-        tags.push(match[1].toLowerCase());
+    const textLower = rawText.toLowerCase();
+    const tags = new Set(); // Usamos Set para evitar etiquetas duplicadas
+
+    // Define aquí tus reglas: "palabra clave": "Categoría"
+    const reglas = {
+        // Desarrollo y Tecnología
+        "ikilife": "desarrollo",
+        "app": "desarrollo",
+        "tecnología": "desarrollo",
+        "automatizar": "desarrollo",
+        "supabase": "desarrollo",
+        "spring": "desarrollo",
+
+        // Aprendizaje
+        "inglés": "aprendizaje",
+        "estudiar": "aprendizaje",
+        "aprender": "aprendizaje",
+        "podcast": "aprendizaje",
+        "libro": "aprendizaje",
+        "kindle": "aprendizaje",
+        "chatgpt": "aprendizaje",
+
+        // Salud Mental y Emocional
+        "ansiedad": "salud-mental",
+        "terapia": "salud-mental",
+        "dopamina": "salud-mental",
+        "emociones": "salud-mental",
+        "mente": "salud-mental",
+        "miedo": "salud-mental",
+        "soledad": "salud-mental",
+
+        // Relaciones y Social
+        "elisa": "relaciones",
+        "mujer": "relaciones",
+        "chica": "relaciones",
+        "amigos": "relaciones",
+        "personas": "relaciones",
+
+        // Familia
+        "papá": "familia",
+        "mamá": "familia",
+        "tía": "familia",
+
+        // Trabajo y Profesional
+        "mesa de ayuda": "profesional",
+        "trabajo": "profesional",
+        "empresa": "profesional",
+        "compañeros": "profesional",
+
+        // Finanzas
+        "dinero": "finanzas",
+        "finanzas": "finanzas",
+        "plata": "finanzas",
+        "comprar": "finanzas",
+        "promociones": "finanzas",
+
+        // Movilidad
+        "moto": "transporte",
+        "casco": "transporte",
+        "transporte": "transporte",
+
+        // Estilo de Vida y Hábitos
+        "ropa": "estilo",
+        "moda": "estilo",
+        "gorras": "estilo",
+        "naturaleza": "estilo-de-vida",
+        "entrenamiento": "salud-física",
+        "gimnasio": "salud-física",
+        "café": "hábitos",
+        "celular": "hábitos"
+    };
+
+    // 1. Automatización por palabras clave
+    for (const [palabra, categoria] of Object.entries(reglas)) {
+        if (textLower.includes(palabra)) {
+            tags.add(categoria);
+        }
     }
-    
-    // Remueve las etiquetas del texto visual o lo deja intacto si prefieres verlas
-    const cleanContent = rawText.replace(tagRegex, '').trim() || rawText.trim();
-    return { content: cleanContent, tags: tags };
+
+    // 2. Mantener soporte para hashtags manuales por si acaso
+    const tagRegex = /#(\w+)/g;
+    let match;
+    while ((match = tagRegex.exec(rawText)) !== null) {
+        tags.add(match[1].toLowerCase());
+    }
+
+    // Limpiar el texto de hashtags manuales para la base de datos
+    const cleanContent = rawText.replace(tagRegex, '').trim();
+
+    return { 
+        content: cleanContent, 
+        tags: Array.from(tags) 
+    };
 }
 
 /**
