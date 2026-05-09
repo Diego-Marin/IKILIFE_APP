@@ -340,8 +340,9 @@ function switchLovesSubTab(tab, btn) {
     container.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
 
-    document.getElementById('subview-loves-pasiones').classList.add('hidden');
+    document.getElementById('subview-loves-agradecimientos').classList.add('hidden');
     document.getElementById('subview-loves-escuelas').classList.add('hidden');
+    document.getElementById('subview-loves-pasiones').classList.add('hidden');
     
     document.getElementById(`subview-loves-${tab}`).classList.remove('hidden');
 }
@@ -354,7 +355,6 @@ function switchTareasSubTab(tab, btn) {
     }
 }
 
-// Nueva función para alternar Sub-Pestañas en Finanzas
 function switchFinanceSubTab(tab, btn) {
     const container = btn.closest('.finance-sub-tabs');
     container.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
@@ -505,6 +505,25 @@ async function deleteEscuela(name, id) {
 
 /**
  * ==========================================
+ * PARSER DE ETIQUETAS (INSIGHT MINING)
+ * ==========================================
+ */
+function parseContentAndTags(rawText) {
+    const tagRegex = /#(\w+)/g;
+    const tags = [];
+    let match;
+    
+    while ((match = tagRegex.exec(rawText)) !== null) {
+        tags.push(match[1].toLowerCase());
+    }
+    
+    // Remueve las etiquetas del texto visual o lo deja intacto si prefieres verlas
+    const cleanContent = rawText.replace(tagRegex, '').trim() || rawText.trim();
+    return { content: cleanContent, tags: tags };
+}
+
+/**
+ * ==========================================
  * GESTIÓN DE IDEAS
  * ==========================================
  */
@@ -512,17 +531,14 @@ async function loadIdeas() {
     const { data: ideas, error } = await _supabase
         .from('ideas_logs')
         .select('*')
+        .or('type.eq.idea,type.is.null') 
         .order('created_at', { ascending: false })
         .limit(30);
 
-    if (error) {
-        console.error("Error cargando ideas:", error.message);
-        return;
-    }
+    if (error) return console.error("Error cargando ideas:", error.message);
 
     const listContainer = document.getElementById('list-ideas');
     if (!listContainer) return;
-
     listContainer.innerHTML = '';
 
     ideas.forEach(idea => {
@@ -546,18 +562,17 @@ async function loadIdeas() {
 }
 
 async function addIdea() {
-    const content = prompt("Escribe tu nueva idea:");
-    if (!content || content.trim() === "") return;
+    const rawInput = prompt("Escribe tu nueva idea (usa #etiquetas para categorizar):");
+    if (!rawInput || rawInput.trim() === "") return;
+
+    const { content, tags } = parseContentAndTags(rawInput);
 
     const { error } = await _supabase
         .from('ideas_logs')
-        .insert([{ content: content.trim() }]);
+        .insert([{ content: content, type: 'idea', tags: tags }]);
 
-    if (error) {
-        alert("Error al guardar: " + error.message);
-    } else {
-        loadIdeas();
-    }
+    if (error) alert("Error al guardar: " + error.message);
+    else loadIdeas();
 }
 
 async function editIdea(id, oldContent) {
@@ -590,6 +605,104 @@ async function deleteIdea(id) {
     } else {
         loadIdeas();
     }
+}
+
+/**
+ * ==========================================
+ * GESTIÓN DE AGRADECIMIENTOS Y SÍNDROME DEL IMPOSTOR
+ * ==========================================
+ */
+async function loadAgradecimientos() {
+    const { data: agradecimientos, error } = await _supabase
+        .from('ideas_logs')
+        .select('*')
+        .eq('type', 'agradecimiento')
+        .order('created_at', { ascending: false })
+        .limit(30);
+
+    if (error) return console.error("Error cargando agradecimientos:", error.message);
+
+    const listContainer = document.getElementById('list-agradecimientos');
+    if (!listContainer) return;
+    listContainer.innerHTML = '';
+
+    agradecimientos.forEach(item => {
+        const dateObj = new Date(item.created_at);
+        const dateString = dateObj.toLocaleDateString('es-CO', { month: 'short', day: 'numeric' });
+        const timeString = dateObj.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+
+        const row = `
+            <li class="idea-row">
+                <div class="idea-content"
+                     onclick="editAgradecimiento(${item.id}, '${item.content.replace(/'/g, "\\'")}')"
+                     oncontextmenu="event.preventDefault(); deleteAgradecimiento(${item.id})"
+                     title="Clic: Editar | Clic Derecho: Eliminar">
+                    ${item.content}
+                </div>
+                <div class="idea-date">${dateString} - ${timeString}</div>
+            </li>
+        `;
+        listContainer.insertAdjacentHTML('beforeend', row);
+    });
+}
+
+async function addAgradecimiento() {
+    const rawInput = prompt("Anota algo positivo (usa #etiquetas para categorizar):");
+    if (!rawInput || rawInput.trim() === "") return;
+
+    const { content, tags } = parseContentAndTags(rawInput);
+
+    const { error } = await _supabase
+        .from('ideas_logs')
+        .insert([{ content: content, type: 'agradecimiento', tags: tags }]);
+
+    if (error) alert("Error al guardar: " + error.message);
+    else loadAgradecimientos();
+}
+
+async function editAgradecimiento(id, oldContent) {
+    const newContent = prompt("Editar agradecimiento:", oldContent);
+    if (!newContent || newContent.trim() === "" || newContent === oldContent) return;
+
+    const { error } = await _supabase
+        .from('ideas_logs')
+        .update({ content: newContent.trim() })
+        .eq('id', id);
+
+    if (error) alert("Error al editar: " + error.message);
+    else loadAgradecimientos();
+}
+
+async function deleteAgradecimiento(id) {
+    if (!confirm("¿Deseas eliminar este agradecimiento?")) return;
+
+    const { error } = await _supabase
+        .from('ideas_logs')
+        .delete()
+        .eq('id', id);
+
+    if (error) alert("Error al eliminar: " + error.message);
+    else loadAgradecimientos();
+}
+
+// Función para extraer una victoria aleatoria (Puedes vincularla a un botón en tu HTML más adelante)
+async function showRandomVictory() {
+    const { data, error } = await _supabase
+        .from('ideas_logs')
+        .select('content, created_at, tags')
+        .eq('type', 'agradecimiento');
+
+    if (error || !data || data.length === 0) {
+        alert("Aún no hay victorias o agradecimientos registrados para mostrar.");
+        return;
+    }
+
+    const randomIndex = Math.floor(Math.random() * data.length);
+    const victory = data[randomIndex];
+    const dateStr = new Date(victory.created_at).toLocaleDateString('es-CO');
+    const tagsStr = victory.tags && victory.tags.length > 0 ? victory.tags.join(', ') : 'Sin etiquetas';
+    
+    alert(`🔥 Evidencia contra el Impostor:\n\n"${victory.content}"\n\n📅 Fecha: ${dateStr}\n🏷️ Etiquetas: ${tagsStr}`);
 }
 
 /**
@@ -1547,6 +1660,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadMetrics();
     loadFinances();
     loadCompras();
+    loadAgradecimientos();
 
     _supabase.channel('habit-changes')
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'habit_logs' }, () => loadHabits())
