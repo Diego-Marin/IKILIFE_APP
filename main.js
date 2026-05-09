@@ -771,7 +771,6 @@ async function deleteAgradecimiento(id) {
     else loadAgradecimientos();
 }
 
-// Función para extraer una victoria aleatoria (Puedes vincularla a un botón en tu HTML más adelante)
 async function showRandomVictory() {
     const { data, error } = await _supabase
         .from('ideas_logs')
@@ -1754,3 +1753,83 @@ document.addEventListener('DOMContentLoaded', () => {
         .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'habit_logs' }, () => loadHabits())
         .subscribe();
 });
+
+/**
+ * ==========================================
+ * GENERACIÓN DE INSIGHTS (GEMINI API)
+ * ==========================================
+ */
+async function generateInsights() {
+    // 1. Obtener las últimas 20 ideas
+    const { data: ideas, error } = await _supabase
+        .from('ideas_logs')
+        .select('content')
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+    if (error || !ideas.length) {
+        document.getElementById('insight-foco').textContent = "No hay suficientes ideas.";
+        return console.error("Error obteniendo ideas");
+    }
+
+    // Feedback visual temporal
+    document.getElementById('insight-foco').textContent = "Analizando tu estado...";
+    document.getElementById('insight-patrones').textContent = "...";
+    document.getElementById('insight-frase').textContent = "";
+
+    // Extraer solo el texto
+    const textos = ideas.map(i => i.content).join("\n- ");
+
+    // 2. Definir el Prompt Estricto para el LLM
+    const prompt = `
+    Analiza las siguientes entradas de un diario personal. Identifica patrones, contexto y el estado mental subyacente. 
+    Devuelve ÚNICAMENTE un objeto JSON válido con la siguiente estructura, sin texto adicional ni bloques de código markdown:
+    {
+        "foco_mental": "Una frase corta de máximo 8 palabras describiendo el estado emocional o mental actual.",
+        "patrones": ["Palabra/Concepto 1", "Concepto 2", "Concepto 3"],
+        "frase_representativa": "Una frase generada por ti que resuma la actitud o el aprendizaje principal de estas entradas."
+    }
+    
+    Entradas:
+    - ${textos}
+    `;
+
+    try {
+        // 3. Llamada a la API de Gemini (Directa)
+        const apiKey = 'AIzaSyDdHXsO9Ns8KZFHkDGGeiEurvXmt42Ntck';
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{ text: prompt }]
+                }],
+                generationConfig: {
+                    responseMimeType: "application/json"
+                }
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error en la API: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        // 4. Extracción de datos y actualización de interfaz
+        const rawJsonStr = result.candidates[0].content.parts[0].text; 
+        const insightData = JSON.parse(rawJsonStr);
+
+        document.getElementById('insight-foco').textContent = insightData.foco_mental;
+        document.getElementById('insight-patrones').textContent = insightData.patrones.join(', ');
+        document.getElementById('insight-frase').textContent = `"${insightData.frase_representativa}"`;
+
+    } catch (err) {
+        console.error("Error generando insights:", err);
+        document.getElementById('insight-foco').textContent = "Error de análisis. Verifica la consola.";
+    }
+}

@@ -349,6 +349,17 @@
             <!-- IDEAS -->
             <div id="view-ideas" class="view-content">
                 <section class="category">
+                    <div id="insight-dashboard" class="view-content"
+                        style="border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <h3 style="margin-top: 0; color: var(--primary-green);">Estado Actual</h3>
+                        <p><strong>Foco Mental:</strong> <span id="insight-foco">Analizando...</span></p>
+                        <p><strong>Patrones Detectados:</strong> <span id="insight-patrones">...</span></p>
+                        <blockquote id="insight-frase"
+                            style="font-style: italic; color: var(--text-muted); border-left: 3px solid var(--primary-green); padding-left: 10px;">
+                        </blockquote>
+                        <button class="add-habit-btn" onclick="generateInsights()" style="margin-top: 10px;">Refrescar
+                            Análisis</button>
+                    </div>
                     <div class="item-list-header idea-header">
                         <button class="add-habit-btn" onclick="addIdea()" aria-label="Agregar nueva idea">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
