@@ -1535,7 +1535,63 @@ async function exportHabitsCSV() {
     link.click();
     document.body.removeChild(link);
 }
+/**
+ * ==========================================
+ * EXPORTAR HISTORIAL DE IDEAS A CSV
+ * ==========================================
+ */
+async function exportIdeasCSV() {
+    // 1. Descargar todas las ideas, sin límite
+    const { data: allIdeas, error } = await _supabase
+        .from('ideas_logs')
+        .select('*')
+        .order('created_at', { ascending: false });
 
+    if (error) {
+        alert("Error al conectar con la base de datos: " + error.message);
+        return;
+    }
+
+    if (!allIdeas || allIdeas.length === 0) {
+        alert("No hay datos históricos para exportar.");
+        return;
+    }
+
+    // 2. Preparar el encabezado del CSV (con uFEFF para compatibilidad de acentos/emojis en Excel)
+    let csvContent = "\uFEFF";
+    csvContent += "ID,Fecha,Tipo,Contenido,Etiquetas\n";
+
+    // 3. Procesar cada fila
+    allIdeas.forEach(idea => {
+        const id = idea.id;
+        // Formatear la fecha a texto local legible
+        const fecha = new Date(idea.created_at).toLocaleString('es-CO');
+        const tipo = idea.type || "idea";
+
+        // Limpiar contenido para que no rompa el CSV (se escapan las comillas dobles y se envuelve en comillas)
+        const contenidoLimpio = idea.content ? idea.content.replace(/"/g, '""') : "";
+        const contenidoCSV = `"${contenidoLimpio}"`;
+
+        // Formatear etiquetas si existen
+        const etiquetas = (idea.tags && idea.tags.length > 0) ? `"${idea.tags.join(', ')}"` : '""';
+
+        // Agregar fila al texto final
+        csvContent += `${id},"${fecha}","${tipo}",${contenidoCSV},${etiquetas}\n`;
+    });
+
+    // 4. Crear el archivo y forzar la descarga
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", `IKILIFE_BrainDump_Completo.csv`);
+    link.style.visibility = 'hidden';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
 /**
  * ==========================================
  * GESTIÓN DE FINANZAS (DINÁMICO - ACUMULATIVO)
@@ -1777,29 +1833,29 @@ async function generateInsights() {
         if (!ideas || ideas.length === 0) throw new Error("No hay ideas suficientes en la base de datos.");
 
         if (focoEl) focoEl.textContent = "2. Detectando modelo de IA disponible...";
-        
+
         // REEMPLAZA CON TU NUEVA API KEY
-        const apiKey = 'AIzaSyDdHXsO9Ns8KZFHkDGGeiEurvXmt42Ntck'; 
-        
+        const apiKey = 'AIzaSyDdHXsO9Ns8KZFHkDGGeiEurvXmt42Ntck';
+
         // 1. Obtener la lista de modelos permitidos para tu cuenta
         const reqModels = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
         const resModels = await reqModels.json();
-        
+
         if (!reqModels.ok) throw new Error("Error listando modelos: " + (resModels.error?.message || "Revisa tu API key"));
-        
+
         // 2. Seleccionar el primer modelo que soporte generación de texto (priorizando flash)
         let selectedModel = "";
         for (const m of resModels.models) {
             if (m.supportedGenerationMethods?.includes("generateContent")) {
-                selectedModel = m.name; 
+                selectedModel = m.name;
                 if (m.name.includes("flash")) break;
             }
         }
-        
+
         if (!selectedModel) throw new Error("Tu API Key no tiene acceso a ningún modelo de texto.");
 
         if (focoEl) focoEl.textContent = `3. Analizando con ${selectedModel.replace('models/', '')}...`;
-        
+
         const textos = ideas.map(i => i.content).join("\n- ");
         const prompt = `Analiza estas entradas de mi diario. Devuelve SOLO un JSON con: {"foco_mental": "frase corta de 8 palabras max", "patrones": ["tema1", "tema2"], "frase_representativa": "resumen profundo"}. Entradas:\n${textos}`;
 
@@ -1820,7 +1876,7 @@ async function generateInsights() {
 
         if (focoEl) focoEl.textContent = "4. Procesando datos...";
         const result = await response.json();
-        
+
         const rawText = result.candidates[0].content.parts[0].text.replace(/```json/g, '').replace(/```/g, '').trim();
         const data = JSON.parse(rawText);
 
