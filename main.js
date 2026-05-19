@@ -1784,48 +1784,68 @@ async function generateInsights() {
  * ==========================================
  */
 async function exportIdeasCSV() {
-    const { data: allIdeas, error } = await _supabase
-        .from('ideas_logs')
-        .select('*')
-        .order('created_at', { ascending: false });
+    try {
+        const { data: allIdeas, error } = await _supabase
+            .from('ideas_logs')
+            .select('*')
+            .order('created_at', { ascending: false });
 
-    if (error) {
-        alert("Error al conectar con la base de datos: " + error.message);
-        return;
-    }
-    
-    if (!allIdeas || allIdeas.length === 0) {
-        alert("No hay datos históricos para exportar.");
-        return;
-    }
-
-    let csvContent = "\uFEFF"; 
-    csvContent += "ID,Fecha,Tipo,Contenido,Etiquetas\n";
-
-    allIdeas.forEach(idea => {
-        const id = idea.id;
-        const fecha = new Date(idea.created_at).toLocaleString('es-CO');
-        const tipo = idea.type || "idea";
+        if (error) {
+            alert("Error al conectar con la base de datos: " + error.message);
+            return;
+        }
         
-        const contenidoLimpio = idea.content ? idea.content.replace(/"/g, '""') : "";
-        const contenidoCSV = `"${contenidoLimpio}"`;
+        if (!allIdeas || allIdeas.length === 0) {
+            alert("No hay datos históricos para exportar.");
+            return;
+        }
+
+        let csvContent = "\uFEFF"; 
+        csvContent += "ID,Fecha,Tipo,Contenido,Etiquetas\n";
+
+        allIdeas.forEach(idea => {
+            const id = idea.id || "";
+            
+            let fecha = "";
+            if (idea.created_at) {
+                fecha = new Date(idea.created_at).toLocaleString('es-CO');
+            }
+
+            const tipo = idea.type || "idea";
+            
+            // Forzamos a que sea un string para evitar que .replace() falle si hay números o nulls
+            const rawContent = idea.content ? String(idea.content) : "";
+            const contenidoLimpio = rawContent.replace(/"/g, '""');
+            const contenidoCSV = `"${contenidoLimpio}"`;
+            
+            // Manejo hiper-seguro de las etiquetas por si la base de datos devuelve texto en lugar de un array
+            let etiquetasStr = "";
+            if (Array.isArray(idea.tags)) {
+                etiquetasStr = idea.tags.join(', ');
+            } else if (typeof idea.tags === 'string') {
+                etiquetasStr = idea.tags; // Si por error se guardó como string
+            }
+            const etiquetasCSV = `"${etiquetasStr}"`;
+
+            csvContent += `${id},"${fecha}","${tipo}",${contenidoCSV},${etiquetasCSV}\n`;
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+
+        link.setAttribute("href", url);
+        link.setAttribute("download", `IKILIFE_BrainDump_Completo.csv`);
+        link.style.visibility = 'hidden';
         
-        const etiquetas = (idea.tags && idea.tags.length > 0) ? `"${idea.tags.join(', ')}"` : '""';
-
-        csvContent += `${id},"${fecha}","${tipo}",${contenidoCSV},${etiquetas}\n`;
-    });
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-
-    link.setAttribute("href", url);
-    link.setAttribute("download", `IKILIFE_BrainDump_Completo.csv`);
-    link.style.visibility = 'hidden';
-    
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+    } catch (err) {
+        console.error("Error al exportar CSV:", err);
+        alert("Ocurrió un error inesperado generando el archivo:\n" + err.message + "\n\nRevisa la consola (F12) para más detalles.");
+    }
 }
 
 /**
