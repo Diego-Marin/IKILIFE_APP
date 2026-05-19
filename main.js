@@ -1726,7 +1726,7 @@ async function generateInsights() {
 
         if (focoEl) focoEl.textContent = "2. Detectando modelo de IA disponible...";
         
-        const apiKey = 'AIzaSyDdHXsO9Ns8KZFHkDGGeiEurvXmt42Ntck'; 
+        const apiKey = 'AIzaSyDdKUAE3X_olZbTf0CtUeKqrLf8NpbwUzs'; 
         
         const reqModels = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
         const resModels = await reqModels.json();
