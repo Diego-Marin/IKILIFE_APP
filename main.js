@@ -978,37 +978,41 @@ async function loadLoves() {
         .select('*')
         .order('count', { ascending: false });
 
-    if (error) {
-        console.error("Error cargando pasiones:", error.message);
-        return;
-    }
+    if (error) return console.error(error.message);
 
-    const listContainer = document.getElementById('list-loves');
-    if (!listContainer) return;
-
-    listContainer.innerHTML = '';
+    const container = document.getElementById('list-loves');
+    container.className = 'loves-grid'; 
+    container.innerHTML = '';
 
     loves.forEach(love => {
-        const currentCount = love.count || 0;
+        const card = document.createElement('div');
+        card.className = 'passion-card';
+        
+        // Aquí construimos la ruta local: assets/images/archivo.jpg
+        const localImagePath = `assets/images/${love.image_filename}`;
 
-        const row = `
-            <li class="love-row">
-                <div class="love-content"
-                     onclick="editLove('${love.name}', ${love.id})"
-                     oncontextmenu="event.preventDefault(); deleteLove('${love.name}', ${love.id})"
-                     style="cursor: pointer;"
-                     title="Clic: Editar | Clic Derecho: Eliminar">
-                    ${love.name}
-                </div>
-                <button class="love-counter-btn" onclick="incrementLove(${love.id}, ${currentCount})" title="Sumar +1">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                    </svg>
-                    ${currentCount}
-                </button>
-            </li>
+        card.innerHTML = `
+            <img src="${localImagePath}" class="passion-img" 
+                 onerror="this.src='assets/images/default.jpg'">
+            <div class="passion-info">
+                <span class="passion-name">${love.name}</span>
+                <span class="passion-count">${love.count}</span>
+            </div>
         `;
-        listContainer.insertAdjacentHTML('beforeend', row);
+
+        // Doble toque (doble click)
+        card.addEventListener('dblclick', () => {
+            card.classList.add('pop-animation');
+            incrementLove(love.id, love.count);
+            
+            // Actualizar número en pantalla inmediatamente
+            const countEl = card.querySelector('.passion-count');
+            countEl.textContent = parseInt(countEl.textContent) + 1;
+
+            setTimeout(() => card.classList.remove('pop-animation'), 300);
+        });
+
+        container.appendChild(card);
     });
 }
 
