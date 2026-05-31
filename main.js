@@ -1237,64 +1237,45 @@ function toggleBloqueTask(id, taskIndex) {
  */
 let chartInstance = null;
 
+// Asegúrate de que esta función se ejecute al cambiar de tab o al actualizar un hábito
 async function loadMetrics() {
-    const { data: allHabitsData, error: errHabits } = await _supabase.from('habit_logs').select('habit_name');
-    if (errHabits) return console.error("Error obteniendo hábitos:", errHabits.message);
-    const uniqueHabits = [...new Set(allHabitsData.map(h => h.habit_name))];
-    const totalHabits = uniqueHabits.length > 0 ? uniqueHabits.length : 1;
+    const { data: habits } = await _supabase.from('habit_logs').select('*');
+    const today = formatDateLocal(new Date());
 
-    const { data: logs, error } = await _supabase
-        .from('habit_logs')
-        .select('*')
-        .order('log_date', { ascending: true });
+    const uniqueHabitNames = [...new Set(habits.map(h => h.habit_name))];
+    const projectMap = {};
 
-    if (error) return console.error("Error cargando métricas:", error.message);
-
-    const todayStr = formatDateLocal(new Date());
-    const dateStats = {};
-
-    logs.forEach(log => {
-        if (log.log_date > todayStr) return;
-
-        if (!dateStats[log.log_date]) {
-            dateStats[log.log_date] = { completed: 0 };
-        }
-        if (log.is_completed) {
-            dateStats[log.log_date].completed += 1;
+    // Detección automática por corchetes [ ]
+    uniqueHabitNames.forEach(name => {
+        const match = name.match(/\[(.*?)\]/);
+        if (match) {
+            const projName = match[1];
+            if (!projectMap[projName]) projectMap[projName] = [];
+            projectMap[projName].push(name);
         }
     });
 
-    const allLabels = Object.keys(dateStats).sort();
-    const recentLabels = allLabels.slice(-7);
+    const container = document.getElementById('subview-metrics-stats');
+    container.innerHTML = '<h3>Avance de Proyectos</h3>';
 
-    let sumPct = 0;
-    let bestDayDate = "--";
-    let bestDayPct = -1;
+    for (const [projName, habitList] of Object.entries(projectMap)) {
+        const logsToday = habits.filter(h => h.log_date === today && h.is_completed);
+        const completed = logsToday.filter(h => habitList.includes(h.habit_name)).length;
+        const total = habitList.length;
+        const percent = (completed / total) * 100;
 
-    const dataPoints = recentLabels.map(date => {
-        const stat = dateStats[date];
-        const pct = Math.round((stat.completed / totalHabits) * 100);
-
-        sumPct += pct;
-        if (pct > bestDayPct) {
-            bestDayPct = pct;
-            bestDayDate = date;
-        }
-        return pct;
-    });
-
-    const avgPct = recentLabels.length > 0 ? Math.round(sumPct / recentLabels.length) : 0;
-    document.getElementById('kpi-avg').textContent = `${avgPct}%`;
-
-    if (bestDayDate !== "--") {
-        const dObj = new Date(bestDayDate + 'T00:00:00');
-        const weekDayName = dObj.toLocaleDateString('es-CO', { weekday: 'long' });
-        const dayNum = dObj.getDate();
-        document.getElementById('kpi-best').textContent = weekDayName.charAt(0).toUpperCase() + weekDayName.slice(1) + ' ' + dayNum;
+        container.insertAdjacentHTML('beforeend', `
+            <div class="project-card">
+                <div class="project-header">
+                    <span>${projName}</span>
+                    <span>${completed}/${total}</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill" style="width: ${percent}%"></div>
+                </div>
+            </div>
+        `);
     }
-
-    renderChart(recentLabels, dataPoints);
-    renderMinimalList(recentLabels, dateStats, totalHabits);
 }
 
 function renderChart(labels, dataPoints) {
