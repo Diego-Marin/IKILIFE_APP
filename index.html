@@ -7,21 +7,26 @@
     <title>IKILIFE</title>
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌱</text></svg>">
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="./Components/state_bar/state_bar.css">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="./styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
+
     <div class="container">
+
+        <!-- ==============================
+             HEADER
+        ============================== -->
         <header class="main-header">
+
             <div class="logo-area">
                 <span class="brand-name">IKILIFE</span>
             </div>
 
             <div class="header-actions">
-                <button id="theme-toggle" class="icon-btn" onclick="toggleTheme()" aria-label="Cambiar modo">
+
+                <button id="theme-toggle" class="icon-btn" aria-label="Cambiar modo claro/oscuro">
                     <svg class="sun-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                         stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="5"></circle>
@@ -53,17 +58,23 @@
                         <button class="dropdown-item text-danger">Cerrar Sesión</button>
                     </div>
                 </div>
+
             </div>
         </header>
 
+        <!-- ==============================
+             STATE BAR
+        ============================== -->
         <div id="state-bar-container"></div>
 
+        <!-- ==============================
+             PROGRESO SEMANAL
+        ============================== -->
         <div class="weekly-progress-container">
             <div class="progress-header">
-                <span id="current-week-text" class="week-title">Metricas Semana --</span>
+                <span id="current-week-text" class="week-title">Semana --</span>
                 <span id="current-month-text" class="month-title">--</span>
             </div>
-
             <div class="progress-bar-segmented">
                 <div class="day-segment"></div>
                 <div class="day-segment"></div>
@@ -73,37 +84,48 @@
                 <div class="day-segment"></div>
                 <div class="day-segment"></div>
             </div>
-
             <div class="progress-labels">
-                <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
+                <span>L</span>
+                <span>M</span>
+                <span>M</span>
+                <span>J</span>
+                <span>V</span>
+                <span>S</span>
+                <span>D</span>
             </div>
         </div>
 
-        <nav class="tabs">
-            <button class="tab-btn tab-active" onclick="switchTab('habits', this)">Habits</button>
-            <button class="tab-btn tab-inactive" onclick="switchTab('metrics', this)">FeedBack</button>
-            <button class="tab-btn tab-inactive" onclick="switchTab('ideas', this)">Brain Dump</button>
-            <button class="tab-btn tab-inactive" onclick="switchTab('loves', this)">Loves</button>
-            <button class="tab-btn tab-inactive" onclick="switchTab('tareas', this)">Obligations</button>
-            <button class="tab-btn tab-inactive" onclick="switchTab('money', this)">Finance</button>
+        <!-- ==============================
+             NAVEGACIÓN PRINCIPAL
+        ============================== -->
+        <nav class="tabs" role="tablist">
+            <button class="tab-btn tab-active"   role="tab" onclick="switchTab('habits',  this)">Habits</button>
+            <button class="tab-btn tab-inactive"  role="tab" onclick="switchTab('metrics', this)">Feedback</button>
+            <button class="tab-btn tab-inactive"  role="tab" onclick="switchTab('ideas',   this)">Brain Dump</button>
+            <button class="tab-btn tab-inactive"  role="tab" onclick="switchTab('loves',   this)">Loves</button>
+            <button class="tab-btn tab-inactive"  role="tab" onclick="switchTab('tareas',  this)">Obligations</button>
+            <button class="tab-btn tab-inactive"  role="tab" onclick="switchTab('money',   this)">Finance</button>
         </nav>
 
+        <!-- ==============================
+             CONTENIDO PRINCIPAL
+        ============================== -->
         <main id="main-content">
 
-            <div id="view-habits" class="view-content active">
+            <!-- ===== HABITS ===== -->
+            <div id="view-habits" class="view-content active" role="tabpanel">
                 <section class="category">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; background-color: transparent; border-bottom: 1px solid var(--border-color);">
+
+                    <div class="week-nav">
                         <button class="icon-btn" onclick="changeWeek(-1)" title="Semana anterior">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="15 18 9 12 15 6"></polyline>
                             </svg>
                         </button>
-                        <span id="habit-week-label"
-                            style="font-size: 0.85rem; font-weight: 700; color: var(--text-dark);">Semana Actual</span>
+                        <span id="habit-week-label" class="week-nav-label">Semana Actual</span>
                         <button class="icon-btn" id="btn-next-week" onclick="changeWeek(1)" title="Semana siguiente"
-                            disabled style="opacity: 0.3; cursor: default;">
+                            disabled>
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="9 18 15 12 9 6"></polyline>
@@ -129,27 +151,21 @@
                         <div class="day-label" id="day-label-7">--</div>
                     </div>
 
-                    <ul id="list-habits" style="list-style:none;"></ul>
+                    <ul id="list-habits" style="list-style: none;"></ul>
 
-                    <div
-                        style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 20px; padding-bottom: 16px;">
-                        <button class="add-habit-btn" onclick="exportHabitsCSV()"
-                            aria-label="Exportar datos a Excel/CSV"
-                            style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-dark);">
+                    <div class="export-actions">
+                        <button class="add-habit-btn btn-outline" onclick="exportHabitsCSV()">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-                                style="margin-right: 4px;">
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                                 <polyline points="7 10 12 15 17 10"></polyline>
                                 <line x1="12" y1="15" x2="12" y2="3"></line>
                             </svg>
                             Semana (CSV)
                         </button>
-                        <button class="add-habit-btn" onclick="exportAllHistoryCSV()" aria-label="Exportar histórico"
-                            style="background-color: var(--text-dark); color: var(--bg-light); border: 1px solid var(--text-dark);">
+                        <button class="add-habit-btn btn-solid" onclick="exportAllHistoryCSV()">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-                                style="margin-right: 4px;">
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                                 <polyline points="7 10 12 15 17 10"></polyline>
                                 <line x1="12" y1="15" x2="12" y2="3"></line>
@@ -157,73 +173,187 @@
                             Historial Completo
                         </button>
                     </div>
+
                 </section>
             </div>
 
-            <div id="view-metrics" class="view-content">
-        <section class="category">
-            <div id="insight-dashboard" style="border-bottom: 1px solid var(--border-color); padding: 16px; background-color: var(--bg-header);">
-                <h3 style="margin-top: 0; color: var(--primary-green);">Estado Actual</h3>
-                <p><strong>Foco Mental:</strong> <span id="insight-foco">Esperando análisis...</span></p>
-                <p><strong>Patrones Detectados:</strong> <span id="insight-patrones">...</span></p>
-                <blockquote id="insight-frase" style="font-style: italic; color: var(--text-muted); border-left: 3px solid var(--primary-green); padding-left: 10px;"></blockquote>
-                <button class="add-habit-btn" onclick="generateInsights()" style="margin-top: 10px;">Refrescar Análisis</button>
-            </div>
-
-            <div class="metrics-kpi-grid" style="padding: 16px 16px 0;">
-                <div class="kpi-card">
-                    <div class="kpi-label">Promedio (7 días)</div>
-                    <div class="kpi-value" id="kpi-avg">--%</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">Mejor Día</div>
-                    <div class="kpi-value kpi-highlight" id="kpi-best">--</div>
-                </div>
-            </div>
-
-            <div style="border-top: 1px solid var(--border-color); margin-top: 16px;">
-                <div class="category-header" style="border-bottom: none;">Tendencia de Cumplimiento</div>
-                <div class="chart-wrapper" style="height: 220px; border: none; box-shadow: none; margin-bottom: 0; border-radius: 0;">
-                    <canvas id="metricsChart"></canvas>
-                </div>
-            </div>
-
-            <div style="border-top: 1px solid var(--border-color);">
-                <div class="category-header" style="border-bottom: none;">Desglose Reciente</div>
-                <div class="minimal-daily-list" id="metrics-daily-list" style="border: none; box-shadow: none; border-radius: 0;"></div>
-            </div>
-        </section>
-    </div>
-
-            <div id="view-tareas" class="view-content">
+            <!-- ===== FEEDBACK / MÉTRICAS ===== -->
+            <div id="view-metrics" class="view-content" role="tabpanel">
                 <section class="category">
-                    <div id="subview-tareas-dia">
-                        <div class="item-list-header tarea-header">
-                            <button class="add-habit-btn" onclick="addTarea()" aria-label="Agregar tarea">
+
+                    <div class="insight-dashboard">
+                        <h3 class="insight-title">Estado Actual</h3>
+                        <p><strong>Foco Mental:</strong> <span id="insight-foco">Esperando análisis...</span></p>
+                        <p><strong>Patrones Detectados:</strong> <span id="insight-patrones">...</span></p>
+                        <blockquote id="insight-frase" class="insight-quote"></blockquote>
+                        <button class="add-habit-btn" onclick="generateInsights()">Refrescar Análisis</button>
+                    </div>
+
+                    <div class="metrics-kpi-grid">
+                        <div class="kpi-card">
+                            <div class="kpi-label">Promedio (7 días)</div>
+                            <div class="kpi-value" id="kpi-avg">--%</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-label">Mejor Día</div>
+                            <div class="kpi-value kpi-highlight" id="kpi-best">--</div>
+                        </div>
+                    </div>
+
+                    <div class="metrics-chart-section">
+                        <div class="category-header">Tendencia de Cumplimiento</div>
+                        <div class="chart-wrapper">
+                            <canvas id="metricsChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="metrics-daily-section">
+                        <div class="category-header">Desglose Reciente</div>
+                        <div class="minimal-daily-list" id="metrics-daily-list"></div>
+                    </div>
+
+                </section>
+            </div>
+
+            <!-- ===== BRAIN DUMP / IDEAS ===== -->
+            <div id="view-ideas" class="view-content" role="tabpanel">
+                <section class="category">
+
+                    <div class="item-list-header idea-header">
+                        <button class="add-habit-btn" onclick="addIdea()">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            Nueva Idea
+                        </button>
+                        <button class="add-habit-btn btn-outline" onclick="exportIdeasCSV()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Historial (CSV)
+                        </button>
+                    </div>
+
+                    <ul id="list-ideas" style="list-style: none;"></ul>
+
+                </section>
+            </div>
+
+            <!-- ===== LOVES ===== -->
+            <div id="view-loves" class="view-content" role="tabpanel">
+                <section class="category">
+
+                    <div class="sub-tabs-container" role="tablist">
+                        <button class="sub-tab-btn active" role="tab"
+                            onclick="switchLovesSubTab('agradecimientos', this)">
+                            Agradecimientos
+                        </button>
+                        <button class="sub-tab-btn" role="tab" onclick="switchLovesSubTab('escuelas', this)">
+                            Schools
+                        </button>
+                        <button class="sub-tab-btn" role="tab" onclick="switchLovesSubTab('pasiones', this)">
+                            Pasiones
+                        </button>
+                    </div>
+
+                    <!-- Agradecimientos -->
+                    <div id="subview-loves-agradecimientos" role="tabpanel">
+                        <div class="item-list-header idea-header">
+                            <button class="add-habit-btn" onclick="addAgradecimiento()">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                 </svg>
-                                Nueva Tarea / Obligación
+                                Agradecer
                             </button>
                         </div>
-                        <ul id="list-tareas-dia" style="list-style:none;"></ul>
+                        <ul id="list-agradecimientos" style="list-style: none;"></ul>
+                        <button class="add-habit-btn btn-primary" onclick="showRandomVictory()">
+                            Evidencia de Victoria
+                        </button>
                     </div>
+
+                    <!-- Schools / Escuelas -->
+                    <div id="subview-loves-escuelas" class="hidden" role="tabpanel">
+                        <div class="item-list-header escuela-header">
+                            <button class="add-habit-btn" onclick="addEscuela()">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                Add Aprendizaje
+                            </button>
+                        </div>
+                        <ul id="list-escuelas" style="list-style: none;"></ul>
+                    </div>
+
+                    <!-- Pasiones -->
+                    <div id="subview-loves-pasiones" class="hidden" role="tabpanel">
+                        <div class="item-list-header love-header">
+                            <button class="add-habit-btn" onclick="addLove()">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                Add Pasión
+                            </button>
+                        </div>
+                        <ul id="list-loves" style="list-style: none;"></ul>
+                    </div>
+
                 </section>
             </div>
 
-            <div id="view-money" class="view-content">
+            <!-- ===== OBLIGATIONS / TAREAS ===== -->
+            <div id="view-tareas" class="view-content" role="tabpanel">
                 <section class="category">
-                    <div class="finance-sub-tabs">
-                        <button class="sub-tab-btn active"
-                            onclick="switchFinanceSubTab('finanzas', this)">Finanzas</button>
-                        <button class="sub-tab-btn" onclick="switchFinanceSubTab('compras', this)">Compras</button>
-                        <button class="sub-tab-btn" onclick="switchFinanceSubTab('inversiones', this)">Deudas</button>
+
+                    <div class="item-list-header tarea-header">
+                        <button class="add-habit-btn" onclick="addTarea()">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            Nueva Tarea / Obligación
+                        </button>
                     </div>
 
-                    <div id="subview-finanzas" style="padding: 16px;">
+                    <ul id="list-tareas-dia" style="list-style: none;"></ul>
+
+                </section>
+            </div>
+
+            <!-- ===== FINANCE ===== -->
+            <div id="view-money" class="view-content" role="tabpanel">
+                <section class="category">
+
+                    <div class="finance-sub-tabs" role="tablist">
+                        <button class="sub-tab-btn active" role="tab" onclick="switchFinanceSubTab('finanzas', this)">
+                            Finanzas
+                        </button>
+                        <button class="sub-tab-btn" role="tab" onclick="switchFinanceSubTab('compras', this)">
+                            Compras
+                        </button>
+                        <button class="sub-tab-btn" role="tab" onclick="switchFinanceSubTab('inversiones', this)">
+                            Deudas
+                        </button>
+                    </div>
+
+                    <!-- Subview: Finanzas -->
+                    <div id="subview-finanzas" class="subview-panel" role="tabpanel">
+
+                        <!-- Vista principal -->
                         <div id="finance-main">
+
                             <section class="summary-grid">
                                 <div class="summary-card full-width">
                                     <div class="summary-label">Ahorro / Capital</div>
@@ -236,31 +366,31 @@
                                 </div>
                                 <div class="summary-card">
                                     <div class="summary-label">Gastos Totales</div>
-                                    <div class="summary-value text-expense" id="kpi-gastos"
-                                        title="Suma de lo pagado real">$0</div>
+                                    <div class="summary-value text-expense" id="kpi-gastos">$0</div>
                                 </div>
                             </section>
 
                             <div id="dynamic-expense-categories"></div>
 
-                            <button class="add-habit-btn" style="width: 100%; margin-top: 8px;"
-                                onclick="addFinanceCategory()">
+                            <button class="add-habit-btn btn-full" onclick="addFinanceCategory()">
                                 + Nueva Categoría
                             </button>
+
                         </div>
 
+                        <!-- Vista detalle ingresos -->
                         <div id="finance-income" class="hidden">
+
                             <div class="finance-top-bar">
-                                <button class="icon-btn" onclick="toggleFinanceView('finance-main')"
-                                    aria-label="Volver">
+                                <button class="icon-btn" onclick="toggleFinanceView('finance-main')">
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        stroke-width="2">
                                         <line x1="19" y1="12" x2="5" y2="12"></line>
                                         <polyline points="12 19 5 12 12 5"></polyline>
                                     </svg>
                                 </button>
                                 <h3>Ingresos Detallados</h3>
-                                <div style="width: 32px;"></div>
+                                <div class="spacer"></div>
                             </div>
 
                             <section class="summary-grid">
@@ -270,31 +400,30 @@
                                 </div>
                             </section>
 
-                            <div
-                                style="border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; margin-top: 8px;">
-                                <div class="category-header"
-                                    style="display:flex; justify-content:space-between; align-items:center;">
+                            <div class="income-sources-card">
+                                <div class="category-header category-header--flex">
                                     Fuentes de Ingreso
-                                    <button class="icon-btn" onclick="addFinanceItem('income', 'Fuentes de Ingreso')"
-                                        title="Agregar Ingreso" style="padding: 2px;">
+                                    <button class="icon-btn" onclick="addFinanceItem('income', 'Fuentes de Ingreso')">
                                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                            stroke-linejoin="round">
+                                            stroke="currentColor" stroke-width="2">
                                             <line x1="12" y1="5" x2="12" y2="19"></line>
                                             <line x1="5" y1="12" x2="19" y2="12"></line>
                                         </svg>
                                     </button>
                                 </div>
-                                <ul id="list-incomes" style="list-style:none;"></ul>
+                                <ul id="list-incomes" style="list-style: none;"></ul>
                             </div>
+
                         </div>
                     </div>
 
-                    <div id="subview-compras" class="hidden" style="padding: 16px;">
+                    <!-- Subview: Compras -->
+                    <div id="subview-compras" class="subview-panel hidden" role="tabpanel">
+
                         <div class="item-list-header love-header">
-                            <button class="add-habit-btn" onclick="addCompra()" aria-label="Agregar compra objetivo">
+                            <button class="add-habit-btn" onclick="addCompra()">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    stroke-width="2.5">
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                 </svg>
@@ -302,115 +431,122 @@
                             </button>
                             <div class="header-label">Prioridad (Votos)</div>
                         </div>
-                        <ul id="list-compras" style="list-style:none;"></ul>
+
+                        <ul id="list-compras" style="list-style: none;"></ul>
+
                     </div>
 
-                    <div id="subview-inversiones" class="hidden" style="padding: 16px;">
+                    <!-- Subview: Deudas / Inversiones -->
+                    <div id="subview-inversiones" class="subview-panel hidden" role="tabpanel">
+
                         <div class="item-list-header">
                             <button class="add-habit-btn" onclick="addInversion()">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    stroke-width="2.5">
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                 </svg>
                                 Nueva Deuda
                             </button>
                         </div>
-                        <div id="inversiones-container" class="bloques-wrapper" style="margin-top: 12px;"></div>
-                    </div>
-                </section>
-            </div>
 
-            <div id="view-ideas" class="view-content">
-                <section class="category">
-                    <div class="item-list-header idea-header" style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button class="add-habit-btn" onclick="addIdea()" aria-label="Agregar nueva idea">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
-                            Nueva Idea
-                        </button>
-                        <button class="add-habit-btn" onclick="exportIdeasCSV()"
-                            aria-label="Exportar histórico de ideas"
-                            style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-dark);">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-                                style="margin-right: 4px;">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="7 10 12 15 17 10"></polyline>
-                                <line x1="12" y1="15" x2="12" y2="3"></line>
-                            </svg>
-                            Historial (CSV)
-                        </button>
-                    </div>
-                    <ul id="list-ideas" style="list-style:none;"></ul>
-                </section>
-            </div>
+                        <div id="inversiones-container" class="bloques-wrapper"></div>
 
-            <div id="view-loves" class="view-content">
-                <section class="category">
-                    <div class="sub-tabs-container">
-                        <button class="sub-tab-btn active"
-                            onclick="switchLovesSubTab('agradecimientos', this)">Agradecimientos</button>
-                        <button class="sub-tab-btn" onclick="switchLovesSubTab('escuelas', this)">Schools</button>
-                        <button class="sub-tab-btn" onclick="switchLovesSubTab('pasiones', this)">Pasiones</button>
                     </div>
 
-                    <div id="subview-loves-agradecimientos">
-                        <div class="item-list-header idea-header">
-                            <button class="add-habit-btn" onclick="addAgradecimiento()"
-                                aria-label="Agregar nuevo agradecimiento">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
-                                Agradecer
-                            </button>
-                        </div>
-                        <ul id="list-agradecimientos" style="list-style:none;"></ul>
-                        <button class="add-habit-btn" onclick="showRandomVictory()"
-                            style="background-color: var(--primary-green); color: white; margin-top: 15px;">
-                            Evidencia de Victoria
-                        </button>
-                    </div>
-
-                    <div id="subview-loves-escuelas" class="hidden">
-                        <div class="item-list-header escuela-header">
-                            <button class="add-habit-btn" onclick="addEscuela()" aria-label="Agregar nuevo aprendizaje">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
-                                Add Aprendizaje
-                            </button>
-                        </div>
-                        <ul id="list-escuelas" style="list-style:none;"></ul>
-                    </div>
-
-                    <div id="subview-loves-pasiones" class="hidden">
-                        <div class="item-list-header love-header">
-                            <button class="add-habit-btn" onclick="addLove()" aria-label="Agregar nueva pasión">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
-                                Add Pasión
-                            </button>
-                        </div>
-                        <ul id="list-loves" style="list-style:none;"></ul>
-                    </div>
                 </section>
             </div>
 
         </main>
     </div>
 
-    <script type="module" src="main.js"></script>
+    <!-- Un solo script de entrada, tipo module. Supabase lo importa main.js internamente. -->
+    <script type="module" src="./main.js"></script>
+
+    <!-- Tema: script independiente, no depende de módulos -->
+<script>
+  (function () {
+    function applyTheme() {
+      const isDark = localStorage.getItem("theme") === "dark";
+      document.body.classList.toggle("dark-mode", isDark);
+      document.querySelector(".sun-icon")?.classList.toggle("hidden", isDark);
+      document.querySelector(".moon-icon")?.classList.toggle("hidden", !isDark);
+    }
+
+    function toggleTheme() {
+      const isDark = document.body.classList.toggle("dark-mode");
+      localStorage.setItem("theme", isDark ? "dark" : "light");
+      document.querySelector(".sun-icon")?.classList.toggle("hidden", isDark);
+      document.querySelector(".moon-icon")?.classList.toggle("hidden", !isDark);
+    }
+
+    // Aplica el tema guardado inmediatamente (evita flash)
+    applyTheme();
+
+    // Registra el botón cuando el DOM esté listo
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("theme-toggle")
+        ?.addEventListener("click", toggleTheme);
+    });
+  })();
+</script>
+
+<script>
+  function switchTab(tab, btn) {
+    document.querySelectorAll(".tab-btn").forEach(b => {
+      b.classList.remove("tab-active");
+      b.classList.add("tab-inactive");
+    });
+    btn?.classList.add("tab-active");
+    btn?.classList.remove("tab-inactive");
+    document.querySelectorAll(".view-content")
+      .forEach(v => v.classList.remove("active"));
+    document.getElementById(`view-${tab}`)?.classList.add("active");
+  }
+
+  function switchFinanceSubTab(tab, btn) {
+    btn?.closest(".finance-sub-tabs")
+      ?.querySelectorAll(".sub-tab-btn")
+      .forEach(b => b.classList.remove("active"));
+    btn?.classList.add("active");
+    ["subview-finanzas", "subview-compras", "subview-inversiones"]
+      .forEach(id => document.getElementById(id)?.classList.add("hidden"));
+    document.getElementById(`subview-${tab}`)?.classList.remove("hidden");
+  }
+
+  function switchLovesSubTab(tab, btn) {
+    btn?.closest(".sub-tabs-container")
+      ?.querySelectorAll(".sub-tab-btn")
+      .forEach(b => b.classList.remove("active"));
+    btn?.classList.add("active");
+    ["subview-loves-agradecimientos", "subview-loves-escuelas", "subview-loves-pasiones"]
+      .forEach(id => document.getElementById(id)?.classList.add("hidden"));
+    document.getElementById(`subview-loves-${tab}`)?.classList.remove("hidden");
+  }
+
+  function switchTareasSubTab(tab, btn) {
+    btn?.closest(".sub-tabs-container")
+      ?.querySelectorAll(".sub-tab-btn")
+      .forEach(b => b.classList.remove("active"));
+    btn?.classList.add("active");
+  }
+
+  function switchMetricsSubTab(tab, btn) {
+    btn?.closest(".metrics-sub-tabs")
+      ?.querySelectorAll(".sub-tab-btn")
+      .forEach(b => b.classList.remove("active"));
+    btn?.classList.add("active");
+  }
+
+  function toggleFinanceView(viewId) {
+    const isIncome = viewId === "finance-income";
+    document.getElementById("finance-main")?.classList.toggle("hidden", isIncome);
+    document.getElementById("finance-income")?.classList.toggle("hidden", !isIncome);
+  }
+</script>
+
+<script type="module" src="main.js"></script>
+
 </body>
 
 </html>

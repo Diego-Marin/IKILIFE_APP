@@ -1,13 +1,84 @@
-JavaScript
-
 // =====================================================
 // IMPORTACIONES
 // =====================================================
+
 import { _supabase } from "./supabase.js";
-import { initInversiones, renderInversiones } from "./components/money/money.js";
-import { renderStateBar } from "./components/state_bar/state_bar.js";
-import { loadLoves } from "./components/loves/loves.js";
-// Agrega aquí los otros imports necesarios (loadEscuelas, etc.)
+
+import {
+    initInversiones,
+    renderInversiones,
+    addInversion,
+    editInversionName,
+    deleteInversionFull,
+    addCuota,
+    editCuota,
+    deleteCuota,
+    toggleCuota
+} from "./components/inversiones/inversiones.js";
+
+import {
+    renderStateBar
+} from "./components/state_bar/state_bar.js";
+
+import {
+    loadLoves,
+    addLove,
+    incrementLove,
+    editLove,
+    deleteLove,
+    loadBloques,
+    addBloque,
+    editBloque,
+    deleteBloque,
+    addBloqueTask,
+    editBloqueTask,
+    deleteBloqueTask,
+    toggleBloqueTask,
+    loadEscuelas,
+    addEscuela,
+    incrementEscuelaProgress,
+    editEscuela,
+    deleteEscuela,
+    loadAgradecimientos,
+    addAgradecimiento,
+    editAgradecimiento,
+    deleteAgradecimiento,
+    showRandomVictory
+} from "./components/loves/loves.js";
+
+// ─────────────────────────────────────────────────────
+// Descomenta los imports a medida que crees los módulos:
+//
+// import {
+//     loadHabits, addHabit, toggleHabit, editHabit,
+//     deleteHabit, changeWeek, exportHabitsCSV,
+//     exportAllHistoryCSV, updateWeeklyProgress
+// } from "./components/habits/habits.js";
+//
+// import {
+//     loadIdeas, addIdea, editIdea, deleteIdea, exportIdeasCSV
+// } from "./components/ideas/ideas.js";
+//
+// import {
+//     loadTareas, addTarea, deleteTarea
+// } from "./components/tareas/tareas.js";
+//
+// import {
+//     loadCompras, addCompra, incrementCompra,
+//     editCompra, deleteCompra
+// } from "./components/compras/compras.js";
+//
+// import {
+//     loadMetrics, generateInsights
+// } from "./components/metrics/metrics.js";
+//
+// import {
+//     loadFinance, addFinanceCategory, addFinanceItem,
+//     addFinanceReal, editFinanceRealTotal,
+//     editFinanceConcept, deleteFinanceItem
+// } from "./components/finance/finance.js";
+// ─────────────────────────────────────────────────────
+
 
 // =====================================================
 // JOURNAL
@@ -119,10 +190,9 @@ Object.assign(window, {
 // =====================================================
 
 document.addEventListener("DOMContentLoaded", async () => {
-    console.log("Iniciando carga de módulos...");
 
-    // 1. Cerrar dropdown al hacer click fuera
-    const dropdown = document.getElementById("profile-dropdown");
+    // Cerrar dropdown al hacer click fuera
+    const dropdown   = document.getElementById("profile-dropdown");
     const profileBtn = document.querySelector(".profile-btn");
     if (dropdown && profileBtn) {
         document.addEventListener("click", (e) => {
@@ -132,29 +202,28 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
-    // 2. Inicialización de componentes (try/catch unificado)
     try {
         renderStateBar("state-bar-container");
 
-        // Carga paralela de módulos
         await Promise.allSettled([
-            loadLoves().catch(e => console.error("Error en loves:", e)),
-            // Agrega aquí las llamadas a tus otras funciones: loadEscuelas(), etc.
+            loadEscuelas(),
+            loadLoves(),
+            loadBloques(),
+            loadAgradecimientos(),
         ]);
 
         initInversiones(_supabase);
-        await renderInversiones(); // Nota: Asegúrate que esta función en money.js no requiera parámetros si no los necesita
+        await renderInversiones("inversiones-container");
 
-        // Suscripción a cambios en tiempo real
         _supabase
             .channel("habit-changes")
-            .on("postgres_changes", { event: "*", schema: "public", table: "habit_logs" }, () => {
-                if (typeof loadHabits !== 'undefined') loadHabits();
-            })
+            .on("postgres_changes",
+                { event: "*", schema: "public", table: "habit_logs" },
+                () => typeof loadHabits !== 'undefined' && loadHabits()
+            )
             .subscribe();
 
-        console.log("Inicialización completada.");
     } catch (err) {
-        console.error("Error crítico en la inicialización:", err);
+        console.error("Error durante la inicialización:", err);
     }
 });
