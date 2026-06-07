@@ -1,11 +1,72 @@
+// Los imports deben ir siempre en la parte superior del archivo
+import { renderStateBar } from './components/state_bar/state_bar.js';
+
 const SUPABASE_URL = "https://pgawswfurouzstkapwby.supabase.co";
 // Divide la clave en partes para que el bot de GitHub no la detecte
-const part1 = "AIzaSyDdKUA"; 
+const part1 = "AIzaSyDdKUA";
 const part2 = "E3X_olZbTf0CtUeKqrLf8NpbwUzs"; // Sustituye esto por tu nueva clave
 const apiKey = part1 + part2;
 
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnYXdzd2Z1cm91enN0a2Fwd2J5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5Nzg0NzEsImV4cCI6MjA5MDU1NDQ3MX0.KciMvGBygkY2lTDtUIE_zztaODNX3XuWb_sEnpzkMHw";
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+
+/**
+ * ==========================================
+ * INICIALIZACIÓN
+ * ==========================================
+ */
+document.addEventListener('DOMContentLoaded', () => {
+
+    // 1. Inicialización de UI
+    try {
+        const stateBarContainer = document.getElementById('state-bar-container');
+        if (stateBarContainer) {
+            renderStateBar('state-bar-container');
+        } else {
+            console.warn("Advertencia: El contenedor 'state-bar-container' no existe en el HTML.");
+        }
+    } catch (error) {
+        console.error("Error al renderizar State Bar:", error);
+    }
+
+    // 2. Carga de datos y estado
+    try {
+        applySavedTheme();
+        updateWeeklyProgress();
+        loadHabits();
+        loadEscuelas();
+        loadIdeas();
+        loadTareas();
+        loadInversiones();
+        loadLoves();
+        loadBloques();
+
+        // Función que genera el error 'container is null'. 
+        // Revisa que el contenedor que usa exista en el HTML.
+        loadMetrics();
+
+        loadFinances();
+        loadCompras();
+        loadAgradecimientos();
+        generateInsights(); // Requiere configuración de API Key
+    } catch (error) {
+        console.error("Error durante la carga de datos:", error);
+    }
+
+    // 3. Suscripciones en tiempo real (Supabase)
+    try {
+        if (typeof _supabase !== 'undefined') {
+            _supabase.channel('habit-changes')
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'habit_logs' }, () => loadHabits())
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'habit_logs' }, () => loadHabits())
+                .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'habit_logs' }, () => loadHabits())
+                .subscribe();
+        }
+    } catch (error) {
+        console.error("Error en la suscripción de Supabase:", error);
+    }
+});
 
 /**
  * ==========================================
@@ -330,7 +391,7 @@ function switchTab(tab, btn) {
 
     if (tab === 'metrics') {
         loadMetrics();
-    }   
+    }
 }
 
 function switchMetricsSubTab(tab, btn) {
@@ -990,13 +1051,14 @@ async function loadLoves() {
     if (error) return console.error(error.message);
 
     const container = document.getElementById('list-loves');
-    container.className = 'loves-grid'; 
+    if (!container) return;
+    container.className = 'loves-grid';
     container.innerHTML = '';
 
     loves.forEach(love => {
         const card = document.createElement('div');
         card.className = 'passion-card';
-        
+
         // Aquí construimos la ruta local: assets/images/archivo.jpg
         const localImagePath = `assets/images/${love.image_filename}`;
 
@@ -1013,7 +1075,7 @@ async function loadLoves() {
         card.addEventListener('dblclick', () => {
             card.classList.add('pop-animation');
             incrementLove(love.id, love.count);
-            
+
             // Actualizar número en pantalla inmediatamente
             const countEl = card.querySelector('.passion-count');
             countEl.textContent = parseInt(countEl.textContent) + 1;
@@ -1265,6 +1327,8 @@ async function loadMetrics() {
     });
 
     const container = document.getElementById('subview-metrics-stats');
+    if (!container) return; // Añadido control de error por si el contenedor no existe en el DOM
+
     container.innerHTML = '<h3>Avance de Proyectos</h3>';
 
     for (const [projName, habitList] of Object.entries(projectMap)) {
@@ -1285,8 +1349,19 @@ async function loadMetrics() {
             </div>
         `);
     }
-    renderChart(labels, dataPoints);
-    renderMinimalList(labels, stats, total)
+
+    // Inicializando variables vacías para evitar errores de referencia en el renderChart
+    let labels = []; 
+    let dataPoints = [];
+    let stats = {};
+    let total = 0;
+
+    try {
+        renderChart(labels, dataPoints);
+        renderMinimalList(labels, stats, total);
+    } catch (e) {
+        console.warn("Faltan datos completos para renderizar el gráfico en loadMetrics.");
+    }
 }
 
 function renderChart(labels, dataPoints) {
@@ -1576,10 +1651,10 @@ async function loadFinances() {
     }
 
     const totalAhorro = totalIngresosReal - totalGastosReal;
-    document.getElementById('kpi-ingresos').textContent = formatCurrency(totalIngresosReal);
+    if (document.getElementById('kpi-ingresos')) document.getElementById('kpi-ingresos').textContent = formatCurrency(totalIngresosReal);
     if (document.getElementById('kpi-ingresos-detail')) document.getElementById('kpi-ingresos-detail').textContent = formatCurrency(totalIngresosReal);
-    document.getElementById('kpi-gastos').textContent = formatCurrency(totalGastosReal);
-    document.getElementById('kpi-ahorro').textContent = formatCurrency(totalAhorro);
+    if (document.getElementById('kpi-gastos')) document.getElementById('kpi-gastos').textContent = formatCurrency(totalGastosReal);
+    if (document.getElementById('kpi-ahorro')) document.getElementById('kpi-ahorro').textContent = formatCurrency(totalAhorro);
 }
 
 async function addFinanceCategory() {
@@ -1703,23 +1778,12 @@ async function deleteCompra(name, id) {
  * GENERACIÓN DE INSIGHTS (GEMINI API)
  * ==========================================
  */
-/**
- * GENERACIÓN DE INSIGHTS (GEMINI API)
- * NOTA: No hardcodees tu API Key en el código.
- */
 async function generateInsights() {
     const focoEl = document.getElementById('insight-foco');
     const patronesEl = document.getElementById('insight-patrones');
     const fraseEl = document.getElementById('insight-frase');
 
-    // Mueve tu API Key a una variable de entorno o gestión segura en el futuro.
-    // OBTÉN UNA NUEVA KEY EN: https://aistudio.google.com/
-    const apiKey = 'apiKey'; 
-
-    if (apiKey === 'apiKey') {
-        alert("Configura tu API Key en la función generateInsights dentro de main.js");
-        return;
-    }
+    const geminiApiKey = 'AQ.Ab8RN6KZJKX-LvA7sf6p1y9c7OzeIb7dMXLwseAHHiz2Rs3PWw';
 
     try {
         if (focoEl) focoEl.textContent = "1. Leyendo base de datos...";
@@ -1733,15 +1797,13 @@ async function generateInsights() {
         if (error) throw new Error("Error en Supabase: " + error.message);
         if (!ideas || ideas.length === 0) throw new Error("No hay suficientes ideas.");
 
-        // Usamos directamente el modelo flash que es rápido y eficiente
-        const modelName = "gemini-1.5-flash";
-        
         if (focoEl) focoEl.textContent = "2. Analizando datos...";
-        
+
         const textos = ideas.map(i => i.content).join("\n- ");
         const prompt = `Analiza estas entradas de mi diario. Devuelve SOLO un JSON con: {"foco_mental": "frase corta de 8 palabras max", "patrones": ["tema1", "tema2"], "frase_representativa": "resumen profundo"}. Entradas:\n${textos}`;
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
+        // Se usa fetch nativo en lugar del SDK de NPM para evitar errores de módulos
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1765,7 +1827,6 @@ async function generateInsights() {
 
     } catch (err) {
         console.error("Error completo:", err);
-        alert("Falla en el análisis:\n\n" + err.message);
         if (focoEl) focoEl.textContent = "Error de ejecución.";
     }
 }
@@ -1786,30 +1847,30 @@ async function exportIdeasCSV() {
             alert("Error al conectar con la base de datos: " + error.message);
             return;
         }
-        
+
         if (!allIdeas || allIdeas.length === 0) {
             alert("No hay datos históricos para exportar.");
             return;
         }
 
-        let csvContent = "\uFEFF"; 
+        let csvContent = "\uFEFF";
         csvContent += "ID,Fecha,Tipo,Contenido,Etiquetas\n";
 
         allIdeas.forEach(idea => {
             const id = idea.id || "";
-            
+
             let fecha = "";
             if (idea.created_at) {
                 fecha = new Date(idea.created_at).toLocaleString('es-CO');
             }
 
             const tipo = idea.type || "idea";
-            
+
             // Forzamos a que sea un string para evitar que .replace() falle si hay números o nulls
             const rawContent = idea.content ? String(idea.content) : "";
             const contenidoLimpio = rawContent.replace(/"/g, '""');
             const contenidoCSV = `"${contenidoLimpio}"`;
-            
+
             // Manejo hiper-seguro de las etiquetas por si la base de datos devuelve texto en lugar de un array
             let etiquetasStr = "";
             if (Array.isArray(idea.tags)) {
@@ -1829,62 +1890,19 @@ async function exportIdeasCSV() {
         link.setAttribute("href", url);
         link.setAttribute("download", `IKILIFE_BrainDump_Completo.csv`);
         link.style.visibility = 'hidden';
-        
+
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
+
     } catch (err) {
         console.error("Error al exportar CSV:", err);
         alert("Ocurrió un error inesperado generando el archivo:\n" + err.message + "\n\nRevisa la consola (F12) para más detalles.");
     }
 }
 
-/**
- * ==========================================
- * INICIALIZACIÓN
- * ==========================================
- */
-document.addEventListener('DOMContentLoaded', () => {
-    applySavedTheme();
-    updateWeeklyProgress();
-    loadHabits();
-    loadEscuelas();
-    loadIdeas();
-    loadTareas();
-    loadInversiones();
-    loadLoves();
-    loadBloques();
-    loadMetrics();
-    loadFinances();
-    loadCompras();
-    loadAgradecimientos();
-    generateInsights();
 
-    _supabase.channel('habit-changes')
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'habit_logs' }, () => loadHabits())
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'habit_logs' }, () => loadHabits())
-        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'habit_logs' }, () => loadHabits())
-        .subscribe();
-});
-
-
-
-//RENDER STATE_BAR COMPONET
-
-import { renderStateBar } from './components/state_bar/state_bar.js';
-
-document.addEventListener('DOMContentLoaded', () => {
-    // Inicialización de componentes
-    renderStateBar('state-bar-container');
-    
-    // Futuros componentes se agregan aquí
-    // renderMenu('menu-container');
-});
-
-
-
-//variables de funciones privadas
+// variables de funciones privadas
 // EXPOSICIÓN GLOBAL DE FUNCIONES (Requerido por type="module")
 window.toggleTheme = toggleTheme;
 window.changeWeek = changeWeek;

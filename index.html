@@ -161,39 +161,45 @@
             </div>
 
             <div id="view-metrics" class="view-content">
-        <section class="category">
-            <div id="insight-dashboard" style="border-bottom: 1px solid var(--border-color); padding: 16px; background-color: var(--bg-header);">
-                <h3 style="margin-top: 0; color: var(--primary-green);">Estado Actual</h3>
-                <p><strong>Foco Mental:</strong> <span id="insight-foco">Esperando análisis...</span></p>
-                <p><strong>Patrones Detectados:</strong> <span id="insight-patrones">...</span></p>
-                <blockquote id="insight-frase" style="font-style: italic; color: var(--text-muted); border-left: 3px solid var(--primary-green); padding-left: 10px;"></blockquote>
-                <button class="add-habit-btn" onclick="generateInsights()" style="margin-top: 10px;">Refrescar Análisis</button>
-            </div>
+                <section class="category">
+                    <div id="insight-dashboard"
+                        style="border-bottom: 1px solid var(--border-color); padding: 16px; background-color: var(--bg-header);">
+                        <h3 style="margin-top: 0; color: var(--primary-green);">Estado Actual</h3>
+                        <p><strong>Foco Mental:</strong> <span id="insight-foco">Esperando análisis...</span></p>
+                        <p><strong>Patrones Detectados:</strong> <span id="insight-patrones">...</span></p>
+                        <blockquote id="insight-frase"
+                            style="font-style: italic; color: var(--text-muted); border-left: 3px solid var(--primary-green); padding-left: 10px;">
+                        </blockquote>
+                        <button class="add-habit-btn" onclick="generateInsights()" style="margin-top: 10px;">Refrescar
+                            Análisis</button>
+                    </div>
 
-            <div class="metrics-kpi-grid" style="padding: 16px 16px 0;">
-                <div class="kpi-card">
-                    <div class="kpi-label">Promedio (7 días)</div>
-                    <div class="kpi-value" id="kpi-avg">--%</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">Mejor Día</div>
-                    <div class="kpi-value kpi-highlight" id="kpi-best">--</div>
-                </div>
-            </div>
+                    <div class="metrics-kpi-grid" style="padding: 16px 16px 0;">
+                        <div class="kpi-card">
+                            <div class="kpi-label">Promedio (7 días)</div>
+                            <div class="kpi-value" id="kpi-avg">--%</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-label">Mejor Día</div>
+                            <div class="kpi-value kpi-highlight" id="kpi-best">--</div>
+                        </div>
+                    </div>
 
-            <div style="border-top: 1px solid var(--border-color); margin-top: 16px;">
-                <div class="category-header" style="border-bottom: none;">Tendencia de Cumplimiento</div>
-                <div class="chart-wrapper" style="height: 220px; border: none; box-shadow: none; margin-bottom: 0; border-radius: 0;">
-                    <canvas id="metricsChart"></canvas>
-                </div>
-            </div>
+                    <div style="border-top: 1px solid var(--border-color); margin-top: 16px;">
+                        <div class="category-header" style="border-bottom: none;">Tendencia de Cumplimiento</div>
+                        <div class="chart-wrapper"
+                            style="height: 220px; border: none; box-shadow: none; margin-bottom: 0; border-radius: 0;">
+                            <canvas id="metricsChart"></canvas>
+                        </div>
+                    </div>
 
-            <div style="border-top: 1px solid var(--border-color);">
-                <div class="category-header" style="border-bottom: none;">Desglose Reciente</div>
-                <div class="minimal-daily-list" id="metrics-daily-list" style="border: none; box-shadow: none; border-radius: 0;"></div>
+                    <div style="border-top: 1px solid var(--border-color);">
+                        <div class="category-header" style="border-bottom: none;">Desglose Reciente</div>
+                        <div class="minimal-daily-list" id="metrics-daily-list"
+                            style="border: none; box-shadow: none; border-radius: 0;"></div>
+                    </div>
+                </section>
             </div>
-        </section>
-    </div>
 
             <div id="view-tareas" class="view-content">
                 <section class="category">
