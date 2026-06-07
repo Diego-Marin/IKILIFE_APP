@@ -932,12 +932,13 @@ div.day-segment.future {
 
 
 
+
+
 /**
  * ==========================================
  * SECCIÓN MÉTRICAS (KPI MEJORADOS)
  * ==========================================
  */
-
 
 .metrics-kpi-grid {
     display: grid;
@@ -1033,7 +1034,6 @@ div.day-segment.future {
     text-align: right;
 }
 
-
 /* Cuadrícula de Pasiones (NUEVO) */
 .loves-grid {
     display: grid;
@@ -1109,6 +1109,48 @@ div.day-segment.future {
     width: 0%; /* Se actualizará con JS */
     transition: width 1s ease-in-out;
 }
+
+/* ELEMENTO DE SEMANAS DEL AÑO  */
+
+.weeks-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+    margin-bottom: 16px;
+}
+
+.week-box {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    background-color: var(--border-color);
+    transition: background-color var(--transition), transform 0.2s ease;
+}
+
+.week-box:hover {
+    transform: scale(1.2);
+}
+
+.week-box.passed {
+    background-color: var(--primary-green);
+    opacity: 0.8;
+}
+
+.week-box.current {
+    background-color: var(--text-dark);
+    box-shadow: 0 0 0 2px var(--bg-light), 0 0 0 4px var(--text-dark);
+}
+
+
+
+
+
+
+
+
+
+
 
 
 /**

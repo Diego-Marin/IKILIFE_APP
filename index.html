@@ -9,6 +9,7 @@
         href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌱</text></svg>">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="./Components/state_bar/state_bar.css">
+    <link rel="stylesheet" href="./Components/state_bar/state_bar.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -90,6 +91,8 @@
 
         <main id="main-content">
 
+             <!-- HABITOS -->
+
             <div id="view-habits" class="view-content active">
                 <section class="category">
                     <div
@@ -160,8 +163,15 @@
                 </section>
             </div>
 
+              <!-- METRICAS -->
+
             <div id="view-metrics" class="view-content">
                 <section class="category">
+                    <div style="padding: 16px 16px 0;">
+                        <div class="category-header" style="border-bottom: none; padding-left: 0; padding-right: 0;">
+                            Progreso del Año (52 Semanas)</div>
+                        <div id="year-weeks-grid" class="weeks-grid"></div>
+                    </div>
                     <div class="metrics-kpi-grid" style="padding: 16px 16px 0;">
                         <div class="kpi-card">
                             <div class="kpi-label">Promedio (7 días)</div>
@@ -171,8 +181,15 @@
                             <div class="kpi-label">Mejor Día</div>
                             <div class="kpi-value kpi-highlight" id="kpi-best">--</div>
                         </div>
+                        <div class="kpi-card">
+                            <div class="kpi-label">Racha (Días)</div>
+                            <div class="kpi-value" id="kpi-streak">--</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-label">Índice Gratitud</div>
+                            <div class="kpi-value kpi-highlight" id="kpi-gratitude">--</div>
+                        </div>
                     </div>
-
                     <div style="border-top: 1px solid var(--border-color); margin-top: 16px;">
                         <div class="category-header" style="border-bottom: none;">Tendencia de Cumplimiento</div>
                         <div class="chart-wrapper"
@@ -182,12 +199,21 @@
                     </div>
 
                     <div style="border-top: 1px solid var(--border-color);">
+                        <div class="category-header" style="border-bottom: none;">Equilibrio Vital</div>
+                        <div class="chart-wrapper"
+                            style="height: 250px; border: none; box-shadow: none; margin-bottom: 0; border-radius: 0;">
+                            <canvas id="balanceChart"></canvas>
+                        </div>
+                    </div>
+                    <div style="border-top: 1px solid var(--border-color);">
                         <div class="category-header" style="border-bottom: none;">Desglose Reciente</div>
                         <div class="minimal-daily-list" id="metrics-daily-list"
                             style="border: none; box-shadow: none; border-radius: 0;"></div>
                     </div>
                 </section>
             </div>
+
+             <!-- TAREAS -->
 
             <div id="view-tareas" class="view-content">
                 <section class="category">
@@ -227,6 +253,8 @@
                 </section>
             </div>
 
+             <!-- MONEY -->
+
             <div id="view-money" class="view-content">
                 <section class="category">
                     <div id="subview-finanzas" style="padding: 16px;">
@@ -255,6 +283,8 @@
                 </section>
             </div>
 
+             <!-- IDEAS -->
+
             <div id="view-ideas" class="view-content">
                 <section class="category">
                     <div class="item-list-header idea-header" style="display: flex; gap: 10px; flex-wrap: wrap;">
@@ -282,6 +312,8 @@
                     <ul id="list-ideas" style="list-style:none;"></ul>
                 </section>
             </div>
+
+             <!-- LOVES -->
 
             <div id="view-loves" class="view-content">
                 <section class="category">

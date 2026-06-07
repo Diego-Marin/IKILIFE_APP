@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadInversiones();
         loadLoves();
         loadBloques();
-        loadMetrics();
+        loadMetrics(); // Esta ya ejecuta internamente renderYearWeeks() y renderBalanceChart()
         loadFinances();
         loadCompras();
         loadAgradecimientos();
@@ -64,6 +64,14 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error("Error en la suscripción de Supabase:", error);
     }
 });
+
+
+
+
+
+
+
+
 
 /**
  * ==========================================
@@ -163,6 +171,168 @@ function updateWeeklyProgress() {
         }
     });
 }
+/**
+ * ==========================================
+ * GESTIÓN DE BLOQUES DE RUTINA (JSONB)
+ * ==========================================
+ */
+let bloquesState = {};
+
+async function loadBloques() {
+    const { data: bloques, error } = await _supabase
+        .from('bloques_logs')
+        .select('*')
+        .order('id', { ascending: true });
+
+    if (error) {
+        console.error("Error cargando bloques:", error.message);
+        return;
+    }
+
+    const container = document.getElementById('bloques-container');
+    if (!container) return;
+
+    container.innerHTML = '';
+    bloquesState = {};
+
+    bloques.forEach(bloque => {
+        bloquesState[bloque.id] = bloque;
+        const tasks = bloque.tasks || [];
+
+        let tasksHTML = '';
+        tasks.forEach((task, index) => {
+            const isDoneClass = task.done ? 'task-done' : '';
+            const isChecked = task.done ? 'checked' : '';
+
+            tasksHTML += `
+                <li class="bloque-task-item">
+                    <input type="checkbox" class="task-checkbox" ${isChecked} onchange="toggleBloqueTask(${bloque.id}, ${index})">
+                    <div class="bloque-task-text ${isDoneClass}" 
+                         onclick="editBloqueTask(${bloque.id}, ${index})" 
+                         title="Clic para editar tarea">${task.text}</div>
+                    <button class="delete-btn" onclick="deleteBloqueTask(${bloque.id}, ${index})" title="Eliminar tarea">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </li>
+            `;
+        });
+
+        const card = `
+            <div class="bloque-card">
+                <div class="bloque-card-top">
+                    <div class="bloque-card-title" 
+                         onclick="editBloque(${bloque.id})" 
+                         oncontextmenu="event.preventDefault(); deleteBloque(${bloque.id}, '${bloque.name}')" 
+                         title="Clic: Editar Nombre | Clic Derecho: Eliminar Bloque">
+                        ${bloque.name}
+                    </div>
+                    <button class="bloque-add-task" onclick="addBloqueTask(${bloque.id})">
+                        + Tarea
+                    </button>
+                </div>
+                <ul class="bloque-task-list">
+                    ${tasksHTML}
+                </ul>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', card);
+    });
+}
+
+async function addBloque() {
+    const name = prompt("Nombre del nuevo bloque (Ej: Mañana):");
+    if (!name || name.trim() === "") return;
+
+    const { error } = await _supabase
+        .from('bloques_logs')
+        .insert([{ name: name.trim(), tasks: [] }]);
+
+    if (error) alert("Error: " + error.message);
+    else loadBloques();
+}
+
+async function editBloque(id) {
+    const currentName = bloquesState[id].name;
+    const newName = prompt("Editar nombre del bloque:", currentName);
+    if (!newName || newName.trim() === "" || newName === currentName) return;
+
+    const { error } = await _supabase
+        .from('bloques_logs')
+        .update({ name: newName.trim() })
+        .eq('id', id);
+
+    if (error) alert("Error: " + error.message);
+    else loadBloques();
+}
+
+async function deleteBloque(id, name) {
+    if (!confirm(`¿Eliminar todo el bloque "${name}" y sus tareas?`)) return;
+
+    const { error } = await _supabase
+        .from('bloques_logs')
+        .delete()
+        .eq('id', id);
+
+    if (error) alert("Error: " + error.message);
+    else loadBloques();
+}
+
+async function updateTasksDB(id, newTasksArray) {
+    const { error } = await _supabase
+        .from('bloques_logs')
+        .update({ tasks: newTasksArray })
+        .eq('id', id);
+
+    if (error) {
+        console.error("Error actualizando tareas:", error.message);
+    } else {
+        loadBloques();
+    }
+}
+
+function addBloqueTask(id) {
+    const text = prompt("Nueva actividad para este bloque:");
+    if (!text || text.trim() === "") return;
+
+    const tasks = bloquesState[id].tasks || [];
+    tasks.push({ text: text.trim(), done: false });
+
+    updateTasksDB(id, tasks);
+}
+
+function editBloqueTask(id, taskIndex) {
+    const tasks = bloquesState[id].tasks;
+    const newText = prompt("Editar tarea:", tasks[taskIndex].text);
+
+    if (!newText || newText.trim() === "" || newText === tasks[taskIndex].text) return;
+
+    tasks[taskIndex].text = newText.trim();
+    updateTasksDB(id, tasks);
+}
+
+function deleteBloqueTask(id, taskIndex) {
+    const tasks = bloquesState[id].tasks;
+    tasks.splice(taskIndex, 1);
+    updateTasksDB(id, tasks);
+}
+
+function toggleBloqueTask(id, taskIndex) {
+    const tasks = bloquesState[id].tasks;
+    tasks[taskIndex].done = !tasks[taskIndex].done;
+    updateTasksDB(id, tasks);
+}
+
+
+
+
+
+
+
+
+
 
 /**
  * ==========================================
@@ -364,6 +534,14 @@ async function deleteHabit(name) {
     else loadHabits();
 }
 
+
+
+
+
+
+
+
+
 /**
  * ==========================================
  * INTERFAZ DE USUARIO (TABS Y OTROS)
@@ -456,6 +634,14 @@ function toggleFinanceView(viewId) {
         mainView.classList.remove('hidden');
     }
 }
+
+
+
+
+
+
+
+
 
 /**
  * ==========================================
@@ -564,85 +750,15 @@ async function deleteEscuela(name, id) {
     }
 }
 
-/**
- * ==========================================
- * PARSER DE ETIQUETAS (INSIGHT MINING)
- * ==========================================
- */
-function parseContentAndTags(rawText) {
-    const textLower = rawText.toLowerCase();
-    const tags = new Set();
 
-    const reglas = {
-        "ikilife": "desarrollo",
-        "app": "desarrollo",
-        "tecnología": "desarrollo",
-        "automatizar": "desarrollo",
-        "supabase": "desarrollo",
-        "spring": "desarrollo",
-        "inglés": "aprendizaje",
-        "estudiar": "aprendizaje",
-        "aprender": "aprendizaje",
-        "podcast": "aprendizaje",
-        "libro": "aprendizaje",
-        "kindle": "aprendizaje",
-        "chatgpt": "aprendizaje",
-        "ansiedad": "salud-mental",
-        "terapia": "salud-mental",
-        "dopamina": "salud-mental",
-        "emociones": "salud-mental",
-        "mente": "salud-mental",
-        "miedo": "salud-mental",
-        "soledad": "salud-mental",
-        "elisa": "relaciones",
-        "mujer": "relaciones",
-        "chica": "relaciones",
-        "amigos": "relaciones",
-        "personas": "relaciones",
-        "papá": "familia",
-        "mamá": "familia",
-        "tía": "familia",
-        "mesa de ayuda": "profesional",
-        "trabajo": "profesional",
-        "empresa": "profesional",
-        "compañeros": "profesional",
-        "dinero": "finanzas",
-        "finanzas": "finanzas",
-        "plata": "finanzas",
-        "comprar": "finanzas",
-        "promociones": "finanzas",
-        "moto": "transporte",
-        "casco": "transporte",
-        "transporte": "transporte",
-        "ropa": "estilo",
-        "moda": "estilo",
-        "gorras": "estilo",
-        "naturaleza": "estilo-de-vida",
-        "entrenamiento": "salud-física",
-        "gimnasio": "salud-física",
-        "café": "hábitos",
-        "celular": "hábitos"
-    };
 
-    for (const [palabra, categoria] of Object.entries(reglas)) {
-        if (textLower.includes(palabra)) {
-            tags.add(categoria);
-        }
-    }
 
-    const tagRegex = /#(\w+)/g;
-    let match;
-    while ((match = tagRegex.exec(rawText)) !== null) {
-        tags.add(match[1].toLowerCase());
-    }
 
-    const cleanContent = rawText.replace(tagRegex, '').trim();
 
-    return {
-        content: cleanContent,
-        tags: Array.from(tags)
-    };
-}
+
+
+
+
 
 /**
  * ==========================================
@@ -729,102 +845,13 @@ async function deleteIdea(id) {
     }
 }
 
-/**
- * ==========================================
- * GESTIÓN DE AGRADECIMIENTOS Y SÍNDROME DEL IMPOSTOR
- * ==========================================
- */
-async function loadAgradecimientos() {
-    const { data: agradecimientos, error } = await _supabase
-        .from('ideas_logs')
-        .select('*')
-        .eq('type', 'agradecimiento')
-        .order('created_at', { ascending: false })
-        .limit(30);
 
-    if (error) return console.error("Error cargando agradecimientos:", error.message);
 
-    const listContainer = document.getElementById('list-agradecimientos');
-    if (!listContainer) return;
-    listContainer.innerHTML = '';
 
-    agradecimientos.forEach(item => {
-        const dateObj = new Date(item.created_at);
-        const dateString = dateObj.toLocaleDateString('es-CO', { month: 'short', day: 'numeric' });
-        const timeString = dateObj.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
 
-        const row = `
-            <li class="idea-row">
-                <div class="idea-content"
-                     onclick="editAgradecimiento(${item.id}, '${item.content.replace(/'/g, "\\'")}')"
-                     oncontextmenu="event.preventDefault(); deleteAgradecimiento(${item.id})"
-                     title="Clic: Editar | Clic Derecho: Eliminar">
-                     ${item.content}
-                </div>
-                <div class="idea-date">${dateString} - ${timeString}</div>
-            </li>
-        `;
-        listContainer.insertAdjacentHTML('beforeend', row);
-    });
-}
 
-async function addAgradecimiento() {
-    const rawInput = prompt("Anota algo positivo (usa #etiquetas para categorizar):");
-    if (!rawInput || rawInput.trim() === "") return;
 
-    const { content, tags } = parseContentAndTags(rawInput);
 
-    const { error } = await _supabase
-        .from('ideas_logs')
-        .insert([{ content: content, type: 'agradecimiento', tags: tags }]);
-
-    if (error) alert("Error al guardar: " + error.message);
-    else loadAgradecimientos();
-}
-
-async function editAgradecimiento(id, oldContent) {
-    const newContent = prompt("Editar agradecimiento:", oldContent);
-    if (!newContent || newContent.trim() === "" || newContent === oldContent) return;
-
-    const { error } = await _supabase
-        .from('ideas_logs')
-        .update({ content: newContent.trim() })
-        .eq('id', id);
-
-    if (error) alert("Error al editar: " + error.message);
-    else loadAgradecimientos();
-}
-
-async function deleteAgradecimiento(id) {
-    if (!confirm("¿Deseas eliminar este agradecimiento?")) return;
-
-    const { error } = await _supabase
-        .from('ideas_logs')
-        .delete()
-        .eq('id', id);
-
-    if (error) alert("Error al eliminar: " + error.message);
-    else loadAgradecimientos();
-}
-
-async function showRandomVictory() {
-    const { data, error } = await _supabase
-        .from('ideas_logs')
-        .select('content, created_at, tags')
-        .eq('type', 'agradecimiento');
-
-    if (error || !data || data.length === 0) {
-        alert("Aún no hay victorias o agradecimientos registrados para mostrar.");
-        return;
-    }
-
-    const randomIndex = Math.floor(Math.random() * data.length);
-    const victory = data[randomIndex];
-    const dateStr = new Date(victory.created_at).toLocaleDateString('es-CO');
-    const tagsStr = victory.tags && victory.tags.length > 0 ? victory.tags.join(', ') : 'Sin etiquetas';
-
-    alert(`🔥 Evidencia contra el Impostor:\n\n"${victory.content}"\n\n📅 Fecha: ${dateStr}\n🏷️ Etiquetas: ${tagsStr}`);
-}
 
 /**
  * ==========================================
@@ -864,6 +891,16 @@ async function deleteTarea(id) {
     if (error) console.error("Error al eliminar tarea:", error.message);
     else loadTareas();
 }
+
+
+
+
+
+
+
+
+
+
 
 /**
  * ==========================================
@@ -1028,6 +1065,14 @@ function toggleCuota(id, cuotaIndex) {
     updateCuotasDB(id, cuotas);
 }
 
+
+
+
+
+
+
+
+
 /**
  * ==========================================
  * GESTIÓN DE COSAS QUE AMO
@@ -1135,159 +1180,13 @@ async function deleteLove(name, id) {
     }
 }
 
-/**
- * ==========================================
- * GESTIÓN DE BLOQUES DE RUTINA (JSONB)
- * ==========================================
- */
-let bloquesState = {};
 
-async function loadBloques() {
-    const { data: bloques, error } = await _supabase
-        .from('bloques_logs')
-        .select('*')
-        .order('id', { ascending: true });
 
-    if (error) {
-        console.error("Error cargando bloques:", error.message);
-        return;
-    }
 
-    const container = document.getElementById('bloques-container');
-    if (!container) return;
 
-    container.innerHTML = '';
-    bloquesState = {};
 
-    bloques.forEach(bloque => {
-        bloquesState[bloque.id] = bloque;
-        const tasks = bloque.tasks || [];
 
-        let tasksHTML = '';
-        tasks.forEach((task, index) => {
-            const isDoneClass = task.done ? 'task-done' : '';
-            const isChecked = task.done ? 'checked' : '';
 
-            tasksHTML += `
-                <li class="bloque-task-item">
-                    <input type="checkbox" class="task-checkbox" ${isChecked} onchange="toggleBloqueTask(${bloque.id}, ${index})">
-                    <div class="bloque-task-text ${isDoneClass}" 
-                         onclick="editBloqueTask(${bloque.id}, ${index})" 
-                         title="Clic para editar tarea">${task.text}</div>
-                    <button class="delete-btn" onclick="deleteBloqueTask(${bloque.id}, ${index})" title="Eliminar tarea">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                    </button>
-                </li>
-            `;
-        });
-
-        const card = `
-            <div class="bloque-card">
-                <div class="bloque-card-top">
-                    <div class="bloque-card-title" 
-                         onclick="editBloque(${bloque.id})" 
-                         oncontextmenu="event.preventDefault(); deleteBloque(${bloque.id}, '${bloque.name}')" 
-                         title="Clic: Editar Nombre | Clic Derecho: Eliminar Bloque">
-                        ${bloque.name}
-                    </div>
-                    <button class="bloque-add-task" onclick="addBloqueTask(${bloque.id})">
-                        + Tarea
-                    </button>
-                </div>
-                <ul class="bloque-task-list">
-                    ${tasksHTML}
-                </ul>
-            </div>
-        `;
-        container.insertAdjacentHTML('beforeend', card);
-    });
-}
-
-async function addBloque() {
-    const name = prompt("Nombre del nuevo bloque (Ej: Mañana):");
-    if (!name || name.trim() === "") return;
-
-    const { error } = await _supabase
-        .from('bloques_logs')
-        .insert([{ name: name.trim(), tasks: [] }]);
-
-    if (error) alert("Error: " + error.message);
-    else loadBloques();
-}
-
-async function editBloque(id) {
-    const currentName = bloquesState[id].name;
-    const newName = prompt("Editar nombre del bloque:", currentName);
-    if (!newName || newName.trim() === "" || newName === currentName) return;
-
-    const { error } = await _supabase
-        .from('bloques_logs')
-        .update({ name: newName.trim() })
-        .eq('id', id);
-
-    if (error) alert("Error: " + error.message);
-    else loadBloques();
-}
-
-async function deleteBloque(id, name) {
-    if (!confirm(`¿Eliminar todo el bloque "${name}" y sus tareas?`)) return;
-
-    const { error } = await _supabase
-        .from('bloques_logs')
-        .delete()
-        .eq('id', id);
-
-    if (error) alert("Error: " + error.message);
-    else loadBloques();
-}
-
-async function updateTasksDB(id, newTasksArray) {
-    const { error } = await _supabase
-        .from('bloques_logs')
-        .update({ tasks: newTasksArray })
-        .eq('id', id);
-
-    if (error) {
-        console.error("Error actualizando tareas:", error.message);
-    } else {
-        loadBloques();
-    }
-}
-
-function addBloqueTask(id) {
-    const text = prompt("Nueva actividad para este bloque:");
-    if (!text || text.trim() === "") return;
-
-    const tasks = bloquesState[id].tasks || [];
-    tasks.push({ text: text.trim(), done: false });
-
-    updateTasksDB(id, tasks);
-}
-
-function editBloqueTask(id, taskIndex) {
-    const tasks = bloquesState[id].tasks;
-    const newText = prompt("Editar tarea:", tasks[taskIndex].text);
-
-    if (!newText || newText.trim() === "" || newText === tasks[taskIndex].text) return;
-
-    tasks[taskIndex].text = newText.trim();
-    updateTasksDB(id, tasks);
-}
-
-function deleteBloqueTask(id, taskIndex) {
-    const tasks = bloquesState[id].tasks;
-    tasks.splice(taskIndex, 1);
-    updateTasksDB(id, tasks);
-}
-
-function toggleBloqueTask(id, taskIndex) {
-    const tasks = bloquesState[id].tasks;
-    tasks[taskIndex].done = !tasks[taskIndex].done;
-    updateTasksDB(id, tasks);
-}
 
 /**
  * ==========================================
@@ -1295,14 +1194,25 @@ function toggleBloqueTask(id, taskIndex) {
  * ==========================================
  */
 let chartInstance = null;
+let balanceChartInstance = null;
 
 async function loadMetrics() {
-    const { data: habits } = await _supabase.from('habit_logs').select('*');
-    const today = formatDateLocal(new Date());
+    const { data: habits, error } = await _supabase.from('habit_logs').select('*');
+    if (error) {
+        console.error("Error al cargar hábitos:", error);
+        return;
+    }
 
+    const today = formatDateLocal(new Date());
     const uniqueHabitNames = [...new Set(habits.map(h => h.habit_name))];
     const projectMap = {};
 
+    // 1. SOLUCIÓN: Renderizar Semanas del Año
+    if (typeof renderYearWeeks === 'function') {
+        renderYearWeeks();
+    }
+
+    // 2. Extraer y calcular Proyectos
     uniqueHabitNames.forEach(name => {
         const match = name.match(/\[(.*?)\]/);
         if (match) {
@@ -1313,259 +1223,183 @@ async function loadMetrics() {
     });
 
     const container = document.getElementById('subview-metrics-stats');
-    if (!container) return;
+    if (container) {
+        container.innerHTML = '<h3>Avance de Proyectos</h3>';
 
-    container.innerHTML = '<h3>Avance de Proyectos</h3>';
+        for (const [projName, habitList] of Object.entries(projectMap)) {
+            const logsToday = habits.filter(h => h.log_date === today && h.is_completed);
+            const completed = logsToday.filter(h => habitList.includes(h.habit_name)).length;
+            const total = habitList.length;
+            const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-    for (const [projName, habitList] of Object.entries(projectMap)) {
-        const logsToday = habits.filter(h => h.log_date === today && h.is_completed);
-        const completed = logsToday.filter(h => habitList.includes(h.habit_name)).length;
-        const total = habitList.length;
-        const percent = (completed / total) * 100;
-
-        container.insertAdjacentHTML('beforeend', `
-            <div class="project-card">
-                <div class="project-header">
-                    <span>${projName}</span>
-                    <span>${completed}/${total}</span>
+            container.insertAdjacentHTML('beforeend', `
+                <div class="project-card">
+                    <div class="project-header">
+                        <span>${projName}</span>
+                        <span>${completed}/${total}</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-fill" style="width: ${percent}%"></div>
+                    </div>
                 </div>
-                <div class="progress-track">
-                    <div class="progress-fill" style="width: ${percent}%"></div>
-                </div>
-            </div>
-        `);
+            `);
+        }
     }
 
+    // 3. Gráficos de Tendencia y Desglose (7 días)
     let labels = [];
     let dataPoints = [];
     let stats = {};
-    let total = 0;
+    let totalHabitsCount = uniqueHabitNames.length || 1;
 
-    try {
-        renderChart(labels, dataPoints);
-        renderMinimalList(labels, stats, total);
-    } catch (e) {
-        console.warn("Faltan datos completos para renderizar el gráfico en loadMetrics.");
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateStr = formatDateLocal(d);
+        labels.push(dateStr);
+
+        const dayLogs = habits.filter(h => h.log_date === dateStr && h.is_completed);
+        const completedCount = dayLogs.length;
+        const pct = Math.round((completedCount / totalHabitsCount) * 100);
+
+        dataPoints.push(pct);
+        stats[dateStr] = { completed: completedCount };
+    }
+
+    if (typeof renderChart === 'function') renderChart(labels, dataPoints);
+    if (typeof renderMinimalList === 'function') renderMinimalList(labels, stats, totalHabitsCount);
+
+    // 4. Actualización de los 4 KPIs Objetivos
+    const todayLogs = habits.filter(h => h.log_date === today && h.is_completed).length;
+    const todayPct = Math.round((todayLogs / totalHabitsCount) * 100);
+
+    const elToday = document.getElementById('kpi-today');
+    if (elToday) elToday.textContent = `${todayPct}%`;
+
+    const elActive = document.getElementById('kpi-active');
+    if (elActive) elActive.textContent = totalHabitsCount;
+
+    const elProjects = document.getElementById('kpi-projects');
+    if (elProjects) elProjects.textContent = Object.keys(projectMap).length;
+
+    const elLogs = document.getElementById('kpi-logs');
+    if (elLogs) elLogs.textContent = habits.length;
+
+    // 5. Radar de Equilibrio Vital (Agrupación por palabras clave)
+    const catScores = { 'Desarrollo': 0, 'Salud Física': 0, 'Salud Mental': 0, 'Finanzas': 0, 'Social/Familia': 0 };
+    const catTotals = { 'Desarrollo': 0, 'Salud Física': 0, 'Salud Mental': 0, 'Finanzas': 0, 'Social/Familia': 0 };
+
+    habits.forEach(h => {
+        const name = h.habit_name.toLowerCase();
+        let cat = 'Desarrollo';
+
+        if (name.includes('gym') || name.includes('ejercicio') || name.includes('agua') || name.includes('caminar') || name.includes('montaña')) cat = 'Salud Física';
+        else if (name.includes('meditar') || name.includes('leer') || name.includes('inglés') || name.includes('estudiar')) cat = 'Salud Mental';
+        else if (name.includes('ahorro') || name.includes('gasto') || name.includes('dinero') || name.includes('comprar')) cat = 'Finanzas';
+        else if (name.includes('familia') || name.includes('amigo') || name.includes('mamá') || name.includes('social')) cat = 'Social/Familia';
+
+        catTotals[cat]++;
+        if (h.is_completed) catScores[cat]++;
+    });
+
+    const radarData = [
+        catTotals['Desarrollo'] > 0 ? Math.round((catScores['Desarrollo'] / catTotals['Desarrollo']) * 100) : 10,
+        catTotals['Salud Física'] > 0 ? Math.round((catScores['Salud Física'] / catTotals['Salud Física']) * 100) : 10,
+        catTotals['Salud Mental'] > 0 ? Math.round((catScores['Salud Mental'] / catTotals['Salud Mental']) * 100) : 10,
+        catTotals['Finanzas'] > 0 ? Math.round((catScores['Finanzas'] / catTotals['Finanzas']) * 100) : 10,
+        catTotals['Social/Familia'] > 0 ? Math.round((catScores['Social/Familia'] / catTotals['Social/Familia']) * 100) : 10
+    ];
+
+    if (typeof renderBalanceChart === 'function') {
+        renderBalanceChart(radarData);
     }
 }
 
-function renderChart(labels, dataPoints) {
-    const ctx = document.getElementById('metricsChart');
+function renderBalanceChart(dataValues) {
+    const ctx = document.getElementById('balanceChart');
     if (!ctx) return;
 
-    if (chartInstance) {
-        chartInstance.destroy();
+    if (balanceChartInstance) {
+        balanceChartInstance.destroy();
     }
 
     const isDark = document.body.classList.contains('dark-mode');
     const textColor = isDark ? '#888888' : '#666666';
+    const gridColor = isDark ? '#2D2D2D' : '#E5E5E5';
 
-    const shortLabels = labels.map(date => {
-        const d = new Date(date + 'T00:00:00');
-        const weekDayName = d.toLocaleDateString('es-CO', { weekday: 'short' });
-        return weekDayName.charAt(0).toUpperCase() + weekDayName.slice(1) + ' ' + d.getDate();
-    });
-
-    chartInstance = new Chart(ctx, {
-        type: 'line',
+    balanceChartInstance = new Chart(ctx, {
+        type: 'radar',
         data: {
-            labels: shortLabels,
+            labels: ['Desarrollo', 'Salud Física', 'Salud Mental', 'Finanzas', 'Social/Familia'],
             datasets: [{
-                data: dataPoints,
+                data: dataValues,
+                backgroundColor: 'rgba(116, 192, 138, 0.2)',
                 borderColor: '#74C08A',
-                borderWidth: 3,
-                fill: false,
-                tension: 0.4,
                 pointBackgroundColor: '#74C08A',
-                pointBorderWidth: 0,
-                pointRadius: 4,
-                pointHoverRadius: 6
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: '#74C08A',
+                borderWidth: 2,
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: isDark ? '#1C1C1C' : '#ffffff',
-                    titleColor: isDark ? '#EAEAEA' : '#1A1A1A',
-                    bodyColor: isDark ? '#EAEAEA' : '#1A1A1A',
-                    borderColor: isDark ? '#2D2D2D' : '#E5E5E5',
-                    borderWidth: 1,
-                    displayColors: false,
-                    callbacks: {
-                        label: function (context) { return `${context.parsed.y}% Completado`; }
-                    }
-                }
+                legend: { display: false }
             },
             scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 110,
-                    border: { display: false },
-                    grid: { display: false },
-                    ticks: { color: textColor, font: { size: 10 }, stepSize: 25 }
-                },
-                x: {
-                    border: { display: false },
-                    grid: { display: false },
-                    ticks: { color: textColor, font: { size: 10 } }
+                r: {
+                    angleLines: { color: gridColor },
+                    grid: { color: gridColor },
+                    pointLabels: {
+                        color: textColor,
+                        font: { size: 10, weight: '600' }
+                    },
+                    ticks: {
+                        display: false,
+                        min: 0,
+                        max: 100
+                    }
                 }
             }
         }
     });
 }
 
-function renderMinimalList(labels, dateStats, totalHabits) {
-    const container = document.getElementById('metrics-daily-list');
+// Asegúrate de que esta función esté al final de tu archivo main.js
+function renderYearWeeks() {
+    const container = document.getElementById('year-weeks-grid');
     if (!container) return;
     container.innerHTML = '';
 
-    [...labels].reverse().forEach(date => {
-        const stat = dateStats[date];
-        const pct = Math.round((stat.completed / totalHabits) * 100);
-
-        const dObj = new Date(date + 'T00:00:00');
-        const weekDayName = dObj.toLocaleDateString('es-CO', { weekday: 'long' });
-        const dayNum = dObj.getDate();
-        const displayDate = weekDayName.charAt(0).toUpperCase() + weekDayName.slice(1) + ' ' + dayNum;
-
-        const row = `
-            <div class="daily-row">
-                <div class="daily-date">${displayDate}</div>
-                <div class="daily-bar-bg" title="${stat.completed} de ${totalHabits} completados">
-                    <div class="daily-bar-fill" style="width: ${pct}%;"></div>
-                </div>
-                <div class="daily-pct" style="line-height: 1.2;">
-                    <span style="display:block;">${pct}%</span>
-                    <span style="display:block; font-size: 0.65rem; color: var(--text-muted); font-weight: normal;">${stat.completed}/${totalHabits}</span>
-                </div>
-            </div>
-        `;
-        container.insertAdjacentHTML('beforeend', row);
-    });
-}
-
-/**
- * Exportar TODO el historial de hábitos a CSV
- */
-async function exportAllHistoryCSV() {
-    const { data: allLogs, error } = await _supabase
-        .from('habit_logs')
-        .select('*')
-        .order('log_date', { ascending: true });
-
-    if (error) return alert("Error al conectar con la base de datos.");
-    if (!allLogs || allLogs.length === 0) return alert("No hay datos históricos para exportar.");
-
-    const uniqueHabits = [...new Set(allLogs.map(l => l.habit_name))].sort();
-
-    const firstDateStr = allLogs[0].log_date;
-    const firstDate = new Date(firstDateStr + 'T00:00:00');
     const today = new Date();
+    const startOfYear = new Date(today.getFullYear(), 0, 1);
+    const daysToToday = Math.floor((today - startOfYear) / (24 * 60 * 60 * 1000));
+    
+    const currentWeek = Math.ceil((daysToToday + startOfYear.getDay() + 1) / 7);
+    const totalWeeks = 52;
 
-    const allDates = [];
-    let currentDate = new Date(firstDate);
+    for (let i = 1; i <= totalWeeks; i++) {
+        const box = document.createElement('div');
+        box.className = 'week-box';
+        box.title = `Semana ${i}`;
 
-    while (currentDate <= today) {
-        allDates.push(formatDateLocal(currentDate));
-        currentDate.setDate(currentDate.getDate() + 1);
+        if (i < currentWeek) {
+            box.classList.add('passed');
+        } else if (i === currentWeek) {
+            box.classList.add('current');
+            box.title = `Semana ${i} (Actual)`;
+        }
+
+        container.appendChild(box);
     }
-
-    let csvContent = "\uFEFF";
-    csvContent += "Hábito," + allDates.join(",") + ",Total Histórico\n";
-
-    uniqueHabits.forEach(habitName => {
-        let row = `"${habitName}"`;
-        let totalCompletados = 0;
-
-        allDates.forEach(dateStr => {
-            const log = allLogs.find(l => l.habit_name === habitName && l.log_date === dateStr);
-            const isDone = log ? log.is_completed : false;
-
-            if (isDone) totalCompletados++;
-
-            row += isDone ? ",Sí" : ",No";
-        });
-
-        row += `,${totalCompletados}`;
-        csvContent += row + "\n";
-    });
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-
-    link.setAttribute("href", url);
-    link.setAttribute("download", `IKILIFE_Historial_Completo.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
 }
 
-/**
- * Exportar Hábitos de la Semana Actual a CSV
- */
-async function exportHabitsCSV() {
-    const today = new Date();
-    let currentDay = today.getDay();
-    currentDay = currentDay === 0 ? 7 : currentDay;
 
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - currentDay + 1);
 
-    const datesOfWeek = [];
-    for (let i = 0; i < 7; i++) {
-        const d = new Date(monday);
-        d.setDate(monday.getDate() + i);
-        datesOfWeek.push(formatDateLocal(d));
-    }
 
-    const { data: allHabitsData, error: err1 } = await _supabase.from('habit_logs').select('habit_name');
-    if (err1) return alert("Error al obtener datos para exportar.");
-    const uniqueHabits = [...new Set(allHabitsData.map(h => h.habit_name))].sort();
 
-    const { data: weekLogs, error: err2 } = await _supabase
-        .from('habit_logs')
-        .select('*')
-        .gte('log_date', datesOfWeek[0])
-        .lte('log_date', datesOfWeek[6]);
-
-    if (err2) return alert("Error al obtener registros de la semana.");
-
-    let csvContent = "\uFEFF";
-    csvContent += "Hábito," + datesOfWeek.join(",") + ",Total Completados\n";
-
-    uniqueHabits.forEach(habitName => {
-        let row = `"${habitName}"`;
-        let totalCompletados = 0;
-
-        datesOfWeek.forEach(dateStr => {
-            const log = weekLogs.find(l => l.habit_name === habitName && l.log_date === dateStr);
-            const isDone = log ? log.is_completed : false;
-
-            if (isDone) totalCompletados++;
-
-            row += isDone ? ",Sí" : ",No";
-        });
-
-        row += `,${totalCompletados}`;
-        csvContent += row + "\n";
-    });
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-
-    link.setAttribute("href", url);
-    link.setAttribute("download", `IKILIFE_Habitos_${datesOfWeek[0]}_al_${datesOfWeek[6]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
 
 /**
  * ==========================================
@@ -1698,6 +1532,14 @@ async function deleteFinanceItem(id, concept) {
     else loadFinances();
 }
 
+
+
+
+
+
+
+
+
 /**
  * ==========================================
  * GESTIÓN DE COMPRAS (VOTACIONES)
@@ -1757,6 +1599,11 @@ async function deleteCompra(name, id) {
     const { error } = await _supabase.from('compras_logs').delete().eq('id', id);
     if (!error) loadCompras();
 }
+
+
+
+
+
 
 
 /**
@@ -1828,6 +1675,14 @@ async function exportIdeasCSV() {
         alert("Ocurrió un error inesperado generando el archivo:\n" + err.message + "\n\nRevisa la consola (F12) para más detalles.");
     }
 }
+
+
+
+
+
+
+
+
 
 /**
  * ==========================================
