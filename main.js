@@ -1782,7 +1782,7 @@ async function generateInsights() {
     const fraseEl = document.getElementById('insight-frase');
 
     // Gemini API Key dividida para evitar el bloqueo estático de GitHub
-    const gPart1 = 'AQ.Ab8RN6';
+    const gPart1 = 'xxx';
     const gPart2 = 'KZJKX-LvA7sf6p';
     const gPart3 = '1y9c7OzeIb7dMXLwseAHHiz2Rs3PWw';
     const geminiApiKey = gPart1 + gPart2 + gPart3;
