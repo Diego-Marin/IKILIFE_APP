@@ -1111,62 +1111,61 @@ div.day-segment.future {
 }
 
 
+/**
+ * ==========================================
+ * STATE BAR - OPTIMIZADO Y LLAMATIVO
+ * ==========================================
+ */
 
-
-/*STATE BAR*/
 .ikilife-state-card {
-    background: var(--bg-header);
+    background: linear-gradient(to right, var(--bg-header), var(--white));
     border: 1px solid var(--border-color);
-    border-radius: 12px;
+    border-left: 6px solid var(--border-color); /* Ligeramente más grueso para más presencia */
+    border-radius: 12px; /* Un poco más redondeado para modernizar */
     padding: 16px 20px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 24px;
-    transition: transform 0.3s ease, border-color 0.3s ease;
-}
-
-.ikilife-state-card:hover {
-    transform: translateY(-2px);
-    border-color: var(--primary-green);
+    gap: 16px;
+    margin-bottom: 24px; /* Soluciona el problema de que estaba pegado */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); /* Sombra suave para que "flote" */
+    transition: transform 0.2s ease, border-left-color 0.3s ease;
 }
 
 .state-info {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    align-items: center;
+    gap: 12px;
+    overflow: hidden;
 }
 
-.state-title {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    text-transform: uppercase;
+/* Icono más grande para impacto visual */
+#state-icon {
+    font-size: 1.6rem; 
+    line-height: 1;
+}
+
+.state-label {
+    font-size: clamp(0.9rem, 2.5vw, 1rem); /* Un poco más grande y legible */
     font-weight: 700;
-    letter-spacing: 1px;
+    color: var(--text-dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.state-block {
-    font-size: 1.3rem;
+.state-time {
+    font-family: monospace;
+    font-size: clamp(1rem, 2.5vw, 1.1rem);
     font-weight: 800;
     color: var(--text-dark);
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    background: rgba(0,0,0,0.03); /* Fondo sutil para el tiempo */
+    padding: 4px 8px;
+    border-radius: 6px;
 }
 
-.state-time-box {
-    background-color: var(--primary-green);
-    color: #fff;
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 1.2rem;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    box-shadow: 0 4px 10px rgba(116, 192, 138, 0.3);
-}
-
-/* Indicadores visuales laterales según el bloque */
-.state-mode-work { border-left: 6px solid #e67e22; }
-.state-mode-grow { border-left: 6px solid var(--primary-green); }
-.state-mode-sleep { border-left: 6px solid #34495e; }
-.state-mode-free { border-left: 6px solid #9b59b6; }
+/* Colores de estado más vibrantes */
+.state-work { border-left-color: #e67e22 !important; }
+.state-grow { border-left-color: var(--primary-green) !important; }
+.state-sleep { border-left-color: #34495e !important; }
+.state-free { border-left-color: #9b59b6 !important; }

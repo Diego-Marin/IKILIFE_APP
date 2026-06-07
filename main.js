@@ -1,7 +1,6 @@
 // ==========================================
 // CONFIGURACIÓN DE SUPABASE
 // ==========================================
-const SUPABASE_URL = "https://pgawswfurouzstkapwby.supabase.co";
 
 // Clave de Supabase dividida para evitar bloqueos de seguridad en GitHub
 const sPart1 = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnYXdz";
@@ -9,6 +8,7 @@ const sPart2 = "d2Z1cm91enN0a2Fwd2J5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5Nzg0NzEs
 const sPart3 = "MDU1NDQ3MX0.KciMvGBygkY2lTDtUIE_zztaODNX3XuWb_sEnpzkMHw";
 const SUPABASE_KEY = sPart1 + sPart2 + sPart3;
 
+const SUPABASE_URL = "https://pgawswfurouzstkapwby.supabase.co";
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 
@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadFinances();
         loadCompras();
         loadAgradecimientos();
-        generateInsights(); 
+        generateInsights();
     } catch (error) {
         console.error("Error durante la carga de datos:", error);
     }
@@ -415,24 +415,18 @@ function switchLovesSubTab(tab, btn) {
 }
 
 function switchTareasSubTab(tab, btn) {
-    const container = btn.closest('.sub-tabs-container');
-    if (container) {
-        container.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-    }
-}
-
-function switchFinanceSubTab(tab, btn) {
-    const container = btn.closest('.finance-sub-tabs');
+    const container = btn.closest('.category');
     container.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
 
-    document.getElementById('subview-finanzas').classList.add('hidden');
-    document.getElementById('subview-compras').classList.add('hidden');
-    document.getElementById('subview-inversiones').classList.add('hidden');
+    // Ocultar todas las sub-vistas
+    document.getElementById('subview-tareas-tareas').classList.add('hidden');
+    document.getElementById('subview-tareas-compras').classList.add('hidden');
 
-    document.getElementById(`subview-${tab}`).classList.remove('hidden');
+    // Mostrar la seleccionada
+    document.getElementById(`subview-tareas-${tab}`).classList.remove('hidden');
 }
+
 
 async function saveLearning() {
     const textEl = document.getElementById('daily-learning');
@@ -1319,7 +1313,7 @@ async function loadMetrics() {
     });
 
     const container = document.getElementById('subview-metrics-stats');
-    if (!container) return; 
+    if (!container) return;
 
     container.innerHTML = '<h3>Avance de Proyectos</h3>';
 
@@ -1342,7 +1336,7 @@ async function loadMetrics() {
         `);
     }
 
-    let labels = []; 
+    let labels = [];
     let dataPoints = [];
     let stats = {};
     let total = 0;
@@ -1764,67 +1758,6 @@ async function deleteCompra(name, id) {
     if (!error) loadCompras();
 }
 
-/**
- * ==========================================
- * GENERACIÓN DE INSIGHTS (GEMINI API)
- * ==========================================
- */
-async function generateInsights() {
-    const focoEl = document.getElementById('insight-foco');
-    const patronesEl = document.getElementById('insight-patrones');
-    const fraseEl = document.getElementById('insight-frase');
-
-    // Gemini API Key dividida para evitar el bloqueo estático de GitHub
-    const gPart1 = 'xxx';
-    const gPart2 = 'xxx';
-    const gPart3 = 'xxx';
-    const geminiApiKey = gPart1 + gPart2 + gPart3;
-
-    try {
-        if (focoEl) focoEl.textContent = "1. Leyendo base de datos...";
-
-        const { data: ideas, error } = await _supabase
-            .from('ideas_logs')
-            .select('content')
-            .order('created_at', { ascending: false })
-            .limit(20);
-
-        if (error) throw new Error("Error en Supabase: " + error.message);
-        if (!ideas || ideas.length === 0) throw new Error("No hay suficientes ideas.");
-
-        if (focoEl) focoEl.textContent = "2. Analizando datos...";
-
-        const textos = ideas.map(i => i.content).join("\n- ");
-        const prompt = `Analiza estas entradas de mi diario. Devuelve SOLO un JSON con: {"foco_mental": "frase corta de 8 palabras max", "patrones": ["tema1", "tema2"], "frase_representativa": "resumen profundo"}. Entradas:\n${textos}`;
-
-        // Se usa fetch nativo en lugar del SDK de NPM para evitar errores de módulos
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: { responseMimeType: "application/json" }
-            })
-        });
-
-        if (!response.ok) {
-            const errRes = await response.json();
-            throw new Error(errRes.error?.message || "Error en la petición a la API");
-        }
-
-        const result = await response.json();
-        const rawText = result.candidates[0].content.parts[0].text;
-        const data = JSON.parse(rawText);
-
-        if (focoEl) focoEl.textContent = data.foco_mental || "Sin foco";
-        if (patronesEl) patronesEl.textContent = (data.patrones || []).join(' • ');
-        if (fraseEl) fraseEl.textContent = `"${data.frase_representativa || ''}"`;
-
-    } catch (err) {
-        console.error("Error completo:", err);
-        if (focoEl) focoEl.textContent = "Error de ejecución.";
-    }
-}
 
 /**
  * ==========================================
@@ -1896,92 +1829,96 @@ async function exportIdeasCSV() {
     }
 }
 
-
-//funciones de state_bar
+/**
+ * ==========================================
+ * COMPONENTE STATE BAR
+ * ==========================================
+ */
 function renderStateBar(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    // Inyección de la estructura HTML
+    // CONFIGURACIÓN: Solo cambia esto para ajustar horarios
+
+    /**
+        /**
+         * TABLA DE REFERENCIA: Minutos del día (Formato 12 horas)
+         * ----------------------------------------------------
+         * HORA    | MINUTOS (Start)
+         * 12:00 AM| 0
+         * 01:00 AM| 60
+         * 02:00 AM| 120
+         * 03:00 AM| 180
+         * 04:00 AM| 240
+         * 05:00 AM| 300
+         * 06:00 AM| 360
+         * 07:00 AM| 420
+         * 08:00 AM| 480
+         * 09:00 AM| 540
+         * 10:00 AM| 600
+         * 11:00 AM| 660
+         * 12:00 PM| 720
+         * 01:00 PM| 780
+         * 02:00 PM| 840
+         * 03:00 PM| 900
+         * 04:00 PM| 960
+         * 05:00 PM| 1020
+         * 06:00 PM| 1080
+         * 07:00 PM| 1140
+         * 08:00 PM| 1200
+         * 09:00 PM| 1260
+         * 10:00 PM| 1320
+         * 11:00 PM| 1380
+         * ----------------------------------------------------
+         */
+
+    const CONFIG = {
+        weekday: [
+            { start: 300, end: 1020, label: "Mesa de Ayuda", icon: "💼", class: "state-work" },
+            { start: 1020, end: 1260, label: "Code & Grow", icon: "🌱", class: "state-grow" },
+            { start: 0, end: 300, label: "Descanso", icon: "🌙", class: "state-sleep" },
+            { start: 1260, end: 1440, label: "Descanso", icon: "🌙", class: "state-sleep" }
+        ],
+        weekend: [
+            { start: 360, end: 720, label: "Senderismo", icon: "⛰️", class: "state-grow" },
+            { start: 720, end: 1260, label: "Tiempo Libre", icon: "🍻", class: "state-free" },
+            { start: 1260, end: 360, label: "Descanso", icon: "🌙", class: "state-sleep" },
+            { start: 1260, end: 1440, label: "Descanso", icon: "🌙", class: "state-sleep" }
+        ]
+    };
+
     container.innerHTML = `
         <div class="ikilife-state-card" id="state-card">
             <div class="state-info">
-                <span class="state-title">Foco Actual</span>
-                <div class="state-block">
-                    <span id="state-icon">⌛</span>
-                    <span id="state-text">Calculando...</span>
-                </div>
+                <span id="state-icon"></span>
+                <span class="state-label" id="state-text"></span>
             </div>
-            <div class="state-time-box" id="state-time">
-                --:--
-            </div>
+            <div class="state-time" id="state-time"></div>
         </div>
     `;
 
-    // Función que evalúa la hora y actualiza la tarjeta
-    function updateState() {
+    function update() {
         const now = new Date();
-        const day = now.getDay();
-        const hours = now.getHours();
-        const minutes = now.getMinutes();
-        const timeInMinutes = (hours * 60) + minutes;
+        const mins = now.getHours() * 60 + now.getMinutes();
+        const isWeekend = now.getDay() === 0 || now.getDay() === 6;
 
-        // Formatear hora (Ej: 02:30 PM)
-        const timeStr = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true });
-        document.getElementById('state-time').textContent = timeStr;
+        const schedule = isWeekend ? CONFIG.weekend : CONFIG.weekday;
+        const current = schedule.find(s => mins >= s.start && mins < s.end);
 
-        let icon = "⚡";
-        let text = "Activo";
-        let modeClass = "state-mode-grow";
+        if (current) {
+            const card = document.getElementById('state-card');
+            document.getElementById('state-icon').textContent = current.icon;
+            document.getElementById('state-text').textContent = current.label;
 
-        const isWeekday = day >= 1 && day <= 5; // Lunes a Viernes
-
-        // LÓGICA DE BLOQUES DE TIEMPO
-        if (isWeekday) {
-            if (timeInMinutes >= 300 && timeInMinutes < 1020) { 
-                // 05:00 AM - 05:00 PM
-                icon = "💼"; 
-                text = "Mesa de Ayuda / Trabajo"; 
-                modeClass = "state-mode-work";
-            } else if (timeInMinutes >= 1020 && timeInMinutes < 1260) { 
-                // 05:00 PM - 09:00 PM
-                icon = "🌱"; 
-                text = "Inglés, Code & Crecimiento"; 
-                modeClass = "state-mode-grow";
-            } else { 
-                // 09:00 PM - 05:00 AM
-                icon = "🌙"; 
-                text = "Descanso / Recuperación"; 
-                modeClass = "state-mode-sleep";
-            }
-        } else { // Fines de semana (Sábado y Domingo)
-            if (timeInMinutes >= 360 && timeInMinutes < 720) { 
-                // 06:00 AM - 12:00 PM
-                icon = "⛰️"; 
-                text = "Mañana Activa / Senderismo"; 
-                modeClass = "state-mode-grow";
-            } else if (timeInMinutes >= 720 && timeInMinutes < 1320) { 
-                // 12:00 PM - 10:00 PM
-                icon = "🍻"; 
-                text = "Tiempo Libre & Recarga"; 
-                modeClass = "state-mode-free";
-            } else { 
-                // 10:00 PM - 06:00 AM
-                icon = "🌙"; 
-                text = "Descanso / Recuperación"; 
-                modeClass = "state-mode-sleep";
-            }
+            // Actualizar clase (limpia las anteriores primero)
+            card.className = `ikilife-state-card ${current.class}`;
         }
 
-        // Actualizar el DOM
-        document.getElementById('state-icon').textContent = icon;
-        document.getElementById('state-text').textContent = text;
-        
-        const card = document.getElementById('state-card');
-        card.className = `ikilife-state-card ${modeClass}`;
+        document.getElementById('state-time').textContent = now.toLocaleTimeString('es-CO', {
+            hour: '2-digit', minute: '2-digit'
+        });
     }
 
-    // Ejecutar inmediatamente al cargar y luego cada 60 segundos
-    updateState();
-    setInterval(updateState, 60000);
+    update();
+    setInterval(update, 60000);
 }
