@@ -1,4 +1,3 @@
-```javascript
 // Los imports deben ir siempre en la parte superior del archivo
 import { renderStateBar } from './components/state_bar/state_bar.js';
 
@@ -1965,5 +1964,3 @@ window.editCompra = editCompra;
 window.deleteCompra = deleteCompra;
 window.generateInsights = generateInsights;
 window.exportIdeasCSV = exportIdeasCSV;
-
-```
