@@ -1,5 +1,5 @@
-// Los imports deben ir siempre en la parte superior del archivo
-import { renderStateBar } from './components/state_bar/state_bar';
+// CORRECCIÓN: Se añadió la extensión .js al import
+import { renderStateBar } from './components/state_bar/state_bar.js';
 
 // ==========================================
 // CONFIGURACIÓN DE SUPABASE
@@ -45,11 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadInversiones();
         loadLoves();
         loadBloques();
-
-        // Función que genera el error 'container is null'. 
-        // Revisa que el contenedor que usa exista en el HTML.
         loadMetrics();
-
         loadFinances();
         loadCompras();
         loadAgradecimientos();
@@ -281,7 +277,7 @@ async function loadHabits() {
                      oncontextmenu="event.preventDefault(); deleteHabit('${habitName}')"
                      style="cursor: pointer;"
                      title="Clic: Editar | Clic Derecho: Eliminar todo su historial">
-                    ${habitName}
+                     ${habitName}
                 </div>
                 ${circlesHTML}
             </li>
@@ -501,7 +497,7 @@ async function loadEscuelas() {
                      oncontextmenu="event.preventDefault(); deleteEscuela('${escuela.name}', ${escuela.id})"
                      style="cursor: pointer;"
                      title="Clic: Editar | Clic Derecho: Eliminar">
-                    ${escuela.name}
+                     ${escuela.name}
                 </div>
                 <div class="progress-wrapper" onclick="incrementEscuelaProgress(${escuela.id}, ${progress})" title="Clic para sumar 1%">
                     <div class="progress-bar-container">
@@ -687,7 +683,7 @@ async function loadIdeas() {
                      onclick="editIdea(${idea.id}, '${idea.content.replace(/'/g, "\\'")}')"
                      oncontextmenu="event.preventDefault(); deleteIdea(${idea.id})"
                      title="Clic: Editar | Clic Derecho: Eliminar">
-                    ${idea.content}
+                     ${idea.content}
                 </div>
                 <div class="idea-date">${dateString} - ${timeString}</div>
             </li>
@@ -772,7 +768,7 @@ async function loadAgradecimientos() {
                      onclick="editAgradecimiento(${item.id}, '${item.content.replace(/'/g, "\\'")}')"
                      oncontextmenu="event.preventDefault(); deleteAgradecimiento(${item.id})"
                      title="Clic: Editar | Clic Derecho: Eliminar">
-                    ${item.content}
+                     ${item.content}
                 </div>
                 <div class="idea-date">${dateString} - ${timeString}</div>
             </li>
@@ -1731,7 +1727,7 @@ async function loadCompras() {
                      onclick="editCompra('${compra.name}', ${compra.id})"
                      oncontextmenu="event.preventDefault(); deleteCompra('${compra.name}', ${compra.id})"
                      style="cursor: pointer;" title="Clic: Editar | Clic Derecho: Eliminar">
-                    ${compra.name}
+                     ${compra.name}
                 </div>
                 <button class="love-counter-btn" onclick="incrementCompra(${compra.id}, ${compra.votes})" title="Sumar Prioridad" style="color: var(--primary-green); border-color: var(--primary-green);">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1805,7 +1801,7 @@ async function generateInsights() {
         const prompt = `Analiza estas entradas de mi diario. Devuelve SOLO un JSON con: {"foco_mental": "frase corta de 8 palabras max", "patrones": ["tema1", "tema2"], "frase_representativa": "resumen profundo"}. Entradas:\n${textos}`;
 
         // Se usa fetch nativo en lugar del SDK de NPM para evitar errores de módulos
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1904,7 +1900,6 @@ async function exportIdeasCSV() {
 }
 
 
-// variables de funciones privadas
 // EXPOSICIÓN GLOBAL DE FUNCIONES (Requerido por type="module")
 window.toggleTheme = toggleTheme;
 window.changeWeek = changeWeek;
