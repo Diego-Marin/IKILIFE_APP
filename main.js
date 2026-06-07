@@ -812,7 +812,17 @@ async function addIdea() {
     if (error) alert("Error al guardar: " + error.message);
     else loadIdeas();
 }
+function parseContentAndTags(text) {
+    if (!text) return { content: '', tags: [] };
+    const words = text.split(' ');
+    const tags = words.filter(word => word.startsWith('#')).map(tag => tag.substring(1));
+    const content = words.filter(word => !word.startsWith('#')).join(' ').trim();
+    return { content, tags };
+}
 
+function loadAgradecimientos() {
+    // Pendiente de implementación
+}
 async function editIdea(id, oldContent) {
     const newContent = prompt("Editar idea:", oldContent);
     if (!newContent || newContent.trim() === "" || newContent === oldContent) return;
