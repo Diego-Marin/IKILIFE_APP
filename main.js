@@ -1783,8 +1783,8 @@ async function generateInsights() {
 
     // Gemini API Key dividida para evitar el bloqueo estático de GitHub
     const gPart1 = 'xxx';
-    const gPart2 = 'KZJKX-LvA7sf6p';
-    const gPart3 = '1y9c7OzeIb7dMXLwseAHHiz2Rs3PWw';
+    const gPart2 = 'xxx';
+    const gPart3 = 'xxx';
     const geminiApiKey = gPart1 + gPart2 + gPart3;
 
     try {
