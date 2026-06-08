@@ -432,11 +432,12 @@ async function loadHabits() {
             circlesHTML += `
                 <div class="status-circle" 
                      style="background-color: ${isDone ? 'var(--primary-green)' : 'transparent'}; 
-                            border-color: ${isDone ? 'var(--primary-green)' : '#999'}"
+                           border-color: ${isDone ? 'var(--primary-green)' : '#999'}"
                      onclick="toggleHabit('${habitName}', '${dateStr}', ${isDone})">
                 </div>`;
         });
 
+        // --- CAMBIO AQUÍ: Usamos cleanHabitName para el nombre visual ---
         const row = `
             <li class="habit-grid">
                 <div class="item-name" 
@@ -444,7 +445,7 @@ async function loadHabits() {
                      oncontextmenu="event.preventDefault(); deleteHabit('${habitName}')"
                      style="cursor: pointer;"
                      title="Clic: Editar | Clic Derecho: Eliminar todo su historial">
-                     ${habitName}
+                     ${cleanHabitName(habitName)}
                 </div>
                 ${circlesHTML}
             </li>
@@ -453,16 +454,34 @@ async function loadHabits() {
     });
 }
 
+// Función auxiliar para extraer el proyecto del nombre del hábito
+function getProjectFromHabitName(name) {
+    if (!name) return null;
+    const nameUpper = name.toUpperCase();
+    if (nameUpper.includes('#ME')) return 'ME';
+    if (nameUpper.includes('#WORK')) return 'WORK';
+    if (nameUpper.includes('#INGLES')) return 'INGLES & SOFTWARE';
+    if (nameUpper.includes('#LOVES')) return 'LOVES & LIFESTYLE';
+    if (nameUpper.includes('#OPPORTUNITIES')) return 'OPPORTUNITIES';
+    return null;
+}
+
 async function addHabit() {
     const name = prompt("Crea un nuevo hábito:");
     if (!name || name.trim() === "") return;
 
     const habitName = name.trim();
     const todayStr = formatDateLocal(new Date());
+    const projectTag = getProjectFromHabitName(habitName); // Extraer etiqueta
 
     const { data, error } = await _supabase
         .from('habit_logs')
-        .insert([{ habit_name: habitName, log_date: todayStr, is_completed: false }])
+        .insert([{ 
+            habit_name: habitName, 
+            log_date: todayStr, 
+            is_completed: false,
+            project_tag: projectTag // Guardar en base de datos
+        }])
         .select();
 
     if (error) {
@@ -493,12 +512,15 @@ async function toggleHabit(habitName, dateStr, currentState) {
 
         if (updateError) console.error("Error actualizando:", updateError.message);
     } else {
+        const projectTag = getProjectFromHabitName(habitName); // Extraer etiqueta
+        
         const { error: insertError } = await _supabase
             .from('habit_logs')
             .insert([{
                 habit_name: habitName,
                 log_date: dateStr,
-                is_completed: !currentState
+                is_completed: !currentState,
+                project_tag: projectTag // Guardar en base de datos
             }]);
 
         if (insertError) console.error("Error insertando:", insertError.message);
@@ -512,9 +534,15 @@ async function editHabit(oldName) {
     const newName = prompt("Editar nombre (afectará a todo su historial):", oldName);
     if (!newName || newName.trim() === "" || newName === oldName) return;
 
+    const updatedName = newName.trim();
+    const newProjectTag = getProjectFromHabitName(updatedName); // Recalcular por si el tag cambió
+
     const { error } = await _supabase
         .from('habit_logs')
-        .update({ habit_name: newName.trim() })
+        .update({ 
+            habit_name: updatedName,
+            project_tag: newProjectTag // Actualizar en base de datos
+        })
         .eq('habit_name', oldName);
 
     if (error) alert("Error al editar: " + error.message);
@@ -1197,7 +1225,6 @@ async function deleteLove(name, id) {
 
 
 
-
 /**
  * ==========================================
  * GESTIÓN DE MÉTRICAS (CHART.JS - MINIMALISTA)
@@ -1206,6 +1233,12 @@ async function deleteLove(name, id) {
 let chartInstance = null;
 let balanceChartInstance = null;
 
+// Función para limpiar el nombre del hábito visualmente (quita hashtags)
+function cleanHabitName(name) {
+    if (!name) return '';
+    return name.replace(/#[a-zA-Z0-9_&]+/gi, '').trim();
+}
+
 async function loadMetrics() {
     const { data: habits, error } = await _supabase.from('habit_logs').select('*');
     if (error) {
@@ -1213,113 +1246,46 @@ async function loadMetrics() {
         return;
     }
 
-    const today = formatDateLocal(new Date());
-    const uniqueHabitNames = [...new Set(habits.map(h => h.habit_name))];
-    const projectMap = {};
-
-    // 1. SOLUCIÓN: Renderizar Semanas del Año
+    // 1. Renderizar Semanas del Año
     if (typeof renderYearWeeks === 'function') {
         renderYearWeeks();
     }
 
-    // 2. Extraer y calcular Proyectos
-    uniqueHabitNames.forEach(name => {
-        const match = name.match(/\[(.*?)\]/);
-        if (match) {
-            const projName = match[1];
-            if (!projectMap[projName]) projectMap[projName] = [];
-            projectMap[projName].push(name);
-        }
-    });
+    // 2. Inicializar contadores para los 5 proyectos
+    const catScores = { 'ME': 0, 'WORK': 0, 'INGLES & SOFTWARE': 0, 'LOVES & LIFESTYLE': 0, 'OPPORTUNITIES': 0 };
+    const catTotals = { 'ME': 0, 'WORK': 0, 'INGLES & SOFTWARE': 0, 'LOVES & LIFESTYLE': 0, 'OPPORTUNITIES': 0 };
 
-    const container = document.getElementById('subview-metrics-stats');
-    if (container) {
-        container.innerHTML = '<h3>Avance de Proyectos</h3>';
-
-        for (const [projName, habitList] of Object.entries(projectMap)) {
-            const logsToday = habits.filter(h => h.log_date === today && h.is_completed);
-            const completed = logsToday.filter(h => habitList.includes(h.habit_name)).length;
-            const total = habitList.length;
-            const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
-
-            container.insertAdjacentHTML('beforeend', `
-                <div class="project-card">
-                    <div class="project-header">
-                        <span>${projName}</span>
-                        <span>${completed}/${total}</span>
-                    </div>
-                    <div class="progress-track">
-                        <div class="progress-fill" style="width: ${percent}%"></div>
-                    </div>
-                </div>
-            `);
-        }
-    }
-
-    // 3. Gráficos de Tendencia y Desglose (7 días)
-    let labels = [];
-    let dataPoints = [];
-    let stats = {};
-    let totalHabitsCount = uniqueHabitNames.length || 1;
-
-    for (let i = 6; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        const dateStr = formatDateLocal(d);
-        labels.push(dateStr);
-
-        const dayLogs = habits.filter(h => h.log_date === dateStr && h.is_completed);
-        const completedCount = dayLogs.length;
-        const pct = Math.round((completedCount / totalHabitsCount) * 100);
-
-        dataPoints.push(pct);
-        stats[dateStr] = { completed: completedCount };
-    }
-
-    if (typeof renderChart === 'function') renderChart(labels, dataPoints);
-    if (typeof renderMinimalList === 'function') renderMinimalList(labels, stats, totalHabitsCount);
-
-    // 4. Actualización de los 4 KPIs Objetivos
-    const todayLogs = habits.filter(h => h.log_date === today && h.is_completed).length;
-    const todayPct = Math.round((todayLogs / totalHabitsCount) * 100);
-
-    const elToday = document.getElementById('kpi-today');
-    if (elToday) elToday.textContent = `${todayPct}%`;
-
-    const elActive = document.getElementById('kpi-active');
-    if (elActive) elActive.textContent = totalHabitsCount;
-
-    const elProjects = document.getElementById('kpi-projects');
-    if (elProjects) elProjects.textContent = Object.keys(projectMap).length;
-
-    const elLogs = document.getElementById('kpi-logs');
-    if (elLogs) elLogs.textContent = habits.length;
-
-    // 5. Radar de Equilibrio Vital (Agrupación por palabras clave)
-    const catScores = { 'Desarrollo': 0, 'Salud Física': 0, 'Salud Mental': 0, 'Finanzas': 0, 'Social/Familia': 0 };
-    const catTotals = { 'Desarrollo': 0, 'Salud Física': 0, 'Salud Mental': 0, 'Finanzas': 0, 'Social/Familia': 0 };
-
+    // 3. Calcular avance leyendo la columna project_tag o el hashtag
     habits.forEach(h => {
-        const name = h.habit_name.toLowerCase();
-        let cat = 'Desarrollo';
+        let project = h.project_tag; 
 
-        if (name.includes('gym') || name.includes('ejercicio') || name.includes('agua') || name.includes('caminar') || name.includes('montaña')) cat = 'Salud Física';
-        else if (name.includes('meditar') || name.includes('leer') || name.includes('inglés') || name.includes('estudiar')) cat = 'Salud Mental';
-        else if (name.includes('ahorro') || name.includes('gasto') || name.includes('dinero') || name.includes('comprar')) cat = 'Finanzas';
-        else if (name.includes('familia') || name.includes('amigo') || name.includes('mamá') || name.includes('social')) cat = 'Social/Familia';
-
-        catTotals[cat]++;
-        if (h.is_completed) catScores[cat]++;
+        // Respaldo: Si no hay project_tag, intentamos deducirlo del nombre
+        if (!project && h.habit_name) {
+            const nameUpper = h.habit_name.toUpperCase();
+            if (nameUpper.includes('#ME')) project = 'ME';
+            else if (nameUpper.includes('#WORK')) project = 'WORK';
+            else if (nameUpper.includes('#INGLES')) project = 'INGLES & SOFTWARE';
+            else if (nameUpper.includes('#LOVES')) project = 'LOVES & LIFESTYLE';
+            else if (nameUpper.includes('#OPPORTUNITIES')) project = 'OPPORTUNITIES';
+        }
+        
+        // Sumar a la gráfica si el proyecto es válido
+        if (project && catTotals[project] !== undefined) {
+            catTotals[project]++;
+            if (h.is_completed) catScores[project]++;
+        }
     });
 
+    // 4. Convertir a porcentajes
     const radarData = [
-        catTotals['Desarrollo'] > 0 ? Math.round((catScores['Desarrollo'] / catTotals['Desarrollo']) * 100) : 10,
-        catTotals['Salud Física'] > 0 ? Math.round((catScores['Salud Física'] / catTotals['Salud Física']) * 100) : 10,
-        catTotals['Salud Mental'] > 0 ? Math.round((catScores['Salud Mental'] / catTotals['Salud Mental']) * 100) : 10,
-        catTotals['Finanzas'] > 0 ? Math.round((catScores['Finanzas'] / catTotals['Finanzas']) * 100) : 10,
-        catTotals['Social/Familia'] > 0 ? Math.round((catScores['Social/Familia'] / catTotals['Social/Familia']) * 100) : 10
+        catTotals['ME'] > 0 ? Math.round((catScores['ME'] / catTotals['ME']) * 100) : 0,
+        catTotals['WORK'] > 0 ? Math.round((catScores['WORK'] / catTotals['WORK']) * 100) : 0,
+        catTotals['INGLES & SOFTWARE'] > 0 ? Math.round((catScores['INGLES & SOFTWARE'] / catTotals['INGLES & SOFTWARE']) * 100) : 0,
+        catTotals['LOVES & LIFESTYLE'] > 0 ? Math.round((catScores['LOVES & LIFESTYLE'] / catTotals['LOVES & LIFESTYLE']) * 100) : 0,
+        catTotals['OPPORTUNITIES'] > 0 ? Math.round((catScores['OPPORTUNITIES'] / catTotals['OPPORTUNITIES']) * 100) : 0
     ];
 
+    // 5. Renderizar gráfica
     if (typeof renderBalanceChart === 'function') {
         renderBalanceChart(radarData);
     }
@@ -1340,7 +1306,7 @@ function renderBalanceChart(dataValues) {
     balanceChartInstance = new Chart(ctx, {
         type: 'radar',
         data: {
-            labels: ['Desarrollo', 'Salud Física', 'Salud Mental', 'Finanzas', 'Social/Familia'],
+            labels: ['ME', 'WORK', 'INGLES & SOFTWARE', 'LOVES & LIFESTYLE', 'OPPORTUNITIES'],
             datasets: [{
                 data: dataValues,
                 backgroundColor: 'rgba(116, 192, 138, 0.2)',
@@ -1377,7 +1343,6 @@ function renderBalanceChart(dataValues) {
     });
 }
 
-// Asegúrate de que esta función esté al final de tu archivo main.js
 function renderYearWeeks() {
     const container = document.getElementById('year-weeks-grid');
     if (!container) return;
@@ -1405,6 +1370,8 @@ function renderYearWeeks() {
         container.appendChild(box);
     }
 }
+
+
 
 
 

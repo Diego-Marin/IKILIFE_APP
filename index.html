@@ -166,52 +166,23 @@
               <!-- METRICAS -->
 
             <div id="view-metrics" class="view-content">
-                <section class="category">
-                    <div style="padding: 16px 16px 0;">
-                        <div class="category-header" style="border-bottom: none; padding-left: 0; padding-right: 0;">
-                            Progreso del Año (52 Semanas)</div>
-                        <div id="year-weeks-grid" class="weeks-grid"></div>
-                    </div>
-                    <div class="metrics-kpi-grid" style="padding: 16px 16px 0;">
-                        <div class="kpi-card">
-                            <div class="kpi-label">Promedio (7 días)</div>
-                            <div class="kpi-value" id="kpi-avg">--%</div>
-                        </div>
-                        <div class="kpi-card">
-                            <div class="kpi-label">Mejor Día</div>
-                            <div class="kpi-value kpi-highlight" id="kpi-best">--</div>
-                        </div>
-                        <div class="kpi-card">
-                            <div class="kpi-label">Racha (Días)</div>
-                            <div class="kpi-value" id="kpi-streak">--</div>
-                        </div>
-                        <div class="kpi-card">
-                            <div class="kpi-label">Índice Gratitud</div>
-                            <div class="kpi-value kpi-highlight" id="kpi-gratitude">--</div>
-                        </div>
-                    </div>
-                    <div style="border-top: 1px solid var(--border-color); margin-top: 16px;">
-                        <div class="category-header" style="border-bottom: none;">Tendencia de Cumplimiento</div>
-                        <div class="chart-wrapper"
-                            style="height: 220px; border: none; box-shadow: none; margin-bottom: 0; border-radius: 0;">
-                            <canvas id="metricsChart"></canvas>
-                        </div>
-                    </div>
+    <section class="category">
+        <!-- 1. Progreso del Año (SE QUEDA) -->
+        <div style="padding: 16px 16px 0;">
+            <div class="category-header" style="border-bottom: none; padding-left: 0; padding-right: 0;">Progreso del Año (52 Semanas)</div>
+            <div id="year-weeks-grid" class="weeks-grid"></div>
+        </div>
 
-                    <div style="border-top: 1px solid var(--border-color);">
-                        <div class="category-header" style="border-bottom: none;">Equilibrio Vital</div>
-                        <div class="chart-wrapper"
-                            style="height: 250px; border: none; box-shadow: none; margin-bottom: 0; border-radius: 0;">
-                            <canvas id="balanceChart"></canvas>
-                        </div>
-                    </div>
-                    <div style="border-top: 1px solid var(--border-color);">
-                        <div class="category-header" style="border-bottom: none;">Desglose Reciente</div>
-                        <div class="minimal-daily-list" id="metrics-daily-list"
-                            style="border: none; box-shadow: none; border-radius: 0;"></div>
-                    </div>
-                </section>
+        <!-- 2. Gráfico Radar Evolucionado (PROYECTOS) -->
+        <div style="border-top: 1px solid var(--border-color); margin-top: 16px;">
+            <div class="category-header" style="border-bottom: none;">Avance de Proyectos</div>
+            <div class="chart-wrapper" style="height: 250px; border: none; box-shadow: none; margin-bottom: 0; border-radius: 0;">
+                <canvas id="balanceChart"></canvas>
             </div>
+        </div>
+
+    </section>
+</div>
 
              <!-- TAREAS -->
 
