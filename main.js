@@ -41,10 +41,11 @@ document.addEventListener('DOMContentLoaded', () => {
         loadTareas();
         loadInversiones();
         loadLoves();
+        loadSentimientos();
+        loadCompras();
         loadBloques();
         loadMetrics(); // Esta ya ejecuta internamente renderYearWeeks() y renderBalanceChart()
         loadFinances();
-        loadCompras();
         loadAgradecimientos();
         generateInsights();
     } catch (error) {
@@ -437,7 +438,6 @@ async function loadHabits() {
                 </div>`;
         });
 
-        // --- CAMBIO AQUÍ: Usamos cleanHabitName para el nombre visual ---
         const row = `
             <li class="habit-grid">
                 <div class="item-name" 
@@ -472,15 +472,15 @@ async function addHabit() {
 
     const habitName = name.trim();
     const todayStr = formatDateLocal(new Date());
-    const projectTag = getProjectFromHabitName(habitName); // Extraer etiqueta
+    const projectTag = getProjectFromHabitName(habitName);
 
     const { data, error } = await _supabase
         .from('habit_logs')
-        .insert([{ 
-            habit_name: habitName, 
-            log_date: todayStr, 
+        .insert([{
+            habit_name: habitName,
+            log_date: todayStr,
             is_completed: false,
-            project_tag: projectTag // Guardar en base de datos
+            project_tag: projectTag
         }])
         .select();
 
@@ -512,15 +512,15 @@ async function toggleHabit(habitName, dateStr, currentState) {
 
         if (updateError) console.error("Error actualizando:", updateError.message);
     } else {
-        const projectTag = getProjectFromHabitName(habitName); // Extraer etiqueta
-        
+        const projectTag = getProjectFromHabitName(habitName);
+
         const { error: insertError } = await _supabase
             .from('habit_logs')
             .insert([{
                 habit_name: habitName,
                 log_date: dateStr,
                 is_completed: !currentState,
-                project_tag: projectTag // Guardar en base de datos
+                project_tag: projectTag
             }]);
 
         if (insertError) console.error("Error insertando:", insertError.message);
@@ -535,13 +535,13 @@ async function editHabit(oldName) {
     if (!newName || newName.trim() === "" || newName === oldName) return;
 
     const updatedName = newName.trim();
-    const newProjectTag = getProjectFromHabitName(updatedName); // Recalcular por si el tag cambió
+    const newProjectTag = getProjectFromHabitName(updatedName);
 
     const { error } = await _supabase
         .from('habit_logs')
-        .update({ 
+        .update({
             habit_name: updatedName,
-            project_tag: newProjectTag // Actualizar en base de datos
+            project_tag: newProjectTag
         })
         .eq('habit_name', oldName);
 
@@ -583,7 +583,7 @@ function switchTab(tab, btn) {
     btn.classList.add('tab-active');
     btn.classList.remove('tab-inactive');
 
-    const views = ['view-habits', 'view-metrics', 'view-tareas', 'view-money', 'view-ideas', 'view-loves'];
+    const views = ['view-habits', 'view-metrics', 'view-ideas', 'view-tareas', 'view-loves', 'view-sentimientos', 'view-money', 'view-compras'];
     views.forEach(v => {
         const viewEl = document.getElementById(v);
         if (viewEl) viewEl.classList.remove('active');
@@ -596,43 +596,6 @@ function switchTab(tab, btn) {
         loadMetrics();
     }
 }
-
-function switchMetricsSubTab(tab, btn) {
-    const container = btn.closest('.sub-tabs-container');
-    container.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-
-    document.getElementById('subview-metrics-stats').classList.add('hidden');
-    document.getElementById('subview-metrics-bloques').classList.add('hidden');
-
-    document.getElementById(`subview-metrics-${tab}`).classList.remove('hidden');
-}
-
-function switchLovesSubTab(tab, btn) {
-    const container = btn.closest('.sub-tabs-container');
-    container.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-
-    document.getElementById('subview-loves-agradecimientos').classList.add('hidden');
-    document.getElementById('subview-loves-escuelas').classList.add('hidden');
-    document.getElementById('subview-loves-pasiones').classList.add('hidden');
-
-    document.getElementById(`subview-loves-${tab}`).classList.remove('hidden');
-}
-
-function switchTareasSubTab(tab, btn) {
-    const container = btn.closest('.category');
-    container.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-
-    // Ocultar todas las sub-vistas
-    document.getElementById('subview-tareas-tareas').classList.add('hidden');
-    document.getElementById('subview-tareas-compras').classList.add('hidden');
-
-    // Mostrar la seleccionada
-    document.getElementById(`subview-tareas-${tab}`).classList.remove('hidden');
-}
-
 
 async function saveLearning() {
     const textEl = document.getElementById('daily-learning');
@@ -1113,7 +1076,7 @@ function toggleCuota(id, cuotaIndex) {
 
 /**
  * ==========================================
- * GESTIÓN DE COSAS QUE AMO
+ * GESTIÓN DE COSAS QUE AMO (LOVES)
  * ==========================================
  */
 async function loadLoves() {
@@ -1152,6 +1115,11 @@ async function loadLoves() {
             countEl.textContent = parseInt(countEl.textContent) + 1;
 
             setTimeout(() => card.classList.remove('pop-animation'), 300);
+        });
+
+        card.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            deleteLove(love.name, love.id);
         });
 
         container.appendChild(card);
@@ -1225,9 +1193,130 @@ async function deleteLove(name, id) {
 
 
 
+
 /**
  * ==========================================
- * GESTIÓN DE MÉTRICAS (CHART.JS - MINIMALISTA)
+ * GESTIÓN DE SENTIMIENTOS (CLON DE LOVES)
+ * ==========================================
+ */
+async function loadSentimientos() {
+    const { data: sentimientos, error } = await _supabase
+        .from('sentimientos_logs')
+        .select('*')
+        .order('count', { ascending: false });
+
+    if (error) return console.error(error.message);
+
+    const container = document.getElementById('list-sentimientos');
+    if (!container) return;
+    container.className = 'loves-grid';
+    container.innerHTML = '';
+
+    sentimientos.forEach(sentimiento => {
+        const card = document.createElement('div');
+        card.className = 'passion-card';
+
+        const localImagePath = `assets/images/${sentimiento.image_filename}`;
+
+        card.innerHTML = `
+            <img src="${localImagePath}" class="passion-img" 
+                 onerror="this.src='assets/images/default.jpg'">
+            <div class="passion-info">
+                <span class="passion-name">${sentimiento.name}</span>
+                <span class="passion-count">${sentimiento.count}</span>
+            </div>
+        `;
+
+        card.addEventListener('dblclick', () => {
+            card.classList.add('pop-animation');
+            incrementSentimiento(sentimiento.id, sentimiento.count);
+
+            const countEl = card.querySelector('.passion-count');
+            countEl.textContent = parseInt(countEl.textContent) + 1;
+
+            setTimeout(() => card.classList.remove('pop-animation'), 300);
+        });
+
+        card.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            deleteSentimiento(sentimiento.name, sentimiento.id);
+        });
+
+        container.appendChild(card);
+    });
+}
+
+async function addSentimiento() {
+    const name = prompt("Nuevo sentimiento a registrar:");
+    if (!name || name.trim() === "") return;
+
+    const { error } = await _supabase
+        .from('sentimientos_logs')
+        .insert([{ name: name.trim(), count: 0 }]);
+
+    if (error) {
+        alert("Error al guardar: " + error.message);
+    } else {
+        loadSentimientos();
+    }
+}
+
+async function incrementSentimiento(id, currentCount) {
+    const { error } = await _supabase
+        .from('sentimientos_logs')
+        .update({ count: currentCount + 1 })
+        .eq('id', id);
+
+    if (error) {
+        console.error("Error sumando contador:", error.message);
+    } else {
+        loadSentimientos();
+    }
+}
+
+async function editSentimiento(oldName, id) {
+    const newName = prompt("Editar nombre:", oldName);
+    if (!newName || newName.trim() === "" || newName === oldName) return;
+
+    const { error } = await _supabase
+        .from('sentimientos_logs')
+        .update({ name: newName.trim() })
+        .eq('id', id);
+
+    if (error) {
+        alert("Error al editar: " + error.message);
+    } else {
+        loadSentimientos();
+    }
+}
+
+async function deleteSentimiento(name, id) {
+    const confirmDelete = confirm(`¿Deseas eliminar "${name}"?`);
+    if (!confirmDelete) return;
+
+    const { error } = await _supabase
+        .from('sentimientos_logs')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        alert("Error al eliminar: " + error.message);
+    } else {
+        loadSentimientos();
+    }
+}
+
+
+
+
+
+
+
+
+
+/**
+ * ==========================================
+ * GESTIÓN DE MÉTRICAS 
  * ==========================================
  */
 let chartInstance = null;
@@ -1257,7 +1346,7 @@ async function loadMetrics() {
 
     // 3. Calcular avance leyendo la columna project_tag o el hashtag
     habits.forEach(h => {
-        let project = h.project_tag; 
+        let project = h.project_tag;
 
         // Respaldo: Si no hay project_tag, intentamos deducirlo del nombre
         if (!project && h.habit_name) {
@@ -1268,7 +1357,7 @@ async function loadMetrics() {
             else if (nameUpper.includes('#LOVES')) project = 'LOVES & LIFESTYLE';
             else if (nameUpper.includes('#OPPORTUNITIES')) project = 'OPPORTUNITIES';
         }
-        
+
         // Sumar a la gráfica si el proyecto es válido
         if (project && catTotals[project] !== undefined) {
             catTotals[project]++;
@@ -1351,7 +1440,7 @@ function renderYearWeeks() {
     const today = new Date();
     const startOfYear = new Date(today.getFullYear(), 0, 1);
     const daysToToday = Math.floor((today - startOfYear) / (24 * 60 * 60 * 1000));
-    
+
     const currentWeek = Math.ceil((daysToToday + startOfYear.getDay() + 1) / 7);
     const totalWeeks = 52;
 
@@ -1519,62 +1608,114 @@ async function deleteFinanceItem(id, concept) {
 
 /**
  * ==========================================
- * GESTIÓN DE COMPRAS (VOTACIONES)
+ * GESTIÓN DE COMPRAS (CLON DE LOVES)
  * ==========================================
  */
 async function loadCompras() {
-    const { data: compras, error } = await _supabase.from('compras_logs').select('*').order('votes', { ascending: false });
-    if (error) return console.error("Error cargando compras:", error.message);
+    const { data: compras, error } = await _supabase
+        .from('compras_logs')
+        .select('*')
+        .order('count', { ascending: false });
 
-    const listContainer = document.getElementById('list-compras');
-    if (!listContainer) return;
-    listContainer.innerHTML = '';
+    if (error) return console.error(error.message);
+
+    const container = document.getElementById('list-compras');
+    if (!container) return;
+    container.className = 'loves-grid';
+    container.innerHTML = '';
 
     compras.forEach(compra => {
-        const row = `
-            <li class="love-row">
-                <div class="love-content"
-                     onclick="editCompra('${compra.name}', ${compra.id})"
-                     oncontextmenu="event.preventDefault(); deleteCompra('${compra.name}', ${compra.id})"
-                     style="cursor: pointer;" title="Clic: Editar | Clic Derecho: Eliminar">
-                     ${compra.name}
-                </div>
-                <button class="love-counter-btn" onclick="incrementCompra(${compra.id}, ${compra.votes})" title="Sumar Prioridad" style="color: var(--primary-green); border-color: var(--primary-green);">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="18 15 12 9 6 15"></polyline>
-                    </svg>
-                    ${compra.votes}
-                </button>
-            </li>
+        const card = document.createElement('div');
+        card.className = 'passion-card';
+
+        const localImagePath = `assets/images/${compra.image_filename}`;
+
+        card.innerHTML = `
+            <img src="${localImagePath}" class="passion-img" 
+                 onerror="this.src='assets/images/default.jpg'">
+            <div class="passion-info">
+                <span class="passion-name">${compra.name}</span>
+                <span class="passion-count">${compra.count}</span>
+            </div>
         `;
-        listContainer.insertAdjacentHTML('beforeend', row);
+
+        card.addEventListener('dblclick', () => {
+            card.classList.add('pop-animation');
+            incrementCompra(compra.id, compra.count);
+
+            const countEl = card.querySelector('.passion-count');
+            countEl.textContent = parseInt(countEl.textContent) + 1;
+
+            setTimeout(() => card.classList.remove('pop-animation'), 300);
+        });
+
+        card.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            deleteCompra(compra.name, compra.id);
+        });
+
+        container.appendChild(card);
     });
 }
 
 async function addCompra() {
     const name = prompt("Elemento que deseas comprar:");
     if (!name || name.trim() === "") return;
-    const { error } = await _supabase.from('compras_logs').insert([{ name: name.trim(), votes: 0 }]);
-    if (error) alert("Error: " + error.message);
-    else loadCompras();
+
+    const { error } = await _supabase
+        .from('compras_logs')
+        .insert([{ name: name.trim(), count: 0 }]);
+
+    if (error) {
+        alert("Error al guardar: " + error.message);
+    } else {
+        loadCompras();
+    }
 }
 
-async function incrementCompra(id, currentVotes) {
-    const { error } = await _supabase.from('compras_logs').update({ votes: currentVotes + 1 }).eq('id', id);
-    if (!error) loadCompras();
+async function incrementCompra(id, currentCount) {
+    const { error } = await _supabase
+        .from('compras_logs')
+        .update({ count: currentCount + 1 })
+        .eq('id', id);
+
+    if (error) {
+        console.error("Error sumando contador:", error.message);
+    } else {
+        loadCompras();
+    }
 }
 
 async function editCompra(oldName, id) {
     const newName = prompt("Editar nombre:", oldName);
     if (!newName || newName.trim() === "" || newName === oldName) return;
-    const { error } = await _supabase.from('compras_logs').update({ name: newName.trim() }).eq('id', id);
-    if (!error) loadCompras();
+
+    const { error } = await _supabase
+        .from('compras_logs')
+        .update({ name: newName.trim() })
+        .eq('id', id);
+
+    if (error) {
+        alert("Error al editar: " + error.message);
+    } else {
+        loadCompras();
+    }
 }
 
 async function deleteCompra(name, id) {
-    if (!confirm(`¿Deseas eliminar "${name}" de tu lista?`)) return;
-    const { error } = await _supabase.from('compras_logs').delete().eq('id', id);
-    if (!error) loadCompras();
+    const confirmDelete = confirm(`¿Deseas eliminar "${name}" de tu lista?`);
+    if (!confirmDelete) return;
+
+    const { error } = await _supabase
+        .from('compras_logs')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        alert("Error al eliminar: " + error.message);
+    } else {
+        loadCompras();
+    }
 }
 
 
@@ -1618,17 +1759,15 @@ async function exportIdeasCSV() {
 
             const tipo = idea.type || "idea";
 
-            // Forzamos a que sea un string para evitar que .replace() falle si hay números o nulls
             const rawContent = idea.content ? String(idea.content) : "";
             const contenidoLimpio = rawContent.replace(/"/g, '""');
             const contenidoCSV = `"${contenidoLimpio}"`;
 
-            // Manejo hiper-seguro de las etiquetas por si la base de datos devuelve texto en lugar de un array
             let etiquetasStr = "";
             if (Array.isArray(idea.tags)) {
                 etiquetasStr = idea.tags.join(', ');
             } else if (typeof idea.tags === 'string') {
-                etiquetasStr = idea.tags; // Si por error se guardó como string
+                etiquetasStr = idea.tags;
             }
             const etiquetasCSV = `"${etiquetasStr}"`;
 
@@ -1670,39 +1809,36 @@ function renderStateBar(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    // CONFIGURACIÓN: Solo cambia esto para ajustar horarios
-
     /**
-        /**
-         * TABLA DE REFERENCIA: Minutos del día (Formato 12 horas)
-         * ----------------------------------------------------
-         * HORA    | MINUTOS (Start)
-         * 12:00 AM| 0
-         * 01:00 AM| 60
-         * 02:00 AM| 120
-         * 03:00 AM| 180
-         * 04:00 AM| 240
-         * 05:00 AM| 300
-         * 06:00 AM| 360
-         * 07:00 AM| 420
-         * 08:00 AM| 480
-         * 09:00 AM| 540
-         * 10:00 AM| 600
-         * 11:00 AM| 660
-         * 12:00 PM| 720
-         * 01:00 PM| 780
-         * 02:00 PM| 840
-         * 03:00 PM| 900
-         * 04:00 PM| 960
-         * 05:00 PM| 1020
-         * 06:00 PM| 1080
-         * 07:00 PM| 1140
-         * 08:00 PM| 1200
-         * 09:00 PM| 1260
-         * 10:00 PM| 1320
-         * 11:00 PM| 1380
-         * ----------------------------------------------------
-         */
+     * TABLA DE REFERENCIA: Minutos del día (Formato 12 horas)
+     * ----------------------------------------------------
+     * HORA    | MINUTOS (Start)
+     * 12:00 AM| 0
+     * 01:00 AM| 60
+     * 02:00 AM| 120
+     * 03:00 AM| 180
+     * 04:00 AM| 240
+     * 05:00 AM| 300
+     * 06:00 AM| 360
+     * 07:00 AM| 420
+     * 08:00 AM| 480
+     * 09:00 AM| 540
+     * 10:00 AM| 600
+     * 11:00 AM| 660
+     * 12:00 PM| 720
+     * 01:00 PM| 780
+     * 02:00 PM| 840
+     * 03:00 PM| 900
+     * 04:00 PM| 960
+     * 05:00 PM| 1020
+     * 06:00 PM| 1080
+     * 07:00 PM| 1140
+     * 08:00 PM| 1200
+     * 09:00 PM| 1260
+     * 10:00 PM| 1320
+     * 11:00 PM| 1380
+     * ----------------------------------------------------
+     */
 
     const CONFIG = {
         weekday: [
@@ -1742,7 +1878,6 @@ function renderStateBar(containerId) {
             document.getElementById('state-icon').textContent = current.icon;
             document.getElementById('state-text').textContent = current.label;
 
-            // Actualizar clase (limpia las anteriores primero)
             card.className = `ikilife-state-card ${current.class}`;
         }
 
