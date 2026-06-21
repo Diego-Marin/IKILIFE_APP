@@ -1272,42 +1272,25 @@ div.day-segment.future {
 
 /**
  * ==========================================
- * STATE BAR - ACTIVIDADES ALTERNAS Y DROPDOWN
+ * STATE BAR - LISTA DE TARJETAS DE ESTADO
  * ==========================================
- * Chips que muestran qué otras actividades son válidas en el resto
- * del día (no solo la franja activa ahora mismo), y el menú
- * desplegable con sugerencias concretas para cada bloque.
- *
- * Cada chip reutiliza la clase .ikilife-state-card (mismo fondo
- * degradado, borde de color y sombra que la tarjeta principal),
- * solo que en tamaño compacto ya que son secundarios.
+ * Todas las tarjetas (la activa + las alternas disponibles en el día)
+ * se muestran apiladas, una debajo de otra, cada una ocupando el
+ * ancho TOTAL del contenedor principal para que se vean armónicas
+ * con el resto de la interfaz (igual de anchas que el progreso
+ * semanal, los tabs, etc.).
  */
-.state-alt-options {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 16px;
+.state-bar-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
 }
 
-.ikilife-state-card.state-chip {
-    flex: 1 1 auto;
-    padding: 10px 16px;
+.state-bar-grid .ikilife-state-card {
     margin-bottom: 0;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
-.state-chip .state-label {
-    font-size: 0.8rem;
-}
-
-.state-chip #state-icon,
-.state-chip span:first-child {
-    font-size: 1.2rem;
-}
-
-.ikilife-state-card.state-chip:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    min-height: 64px;
+    width: 100%;
 }
 
 .state-dropdown {
@@ -1320,6 +1303,15 @@ div.day-segment.future {
     display: flex;
     flex-direction: column;
     gap: 4px;
+}
+
+/* Refuerzo necesario: .state-dropdown define su propio "display: flex",
+   y al aparecer después de la regla genérica .hidden en este archivo,
+   la sobreescribía por orden de cascada (misma especificidad). Este
+   selector más específico asegura que, mientras tenga la clase .hidden,
+   el dropdown realmente quede oculto y no se vea como una caja vacía. */
+.state-dropdown.hidden {
+    display: none;
 }
 
 .state-dropdown-title {

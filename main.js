@@ -2005,42 +2005,36 @@ function renderStateBar(containerId) {
     };
 
     container.innerHTML = `
-        <div class="ikilife-state-card" id="state-card">
-            <div class="state-info">
-                <span id="state-icon"></span>
-                <span class="state-label" id="state-text"></span>
+        <div class="state-bar-grid" id="state-bar-grid">
+            <div class="ikilife-state-card" id="state-card">
+                <div class="state-info">
+                    <span id="state-icon"></span>
+                    <span class="state-label" id="state-text"></span>
+                </div>
+                <div class="state-time" id="state-time"></div>
             </div>
-            <div class="state-time" id="state-time"></div>
         </div>
-        <div class="state-alt-options" id="state-alt-options"></div>
         <div class="state-dropdown hidden" id="state-dropdown"></div>
     `;
 
-    // Cierra el menú desplegable si el usuario hace clic fuera de él
-    document.addEventListener('click', (e) => {
-        const dropdown = document.getElementById('state-dropdown');
-        if (!dropdown) return;
-        const clickedInsideCard = e.target.closest('.ikilife-state-card');
-        if (!clickedInsideCard) {
-            dropdown.classList.add('hidden');
-            openLabel = null;
-        }
-    });
-
-    // Guarda qué slot está actualmente abierto en el dropdown, para
-    // poder saber si un nuevo clic debe "cerrar" (toggle) o "cambiar".
-    let openLabel = null;
+    // Único punto de verdad sobre qué tarjeta tiene el menú abierto.
+    // Se compara por referencia al slot (no por label) para evitar
+    // ambigüedades si dos slots compartieran el mismo nombre.
+    let openSlot = null;
 
     // Muestra u oculta el menú desplegable con sugerencias para un slot dado.
-    // Si se hace clic de nuevo sobre el mismo bloque que ya está abierto,
-    // el menú se cierra (comportamiento tipo acordeón/toggle).
+    // Si se hace clic de nuevo sobre el MISMO bloque que ya está abierto,
+    // el menú se cierra (comportamiento acordeón / toggle real).
     function openSlotMenu(slot) {
         const dropdown = document.getElementById('state-dropdown');
         if (!dropdown) return;
 
-        if (openLabel === slot.label && !dropdown.classList.contains('hidden')) {
+        const isSameAndOpen = (openSlot === slot) && !dropdown.classList.contains('hidden');
+
+        if (isSameAndOpen) {
             dropdown.classList.add('hidden');
-            openLabel = null;
+            dropdown.innerHTML = '';
+            openSlot = null;
             return;
         }
 
@@ -2054,8 +2048,25 @@ function renderStateBar(containerId) {
         `;
 
         dropdown.classList.remove('hidden');
-        openLabel = slot.label;
+        openSlot = slot;
     }
+
+    // Cierra el menú desplegable si el usuario hace clic en cualquier
+    // lugar que no sea una tarjeta de estado (principal o alterna).
+    // Al usar capture en el propio contenedor (no en document), evitamos
+    // problemas de orden/timing con los onclick de las tarjetas.
+    document.addEventListener('click', (e) => {
+        if (!openSlot) return;
+        const clickedInsideCard = e.target.closest('.ikilife-state-card');
+        if (!clickedInsideCard) {
+            const dropdown = document.getElementById('state-dropdown');
+            if (dropdown) {
+                dropdown.classList.add('hidden');
+                dropdown.innerHTML = '';
+            }
+            openSlot = null;
+        }
+    });
 
     // Pequeño helper global para que los botones del dropdown puedan
     // usar sendPrompt si está disponible (entorno con IA), sin romper
@@ -2067,6 +2078,11 @@ function renderStateBar(containerId) {
             alert(text);
         }
     };
+
+    // Mapa label -> slot, reconstruido en cada update() para que los
+    // chips (creados con HTML string) puedan recuperar su slot real
+    // al hacer clic, sin depender de closures viejos de updates pasados.
+    window.__stateSlotsByLabel = {};
 
     function update() {
         const now = new Date();
@@ -2082,7 +2098,7 @@ function renderStateBar(containerId) {
         // Esto resuelve el caso de hoy: aunque ahora toque "Tiempo Libre",
         // se siguen viendo como opciones visibles "Senderismo", etc.
         // Se deduplica por "label": si una misma actividad (ej. Descanso)
-        // ocupa varios tramos horarios, solo se muestra un chip de ella.
+        // ocupa varios tramos horarios, solo se muestra una tarjeta de ella.
         const seenLabels = new Set();
         const alternates = schedule.filter(s => {
             if (s === current) return false;
@@ -2091,43 +2107,43 @@ function renderStateBar(containerId) {
             return true;
         });
 
-        if (current) {
-            const card = document.getElementById('state-card');
-            const icon = document.getElementById('state-icon');
-            const text = document.getElementById('state-text');
-
-            icon.textContent = current.icon;
-            text.textContent = current.label;
-            card.className = `ikilife-state-card ${current.class}`;
-
-            card.onclick = () => openSlotMenu(current);
-        }
-
-        document.getElementById('state-time').textContent = now.toLocaleTimeString('es-CO', {
-            hour: '2-digit', minute: '2-digit'
+        // Reconstruir el mapa de búsqueda label -> slot (incluye el actual
+        // y los alternos) para que los onclick generados como string
+        // siempre encuentren el slot vigente de este ciclo de update().
+        window.__stateSlotsByLabel = {};
+        [current, ...alternates].forEach(s => {
+            if (s) window.__stateSlotsByLabel[s.label] = s;
         });
 
-        // Renderizar los chips de actividades alternas disponibles hoy,
-        // con la MISMA estructura visual que la tarjeta principal
-        // (icono + texto), reutilizando las clases de color de estado.
-        const altContainer = document.getElementById('state-alt-options');
-        if (altContainer) {
-            altContainer.innerHTML = alternates.map(slot => `
-                <div class="ikilife-state-card state-chip ${slot.class}"
-                     onclick='window.__openStateChip(${JSON.stringify(slot.label)})'>
-                    <div class="state-info">
-                        <span>${slot.icon}</span>
-                        <span class="state-label">${slot.label}</span>
-                    </div>
-                </div>
-            `).join('');
+        window.__openStateSlotByLabel = function (label) {
+            const slot = window.__stateSlotsByLabel[label];
+            if (slot) openSlotMenu(slot);
+        };
 
-            // Guardamos referencia a los slots para poder abrir su menú desde el chip
-            window.__stateSchedule = schedule;
-            window.__openStateChip = function (label) {
-                const slot = window.__stateSchedule.find(s => s.label === label);
-                if (slot) openSlotMenu(slot);
-            };
+        // Renderizar TODAS las tarjetas (la activa + las alternas) dentro
+        // de una sola cuadrícula, todas con el mismo tamaño/estructura.
+        // Como máximo serán 3-4 tarjetas, así que el grid se ajusta solo.
+        const gridContainer = document.getElementById('state-bar-grid');
+        if (gridContainer) {
+            const allSlots = current ? [current, ...alternates] : alternates;
+
+            gridContainer.innerHTML = allSlots.map(slot => {
+                const isActive = slot === current;
+                const timeHTML = isActive
+                    ? `<div class="state-time" id="state-time">${now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}</div>`
+                    : '';
+
+                return `
+                    <div class="ikilife-state-card ${slot.class}"
+                         onclick='window.__openStateSlotByLabel(${JSON.stringify(slot.label)})'>
+                        <div class="state-info">
+                            <span>${slot.icon}</span>
+                            <span class="state-label">${slot.label}</span>
+                        </div>
+                        ${timeHTML}
+                    </div>
+                `;
+            }).join('');
         }
     }
 
