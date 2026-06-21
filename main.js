@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadSentimientos();
         loadCompras();
         loadBloques();
-        loadMetrics(); // Esta ya ejecuta internamente renderYearWeeks() y renderBalanceChart()
+        loadMetrics(); // Esta ya ejecuta internamente renderYearWeeks() y loadTopHabits()
         loadFinances();
         loadAgradecimientos();
         generateInsights();
@@ -117,6 +117,27 @@ function applySavedTheme() {
 
 /**
  * ==========================================
+ * UTILIDAD: NÚMERO DE SEMANA DEL AÑO (ISO-ish)
+ * ==========================================
+ * Se centraliza aquí porque ahora la usan tanto el progreso semanal
+ * como el bloque de métricas (Progreso del Año).
+ */
+function getWeekOfYear(date) {
+    const startOfYear = new Date(date.getFullYear(), 0, 1);
+    const daysToDate = Math.floor((date - startOfYear) / (24 * 60 * 60 * 1000));
+    return Math.ceil((daysToDate + startOfYear.getDay() + 1) / 7);
+}
+
+function getDaysRemainingInYear(date) {
+    const endOfYear = new Date(date.getFullYear(), 11, 31);
+    const msPerDay = 24 * 60 * 60 * 1000;
+    // Normalizamos horas para evitar desfaces por horas/minutos
+    const todayMidnight = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    return Math.round((endOfYear - todayMidnight) / msPerDay);
+}
+
+/**
+ * ==========================================
  * CÁLCULO DE PROGRESO SEMANAL Y FECHAS
  * ==========================================
  */
@@ -133,10 +154,11 @@ function updateWeeklyProgress() {
         dateElement.textContent = fullDate;
     }
 
-    const weekNumber = Math.ceil(today.getDate() / 7);
+    // Ahora se muestra la semana del año (no la semana del mes)
+    const weekOfYear = getWeekOfYear(today);
     const weekElement = document.getElementById('current-week-text');
     if (weekElement) {
-        weekElement.textContent = `Avance Semana ${weekNumber}`;
+        weekElement.textContent = `Avance Semana ${weekOfYear} de 52`;
     }
 
     let currentDay = today.getDay();
@@ -562,6 +584,124 @@ async function deleteHabit(name) {
     else loadHabits();
 }
 
+/**
+ * ==========================================
+ * EXPORTAR HÁBITOS A CSV
+ * ==========================================
+ * Se agrega la lógica que faltaba: el HTML ya llamaba a
+ * exportAllHistoryCSV(), pero la función no existía en el JS.
+ * Se exporta TODO el historial de habit_logs (todas las semanas).
+ */
+async function exportAllHistoryCSV() {
+    try {
+        const { data: allLogs, error } = await _supabase
+            .from('habit_logs')
+            .select('*')
+            .order('log_date', { ascending: true });
+
+        if (error) {
+            alert("Error al conectar con la base de datos: " + error.message);
+            return;
+        }
+
+        if (!allLogs || allLogs.length === 0) {
+            alert("No hay datos históricos de hábitos para exportar.");
+            return;
+        }
+
+        let csvContent = "\uFEFF";
+        csvContent += "ID,Fecha,Habito,Proyecto,Completado\n";
+
+        allLogs.forEach(log => {
+            const id = log.id || "";
+            const fecha = log.log_date || "";
+            const nombreLimpio = String(log.habit_name || "").replace(/"/g, '""');
+            const habitoCSV = `"${nombreLimpio}"`;
+            const proyecto = log.project_tag || "";
+            const completado = log.is_completed ? "Si" : "No";
+
+            csvContent += `${id},"${fecha}",${habitoCSV},"${proyecto}",${completado}\n`;
+        });
+
+        descargarCSV(csvContent, "IKILIFE_Habitos_Historial_Completo.csv");
+
+    } catch (err) {
+        console.error("Error al exportar CSV de hábitos:", err);
+        alert("Ocurrió un error inesperado generando el archivo:\n" + err.message);
+    }
+}
+
+/**
+ * Pequeña utilidad compartida para disparar la descarga de cualquier CSV
+ * (evita repetir el mismo bloque de Blob/link en cada exportador).
+ */
+function descargarCSV(csvContent, filename) {
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = 'hidden';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+/**
+ * ==========================================
+ * MEJORES HÁBITOS (TOP 3 HISTÓRICO)
+ * ==========================================
+ * Recorre TODO el historial de habit_logs y cuenta cuántas veces
+ * cada hábito fue marcado como completado, mostrando el top 3.
+ */
+async function loadTopHabits() {
+    const { data: allLogs, error } = await _supabase
+        .from('habit_logs')
+        .select('habit_name, is_completed');
+
+    const container = document.getElementById('top-habits-list');
+    if (!container) return;
+
+    if (error) {
+        console.error("Error cargando top de hábitos:", error.message);
+        container.innerHTML = '';
+        return;
+    }
+
+    const counts = {};
+    allLogs.forEach(log => {
+        if (!log.is_completed) return;
+        const name = log.habit_name;
+        counts[name] = (counts[name] || 0) + 1;
+    });
+
+    const ranking = Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3);
+
+    container.innerHTML = '';
+
+    if (ranking.length === 0) {
+        container.innerHTML = `<div class="top-habit-empty">Aún no hay hábitos completados para mostrar.</div>`;
+        return;
+    }
+
+    const medals = ['🥇', '🥈', '🥉'];
+
+    ranking.forEach(([name, count], index) => {
+        const row = `
+            <div class="top-habit-row">
+                <span class="top-habit-medal">${medals[index]}</span>
+                <span class="top-habit-name">${cleanHabitName(name)}</span>
+                <span class="top-habit-count">${count}x</span>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', row);
+    });
+}
+
 
 
 
@@ -858,6 +998,8 @@ async function deleteIdea(id) {
  * ==========================================
  * GESTIÓN DE TAREAS (Única Lista)
  * ==========================================
+ * Ahora soporta, igual que Brain Dump: editar (clic) y eliminar
+ * (clic derecho), conservando también el check para "completar".
  */
 async function loadTareas() {
     const { data: tareas, error } = await _supabase.from('tareas_logs').select('*').order('id', { ascending: true });
@@ -867,10 +1009,18 @@ async function loadTareas() {
     if (listDia) listDia.innerHTML = '';
 
     tareas.forEach(tarea => {
+        const safeName = String(tarea.name || '').replace(/'/g, "\\'");
+
         const row = `
             <li class="tarea-row">
-                <div class="tarea-content">${tarea.name}</div>
-                <button class="delete-btn" onclick="deleteTarea(${tarea.id})" aria-label="Completar" title="Completar tarea">
+                <div class="tarea-content"
+                     onclick="editTarea(${tarea.id}, '${safeName}')"
+                     oncontextmenu="event.preventDefault(); deleteTarea(${tarea.id})"
+                     style="cursor: pointer;"
+                     title="Clic: Editar | Clic Derecho: Eliminar">
+                     ${tarea.name}
+                </div>
+                <button class="delete-btn" onclick="completeTarea(${tarea.id})" aria-label="Completar" title="Completar tarea">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                 </button>
             </li>
@@ -887,9 +1037,35 @@ async function addTarea() {
     else loadTareas();
 }
 
+// Editar el texto de una tarea (igual que en Brain Dump)
+async function editTarea(id, oldName) {
+    const newName = prompt("Editar tarea:", oldName);
+    if (!newName || newName.trim() === "" || newName === oldName) return;
+
+    const { error } = await _supabase
+        .from('tareas_logs')
+        .update({ name: newName.trim() })
+        .eq('id', id);
+
+    if (error) alert("Error al editar: " + error.message);
+    else loadTareas();
+}
+
+// Eliminar la tarea de forma definitiva (clic derecho), con confirmación
 async function deleteTarea(id) {
+    const confirmDelete = confirm("¿Deseas eliminar esta tarea de forma permanente?");
+    if (!confirmDelete) return;
+
     const { error } = await _supabase.from('tareas_logs').delete().eq('id', id);
-    if (error) console.error("Error al eliminar tarea:", error.message);
+    if (error) alert("Error al eliminar: " + error.message);
+    else loadTareas();
+}
+
+// Completar tarea: mantiene el comportamiento original del botón check
+// (al completarla, se elimina de la lista de pendientes)
+async function completeTarea(id) {
+    const { error } = await _supabase.from('tareas_logs').delete().eq('id', id);
+    if (error) console.error("Error al completar tarea:", error.message);
     else loadTareas();
 }
 
@@ -1186,6 +1362,43 @@ async function deleteLove(name, id) {
     }
 }
 
+/**
+ * Exportar historial completo de Loves a CSV.
+ */
+async function exportLovesCSV() {
+    try {
+        const { data: allLoves, error } = await _supabase
+            .from('loves_logs')
+            .select('*')
+            .order('count', { ascending: false });
+
+        if (error) {
+            alert("Error al conectar con la base de datos: " + error.message);
+            return;
+        }
+
+        if (!allLoves || allLoves.length === 0) {
+            alert("No hay datos de Loves para exportar.");
+            return;
+        }
+
+        let csvContent = "\uFEFF";
+        csvContent += "ID,Nombre,Veces_Registrado\n";
+
+        allLoves.forEach(love => {
+            const id = love.id || "";
+            const nombreLimpio = String(love.name || "").replace(/"/g, '""');
+            csvContent += `${id},"${nombreLimpio}",${love.count || 0}\n`;
+        });
+
+        descargarCSV(csvContent, "IKILIFE_Loves_Historial_Completo.csv");
+
+    } catch (err) {
+        console.error("Error al exportar CSV de Loves:", err);
+        alert("Ocurrió un error inesperado generando el archivo:\n" + err.message);
+    }
+}
+
 
 
 
@@ -1319,9 +1532,6 @@ async function deleteSentimiento(name, id) {
  * GESTIÓN DE MÉTRICAS 
  * ==========================================
  */
-let chartInstance = null;
-let balanceChartInstance = null;
-
 // Función para limpiar el nombre del hábito visualmente (quita hashtags)
 function cleanHabitName(name) {
     if (!name) return '';
@@ -1329,107 +1539,15 @@ function cleanHabitName(name) {
 }
 
 async function loadMetrics() {
-    const { data: habits, error } = await _supabase.from('habit_logs').select('*');
-    if (error) {
-        console.error("Error al cargar hábitos:", error);
-        return;
-    }
-
     // 1. Renderizar Semanas del Año
     if (typeof renderYearWeeks === 'function') {
         renderYearWeeks();
     }
 
-    // 2. Inicializar contadores para los 5 proyectos
-    const catScores = { 'ME': 0, 'WORK': 0, 'INGLES & SOFTWARE': 0, 'LOVES & LIFESTYLE': 0, 'OPPORTUNITIES': 0 };
-    const catTotals = { 'ME': 0, 'WORK': 0, 'INGLES & SOFTWARE': 0, 'LOVES & LIFESTYLE': 0, 'OPPORTUNITIES': 0 };
-
-    // 3. Calcular avance leyendo la columna project_tag o el hashtag
-    habits.forEach(h => {
-        let project = h.project_tag;
-
-        // Respaldo: Si no hay project_tag, intentamos deducirlo del nombre
-        if (!project && h.habit_name) {
-            const nameUpper = h.habit_name.toUpperCase();
-            if (nameUpper.includes('#ME')) project = 'ME';
-            else if (nameUpper.includes('#WORK')) project = 'WORK';
-            else if (nameUpper.includes('#INGLES')) project = 'INGLES & SOFTWARE';
-            else if (nameUpper.includes('#LOVES')) project = 'LOVES & LIFESTYLE';
-            else if (nameUpper.includes('#OPPORTUNITIES')) project = 'OPPORTUNITIES';
-        }
-
-        // Sumar a la gráfica si el proyecto es válido
-        if (project && catTotals[project] !== undefined) {
-            catTotals[project]++;
-            if (h.is_completed) catScores[project]++;
-        }
-    });
-
-    // 4. Convertir a porcentajes
-    const radarData = [
-        catTotals['ME'] > 0 ? Math.round((catScores['ME'] / catTotals['ME']) * 100) : 0,
-        catTotals['WORK'] > 0 ? Math.round((catScores['WORK'] / catTotals['WORK']) * 100) : 0,
-        catTotals['INGLES & SOFTWARE'] > 0 ? Math.round((catScores['INGLES & SOFTWARE'] / catTotals['INGLES & SOFTWARE']) * 100) : 0,
-        catTotals['LOVES & LIFESTYLE'] > 0 ? Math.round((catScores['LOVES & LIFESTYLE'] / catTotals['LOVES & LIFESTYLE']) * 100) : 0,
-        catTotals['OPPORTUNITIES'] > 0 ? Math.round((catScores['OPPORTUNITIES'] / catTotals['OPPORTUNITIES']) * 100) : 0
-    ];
-
-    // 5. Renderizar gráfica
-    if (typeof renderBalanceChart === 'function') {
-        renderBalanceChart(radarData);
+    // 2. Renderizar el Top 3 de mejores hábitos históricos
+    if (typeof loadTopHabits === 'function') {
+        loadTopHabits();
     }
-}
-
-function renderBalanceChart(dataValues) {
-    const ctx = document.getElementById('balanceChart');
-    if (!ctx) return;
-
-    if (balanceChartInstance) {
-        balanceChartInstance.destroy();
-    }
-
-    const isDark = document.body.classList.contains('dark-mode');
-    const textColor = isDark ? '#888888' : '#666666';
-    const gridColor = isDark ? '#2D2D2D' : '#E5E5E5';
-
-    balanceChartInstance = new Chart(ctx, {
-        type: 'radar',
-        data: {
-            labels: ['ME', 'WORK', 'INGLES & SOFTWARE', 'LOVES & LIFESTYLE', 'OPPORTUNITIES'],
-            datasets: [{
-                data: dataValues,
-                backgroundColor: 'rgba(116, 192, 138, 0.2)',
-                borderColor: '#74C08A',
-                pointBackgroundColor: '#74C08A',
-                pointBorderColor: '#fff',
-                pointHoverBackgroundColor: '#fff',
-                pointHoverBorderColor: '#74C08A',
-                borderWidth: 2,
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                r: {
-                    angleLines: { color: gridColor },
-                    grid: { color: gridColor },
-                    pointLabels: {
-                        color: textColor,
-                        font: { size: 10, weight: '600' }
-                    },
-                    ticks: {
-                        display: false,
-                        min: 0,
-                        max: 100
-                    }
-                }
-            }
-        }
-    });
 }
 
 function renderYearWeeks() {
@@ -1438,11 +1556,19 @@ function renderYearWeeks() {
     container.innerHTML = '';
 
     const today = new Date();
-    const startOfYear = new Date(today.getFullYear(), 0, 1);
-    const daysToToday = Math.floor((today - startOfYear) / (24 * 60 * 60 * 1000));
 
-    const currentWeek = Math.ceil((daysToToday + startOfYear.getDay() + 1) / 7);
+    // Semana actual del año y días restantes hasta el 31 de diciembre
+    const currentWeek = getWeekOfYear(today);
+    const daysRemaining = getDaysRemainingInYear(today);
     const totalWeeks = 52;
+
+    // Actualizar el título de la sección con la semana corriendo
+    // y el mensaje de días restantes para terminar el año.
+    const titleEl = document.getElementById('year-progress-title');
+    if (titleEl) {
+        titleEl.innerHTML = `Progreso del Año · Semana ${currentWeek} de ${totalWeeks}
+            <span class="year-progress-subtitle">Quedan ${daysRemaining} días para terminar el año</span>`;
+    }
 
     for (let i = 1; i <= totalWeeks; i++) {
         const box = document.createElement('div');
@@ -1774,17 +1900,7 @@ async function exportIdeasCSV() {
             csvContent += `${id},"${fecha}","${tipo}",${contenidoCSV},${etiquetasCSV}\n`;
         });
 
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement("a");
-        const url = URL.createObjectURL(blob);
-
-        link.setAttribute("href", url);
-        link.setAttribute("download", `IKILIFE_BrainDump_Completo.csv`);
-        link.style.visibility = 'hidden';
-
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        descargarCSV(csvContent, "IKILIFE_BrainDump_Completo.csv");
 
     } catch (err) {
         console.error("Error al exportar CSV:", err);
@@ -1804,6 +1920,12 @@ async function exportIdeasCSV() {
  * ==========================================
  * COMPONENTE STATE BAR
  * ==========================================
+ * Ahora cada franja horaria puede tener varias actividades válidas
+ * en paralelo (no solo una). La franja principal se sigue mostrando
+ * en la tarjeta grande, y las alternativas aparecen como "chips"
+ * debajo. Al hacer clic en CUALQUIERA de las tarjetas/chips se abre
+ * un menú desplegable con sugerencias concretas para aprovechar ese
+ * bloque de tiempo.
  */
 function renderStateBar(containerId) {
     const container = document.getElementById(containerId);
@@ -1840,18 +1962,45 @@ function renderStateBar(containerId) {
      * ----------------------------------------------------
      */
 
+    // Cada slot ahora tiene un arreglo "options" con sugerencias concretas
+    // para aprovechar ese bloque de tiempo (lo que pediste: Sara Travel,
+    // Cruzamontañas, etc., para Senderismo; ideas para Tiempo Libre, etc.)
     const CONFIG = {
         weekday: [
-            { start: 300, end: 1020, label: "Mesa de Ayuda", icon: "💼", class: "state-work" },
-            { start: 1020, end: 1260, label: "Code & Grow", icon: "🌱", class: "state-grow" },
-            { start: 0, end: 300, label: "Descanso", icon: "🌙", class: "state-sleep" },
-            { start: 1260, end: 1440, label: "Descanso", icon: "🌙", class: "state-sleep" }
+            {
+                start: 300, end: 1020, label: "Mesa de Ayuda", icon: "💼", class: "state-work",
+                options: ["Revisar tickets pendientes", "Reunión de equipo", "Documentar soluciones"]
+            },
+            {
+                start: 1020, end: 1260, label: "Code & Grow", icon: "🌱", class: "state-grow",
+                options: ["Practicar inglés (Duolingo/Anki)", "Curso de programación", "Proyecto personal de código"]
+            },
+            {
+                start: 0, end: 300, label: "Descanso", icon: "🌙", class: "state-sleep",
+                options: ["Dormir", "Rutina nocturna"]
+            },
+            {
+                start: 1260, end: 1440, label: "Descanso", icon: "🌙", class: "state-sleep",
+                options: ["Dormir", "Rutina nocturna"]
+            }
         ],
         weekend: [
-            { start: 360, end: 720, label: "Senderismo", icon: "⛰️", class: "state-grow" },
-            { start: 720, end: 1260, label: "Tiempo Libre", icon: "🍻", class: "state-free" },
-            { start: 1260, end: 360, label: "Descanso", icon: "🌙", class: "state-sleep" },
-            { start: 1260, end: 1440, label: "Descanso", icon: "🌙", class: "state-sleep" }
+            {
+                start: 0, end: 360, label: "Descanso", icon: "🌙", class: "state-sleep",
+                options: ["Dormir", "Rutina nocturna"]
+            },
+            {
+                start: 360, end: 720, label: "Senderismo", icon: "⛰️", class: "state-grow",
+                options: ["Sara Travel", "Cruzamontañas", "Caminantes Medellín", "Ruta libre por el cerro"]
+            },
+            {
+                start: 720, end: 1260, label: "Tiempo Libre", icon: "🍻", class: "state-free",
+                options: ["Ver una película", "Salir con amigos", "Leer un libro", "Cocinar algo nuevo", "Pasear sin rumbo"]
+            },
+            {
+                start: 1260, end: 1440, label: "Descanso", icon: "🌙", class: "state-sleep",
+                options: ["Dormir", "Rutina nocturna"]
+            }
         ]
     };
 
@@ -1863,7 +2012,61 @@ function renderStateBar(containerId) {
             </div>
             <div class="state-time" id="state-time"></div>
         </div>
+        <div class="state-alt-options" id="state-alt-options"></div>
+        <div class="state-dropdown hidden" id="state-dropdown"></div>
     `;
+
+    // Cierra el menú desplegable si el usuario hace clic fuera de él
+    document.addEventListener('click', (e) => {
+        const dropdown = document.getElementById('state-dropdown');
+        if (!dropdown) return;
+        const clickedInsideCard = e.target.closest('.ikilife-state-card');
+        if (!clickedInsideCard) {
+            dropdown.classList.add('hidden');
+            openLabel = null;
+        }
+    });
+
+    // Guarda qué slot está actualmente abierto en el dropdown, para
+    // poder saber si un nuevo clic debe "cerrar" (toggle) o "cambiar".
+    let openLabel = null;
+
+    // Muestra u oculta el menú desplegable con sugerencias para un slot dado.
+    // Si se hace clic de nuevo sobre el mismo bloque que ya está abierto,
+    // el menú se cierra (comportamiento tipo acordeón/toggle).
+    function openSlotMenu(slot) {
+        const dropdown = document.getElementById('state-dropdown');
+        if (!dropdown) return;
+
+        if (openLabel === slot.label && !dropdown.classList.contains('hidden')) {
+            dropdown.classList.add('hidden');
+            openLabel = null;
+            return;
+        }
+
+        const optionsHTML = (slot.options || [])
+            .map(opt => `<button class="state-dropdown-item" onclick="sendPromptToChatSafe('${opt.replace(/'/g, "\\'")}')">${opt}</button>`)
+            .join('');
+
+        dropdown.innerHTML = `
+            <div class="state-dropdown-title">${slot.icon} ${slot.label}</div>
+            ${optionsHTML || '<div class="state-dropdown-empty">Sin sugerencias configuradas</div>'}
+        `;
+
+        dropdown.classList.remove('hidden');
+        openLabel = slot.label;
+    }
+
+    // Pequeño helper global para que los botones del dropdown puedan
+    // usar sendPrompt si está disponible (entorno con IA), sin romper
+    // la app si no existe esa función.
+    window.sendPromptToChatSafe = function (text) {
+        if (typeof window.sendPrompt === 'function') {
+            window.sendPrompt(text);
+        } else {
+            alert(text);
+        }
+    };
 
     function update() {
         const now = new Date();
@@ -1871,19 +2074,61 @@ function renderStateBar(containerId) {
         const isWeekend = now.getDay() === 0 || now.getDay() === 6;
 
         const schedule = isWeekend ? CONFIG.weekend : CONFIG.weekday;
+
+        // Slot principal: el que coincide exactamente con la hora actual
         const current = schedule.find(s => mins >= s.start && mins < s.end);
+
+        // Slots alternos: cualquier otro slot del día distinto al actual.
+        // Esto resuelve el caso de hoy: aunque ahora toque "Tiempo Libre",
+        // se siguen viendo como opciones visibles "Senderismo", etc.
+        // Se deduplica por "label": si una misma actividad (ej. Descanso)
+        // ocupa varios tramos horarios, solo se muestra un chip de ella.
+        const seenLabels = new Set();
+        const alternates = schedule.filter(s => {
+            if (s === current) return false;
+            if (seenLabels.has(s.label)) return false;
+            seenLabels.add(s.label);
+            return true;
+        });
 
         if (current) {
             const card = document.getElementById('state-card');
-            document.getElementById('state-icon').textContent = current.icon;
-            document.getElementById('state-text').textContent = current.label;
+            const icon = document.getElementById('state-icon');
+            const text = document.getElementById('state-text');
 
+            icon.textContent = current.icon;
+            text.textContent = current.label;
             card.className = `ikilife-state-card ${current.class}`;
+
+            card.onclick = () => openSlotMenu(current);
         }
 
         document.getElementById('state-time').textContent = now.toLocaleTimeString('es-CO', {
             hour: '2-digit', minute: '2-digit'
         });
+
+        // Renderizar los chips de actividades alternas disponibles hoy,
+        // con la MISMA estructura visual que la tarjeta principal
+        // (icono + texto), reutilizando las clases de color de estado.
+        const altContainer = document.getElementById('state-alt-options');
+        if (altContainer) {
+            altContainer.innerHTML = alternates.map(slot => `
+                <div class="ikilife-state-card state-chip ${slot.class}"
+                     onclick='window.__openStateChip(${JSON.stringify(slot.label)})'>
+                    <div class="state-info">
+                        <span>${slot.icon}</span>
+                        <span class="state-label">${slot.label}</span>
+                    </div>
+                </div>
+            `).join('');
+
+            // Guardamos referencia a los slots para poder abrir su menú desde el chip
+            window.__stateSchedule = schedule;
+            window.__openStateChip = function (label) {
+                const slot = window.__stateSchedule.find(s => s.label === label);
+                if (slot) openSlotMenu(slot);
+            };
+        }
     }
 
     update();

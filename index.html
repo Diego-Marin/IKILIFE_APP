@@ -10,7 +10,6 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="./Components/state_bar/state_bar.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
@@ -56,11 +55,18 @@
             </div>
         </header>
 
+        <!--
+            STATE BAR: ahora muestra, además del bloque activo, las demás
+            actividades disponibles en el día (chips) y un menú desplegable
+            con sugerencias concretas al hacer clic en cualquiera de ellas.
+            Toda esta estructura interna la genera renderStateBar() en main.js.
+        -->
         <div id="state-bar-container"></div>
 
         <div class="weekly-progress-container">
             <div class="progress-header">
-                <span id="current-week-text" class="week-title">Metricas Semana --</span>
+                <!-- Ahora muestra la semana del AÑO (no la semana del mes) -->
+                <span id="current-week-text" class="week-title">Avance Semana -- de 52</span>
                 <span id="current-month-text" class="month-title">--</span>
             </div>
 
@@ -138,20 +144,13 @@
 
                     <ul id="list-habits" style="list-style:none;"></ul>
 
+                    <!--
+                        Se eliminó el botón "Semana (CSV)" (no era necesario).
+                        Se conserva un único botón de exportación que ahora
+                        sí funciona: descarga TODO el historial de hábitos.
+                    -->
                     <div
                         style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 20px; padding-bottom: 16px;">
-                        <button class="add-habit-btn" onclick="exportHabitsCSV()"
-                            aria-label="Exportar datos a Excel/CSV"
-                            style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-dark);">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-                                style="margin-right: 4px;">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="7 10 12 15 17 10"></polyline>
-                                <line x1="12" y1="15" x2="12" y2="3"></line>
-                            </svg>
-                            Semana (CSV)
-                        </button>
                         <button class="add-habit-btn" onclick="exportAllHistoryCSV()" aria-label="Exportar histórico"
                             style="background-color: var(--text-dark); color: var(--bg-light); border: 1px solid var(--text-dark);">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -161,7 +160,7 @@
                                 <polyline points="7 10 12 15 17 10"></polyline>
                                 <line x1="12" y1="15" x2="12" y2="3"></line>
                             </svg>
-                            Historial Completo
+                            Historial Completo (CSV)
                         </button>
                     </div>
                 </section>
@@ -171,20 +170,25 @@
 
             <div id="view-metrics" class="view-content">
                 <section class="category">
-                    <!-- 1. Progreso del Año (SE QUEDA) -->
+                    <!-- 1. Progreso del Año: ahora con semana actual corriendo + días restantes -->
                     <div style="padding: 16px 16px 0;">
-                        <div class="category-header" style="border-bottom: none; padding-left: 0; padding-right: 0;">
-                            Progreso del Año (52 Semanas)</div>
+                        <div class="category-header year-progress-title" id="year-progress-title"
+                            style="border-bottom: none; padding-left: 0; padding-right: 0;">
+                            Progreso del Año · Semana -- de 52
+                            <span class="year-progress-subtitle">Calculando días restantes...</span>
+                        </div>
                         <div id="year-weeks-grid" class="weeks-grid"></div>
                     </div>
 
-                    <!-- 2. Gráfico Radar Evolucionado (PROYECTOS) -->
-                    <div style="border-top: 1px solid var(--border-color); margin-top: 16px;">
-                        <div class="category-header" style="border-bottom: none;">Avance de Proyectos</div>
-                        <div class="chart-wrapper"
-                            style="height: 250px; border: none; box-shadow: none; margin-bottom: 0; border-radius: 0;">
-                            <canvas id="balanceChart"></canvas>
-                        </div>
+                    <!--
+                        2. Se eliminó por completo el gráfico radar "Avance de Proyectos"
+                        (canvas #balanceChart): no funcionaba bien y no aportaba valor real.
+                    -->
+
+                    <!-- 3. Top 3 mejores hábitos históricos -->
+                    <div class="top-habits-wrapper" style="border-top: 1px solid var(--border-color);">
+                        <div class="category-header" style="border-bottom: none;">Tus 3 Mejores Hábitos</div>
+                        <div id="top-habits-list" class="top-habits-list"></div>
                     </div>
 
                 </section>
@@ -204,6 +208,11 @@
                             Nueva Tarea
                         </button>
                     </div>
+                    <!--
+                        Las tareas ahora soportan, igual que Brain Dump:
+                        clic = editar texto, clic derecho = eliminar permanentemente.
+                        El botón check se conserva para "completar" la tarea.
+                    -->
                     <ul id="list-tareas-dia" style="list-style:none;"></ul>
                 </section>
             </div>
@@ -273,7 +282,7 @@
             <div id="view-loves" class="view-content">
                 <section class="category">
                     <div id="subview-loves-pasiones">
-                        <div class="item-list-header love-header">
+                        <div class="item-list-header love-header" style="display: flex; gap: 10px; flex-wrap: wrap;">
                             <button class="add-habit-btn" onclick="addLove()" aria-label="Agregar nueva pasión">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -281,6 +290,19 @@
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                 </svg>
                                 Add Pasión
+                            </button>
+                            <!-- Nuevo botón: exportar historial completo de Loves a CSV -->
+                            <button class="add-habit-btn" onclick="exportLovesCSV()"
+                                aria-label="Exportar histórico de Loves"
+                                style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-dark);">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                                    style="margin-right: 4px;">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Historial (CSV)
                             </button>
                         </div>
                         <div id="list-loves"></div>

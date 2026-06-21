@@ -531,7 +531,7 @@ div.day-segment.future {
 }
 
 .idea-content { cursor: pointer; }
-.tarea-content, .love-content { flex-grow: 1; }
+.tarea-content, .love-content { flex-grow: 1; cursor: pointer; }
 
 .idea-date {
     font-size: 0.65rem;
@@ -976,16 +976,6 @@ div.day-segment.future {
     color: var(--text-dark);
 }
 
-.chart-wrapper {
-    position: relative;
-    width: 100%;
-    padding: 16px 16px 8px 16px;
-    background-color: transparent;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    margin-bottom: 24px;
-}
-
 .minimal-daily-list {
     padding: 8px 16px;
     background-color: transparent;
@@ -1142,6 +1132,73 @@ div.day-segment.future {
     box-shadow: 0 0 0 2px var(--bg-light), 0 0 0 4px var(--text-dark);
 }
 
+/* Título del bloque "Progreso del Año" con subtítulo de días restantes */
+.year-progress-title {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.year-progress-subtitle {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+/**
+ * ==========================================
+ * TOP 3 MEJORES HÁBITOS (MÉTRICAS)
+ * ==========================================
+ */
+.top-habits-wrapper {
+    border-top: 1px solid var(--border-color);
+    margin-top: 16px;
+}
+
+.top-habits-list {
+    padding: 8px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.top-habit-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+.top-habit-medal {
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+.top-habit-name {
+    flex-grow: 1;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    word-break: break-word;
+}
+
+.top-habit-count {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--primary-green);
+    white-space: nowrap;
+}
+
+.top-habit-empty {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    padding: 8px 12px;
+}
+
 
 
 
@@ -1169,9 +1226,10 @@ div.day-segment.future {
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    margin-bottom: 24px; /* Soluciona el problema de que estaba pegado */
+    margin-bottom: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); /* Sombra suave para que "flote" */
     transition: transform 0.2s ease, border-left-color 0.3s ease;
+    cursor: pointer;
 }
 
 .state-info {
@@ -1211,3 +1269,89 @@ div.day-segment.future {
 .state-grow { border-left-color: var(--primary-green) !important; }
 .state-sleep { border-left-color: #34495e !important; }
 .state-free { border-left-color: #9b59b6 !important; }
+
+/**
+ * ==========================================
+ * STATE BAR - ACTIVIDADES ALTERNAS Y DROPDOWN
+ * ==========================================
+ * Chips que muestran qué otras actividades son válidas en el resto
+ * del día (no solo la franja activa ahora mismo), y el menú
+ * desplegable con sugerencias concretas para cada bloque.
+ *
+ * Cada chip reutiliza la clase .ikilife-state-card (mismo fondo
+ * degradado, borde de color y sombra que la tarjeta principal),
+ * solo que en tamaño compacto ya que son secundarios.
+ */
+.state-alt-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.ikilife-state-card.state-chip {
+    flex: 1 1 auto;
+    padding: 10px 16px;
+    margin-bottom: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.state-chip .state-label {
+    font-size: 0.8rem;
+}
+
+.state-chip #state-icon,
+.state-chip span:first-child {
+    font-size: 1.2rem;
+}
+
+.ikilife-state-card.state-chip:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.state-dropdown {
+    background-color: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 8px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.state-dropdown-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 6px 10px 8px;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 4px;
+}
+
+.state-dropdown-item {
+    background: transparent;
+    border: none;
+    text-align: left;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-dark);
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color var(--transition);
+}
+
+.state-dropdown-item:hover {
+    background-color: var(--bg-light);
+}
+
+.state-dropdown-empty {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    padding: 8px 10px;
+}
