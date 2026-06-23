@@ -1968,19 +1968,27 @@ function renderStateBar(containerId) {
     const CONFIG = {
         weekday: [
             {
-                start: 300, end: 1020, label: "Mesa de Ayuda", icon: "💼", class: "state-work",
+                start: 300, end: 390, label: "Mañana", icon: "💼", class: "state-work",
                 options: ["Revisar tickets pendientes", "Reunión de equipo", "Documentar soluciones"]
             },
             {
-                start: 1020, end: 1260, label: "Code & Grow", icon: "🌱", class: "state-grow",
+                start: 391, end: 1080, label: "Mesa de Ayuda", icon: "💼", class: "state-work",
+                options: ["Revisar tickets pendientes", "Reunión de equipo", "Documentar soluciones"]
+            },
+            {
+                start: 1081, end: 1260, label: "Code & Grow", icon: "🌱", class: "state-grow",
                 options: ["Practicar inglés (Duolingo/Anki)", "Curso de programación", "Proyecto personal de código"]
             },
             {
-                start: 0, end: 300, label: "Descanso", icon: "🌙", class: "state-sleep",
-                options: ["Dormir", "Rutina nocturna"]
+                start: 1081, end: 1260, label: "Noche", icon: "🌱", class: "state-grow",
+                options: ["Practicar inglés (Duolingo/Anki)", "Curso de programación", "Proyecto personal de código"]
             },
             {
-                start: 1260, end: 1440, label: "Descanso", icon: "🌙", class: "state-sleep",
+                start: 1081, end: 1260, label: "Comida", icon: "🌱", class: "state-grow",
+                options: ["Practicar inglés (Duolingo/Anki)", "Curso de programación", "Proyecto personal de código"]
+            },
+            {
+                start: 1260, end: 300, label: "Descanso", icon: "🌙", class: "state-sleep",
                 options: ["Dormir", "Rutina nocturna"]
             }
         ],
