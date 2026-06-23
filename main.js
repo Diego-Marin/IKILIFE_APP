@@ -1920,12 +1920,15 @@ async function exportIdeasCSV() {
  * ==========================================
  * COMPONENTE STATE BAR
  * ==========================================
- * Ahora cada franja horaria puede tener varias actividades válidas
- * en paralelo (no solo una). La franja principal se sigue mostrando
- * en la tarjeta grande, y las alternativas aparecen como "chips"
- * debajo. Al hacer clic en CUALQUIERA de las tarjetas/chips se abre
- * un menú desplegable con sugerencias concretas para aprovechar ese
- * bloque de tiempo.
+ * Se muestran ÚNICAMENTE las tarjetas cuyo rango horario incluye la
+ * hora actual (pueden ser varias a la vez si configuras rangos que
+ * se solapan a propósito, ej. "Code & Grow" y "Comida" en la misma
+ * franja). No se muestra nada que esté fuera de horario.
+ *
+ * Al hacer clic en una tarjeta, el menú desplegable con sugerencias
+ * aparece justo DEBAJO de esa tarjeta específica (no flotando al
+ * final de la lista), y un segundo clic sobre la misma tarjeta lo
+ * cierra (toggle).
  */
 function renderStateBar(containerId) {
     const container = document.getElementById(containerId);
@@ -1960,11 +1963,17 @@ function renderStateBar(containerId) {
      * 10:00 PM| 1320
      * 11:00 PM| 1380
      * ----------------------------------------------------
+     *
+     * IMPORTANTE sobre los rangos:
+     * - "end" es EXCLUSIVO (el slot termina justo antes de ese minuto).
+     * - Si quieres que dos o más actividades aparezcan juntas en la
+     *   misma franja (ej. "Code & Grow" y "Comida" a las 6pm), dales
+     *   el mismo start/end: ambas se mostrarán a la vez.
+     * - Si un rango cruza la medianoche (ej. 9pm a 5am), se admite
+     *   escribiéndolo como start: 1260, end: 300 — el sistema detecta
+     *   automáticamente que "end" es menor que "start" y lo interpreta
+     *   como "desde las 9pm hasta las 5am del día siguiente".
      */
-
-    // Cada slot ahora tiene un arreglo "options" con sugerencias concretas
-    // para aprovechar ese bloque de tiempo (lo que pediste: Sara Travel,
-    // Cruzamontañas, etc., para Senderismo; ideas para Tiempo Libre, etc.)
     const CONFIG = {
         weekday: [
             {
@@ -1972,20 +1981,20 @@ function renderStateBar(containerId) {
                 options: ["Revisar tickets pendientes", "Reunión de equipo", "Documentar soluciones"]
             },
             {
-                start: 391, end: 1080, label: "Mesa de Ayuda", icon: "💼", class: "state-work",
+                start: 390, end: 1080, label: "Mesa de Ayuda", icon: "💼", class: "state-work",
                 options: ["Revisar tickets pendientes", "Reunión de equipo", "Documentar soluciones"]
             },
             {
-                start: 1081, end: 1260, label: "Code & Grow", icon: "🌱", class: "state-grow",
+                start: 1080, end: 1260, label: "Code & Ingles", icon: "🌱", class: "state-grow",
                 options: ["Practicar inglés (Duolingo/Anki)", "Curso de programación", "Proyecto personal de código"]
             },
             {
-                start: 1081, end: 1260, label: "Noche", icon: "🌱", class: "state-grow",
-                options: ["Practicar inglés (Duolingo/Anki)", "Curso de programación", "Proyecto personal de código"]
+                start: 1080, end: 1260, label: "Comida", icon: "🍽️", class: "state-free",
+                options: ["Preparar algo saludable", "Comer con calma, sin pantallas","Preparar coca"]
             },
             {
-                start: 1081, end: 1260, label: "Comida", icon: "🌱", class: "state-grow",
-                options: ["Practicar inglés (Duolingo/Anki)", "Curso de programación", "Proyecto personal de código"]
+                start: 1080, end: 1260, label: "Lectura & Meditación", icon: "🌙", class: "state-free",
+                options: ["Preparar algo saludable", "Comer con calma, sin pantallas"]
             },
             {
                 start: 1260, end: 300, label: "Descanso", icon: "🌙", class: "state-sleep",
@@ -2012,69 +2021,23 @@ function renderStateBar(containerId) {
         ]
     };
 
-    container.innerHTML = `
-        <div class="state-bar-grid" id="state-bar-grid">
-            <div class="ikilife-state-card" id="state-card">
-                <div class="state-info">
-                    <span id="state-icon"></span>
-                    <span class="state-label" id="state-text"></span>
-                </div>
-                <div class="state-time" id="state-time"></div>
-            </div>
-        </div>
-        <div class="state-dropdown hidden" id="state-dropdown"></div>
-    `;
-
-    // Único punto de verdad sobre qué tarjeta tiene el menú abierto.
-    // Se compara por referencia al slot (no por label) para evitar
-    // ambigüedades si dos slots compartieran el mismo nombre.
-    let openSlot = null;
-
-    // Muestra u oculta el menú desplegable con sugerencias para un slot dado.
-    // Si se hace clic de nuevo sobre el MISMO bloque que ya está abierto,
-    // el menú se cierra (comportamiento acordeón / toggle real).
-    function openSlotMenu(slot) {
-        const dropdown = document.getElementById('state-dropdown');
-        if (!dropdown) return;
-
-        const isSameAndOpen = (openSlot === slot) && !dropdown.classList.contains('hidden');
-
-        if (isSameAndOpen) {
-            dropdown.classList.add('hidden');
-            dropdown.innerHTML = '';
-            openSlot = null;
-            return;
+    // Determina si "mins" cae dentro de [start, end). Soporta rangos
+    // que cruzan la medianoche (cuando end < start).
+    function isWithinRange(mins, start, end) {
+        if (start <= end) {
+            return mins >= start && mins < end;
         }
-
-        const optionsHTML = (slot.options || [])
-            .map(opt => `<button class="state-dropdown-item" onclick="sendPromptToChatSafe('${opt.replace(/'/g, "\\'")}')">${opt}</button>`)
-            .join('');
-
-        dropdown.innerHTML = `
-            <div class="state-dropdown-title">${slot.icon} ${slot.label}</div>
-            ${optionsHTML || '<div class="state-dropdown-empty">Sin sugerencias configuradas</div>'}
-        `;
-
-        dropdown.classList.remove('hidden');
-        openSlot = slot;
+        return mins >= start || mins < end;
     }
 
-    // Cierra el menú desplegable si el usuario hace clic en cualquier
-    // lugar que no sea una tarjeta de estado (principal o alterna).
-    // Al usar capture en el propio contenedor (no en document), evitamos
-    // problemas de orden/timing con los onclick de las tarjetas.
-    document.addEventListener('click', (e) => {
-        if (!openSlot) return;
-        const clickedInsideCard = e.target.closest('.ikilife-state-card');
-        if (!clickedInsideCard) {
-            const dropdown = document.getElementById('state-dropdown');
-            if (dropdown) {
-                dropdown.classList.add('hidden');
-                dropdown.innerHTML = '';
-            }
-            openSlot = null;
-        }
-    });
+    container.innerHTML = `<div class="state-bar-grid" id="state-bar-grid"></div>`;
+
+    // Único punto de verdad sobre qué tarjeta tiene el menú abierto.
+    // Se guarda el índice de la tarjeta (no el slot) porque ahora el
+    // dropdown se inserta dentro de la propia tarjeta, así que cada
+    // tarjeta visible necesita poder abrir/cerrar el suyo de forma
+    // independiente.
+    let openIndex = null;
 
     // Pequeño helper global para que los botones del dropdown puedan
     // usar sendPrompt si está disponible (entorno con IA), sin romper
@@ -2087,10 +2050,57 @@ function renderStateBar(containerId) {
         }
     };
 
-    // Mapa label -> slot, reconstruido en cada update() para que los
-    // chips (creados con HTML string) puedan recuperar su slot real
-    // al hacer clic, sin depender de closures viejos de updates pasados.
-    window.__stateSlotsByLabel = {};
+    // Guardamos los slots activos del ciclo de update() vigente para
+    // que los onclick (generados como string) siempre encuentren los
+    // datos correctos, sin depender de closures de updates anteriores.
+    let activeSlots = [];
+
+    function renderDropdownHTML(slot) {
+        const optionsHTML = (slot.options || [])
+            .map(opt => `<button class="state-dropdown-item" onclick="event.stopPropagation(); sendPromptToChatSafe('${opt.replace(/'/g, "\\'")}')">${opt}</button>`)
+            .join('');
+
+        return `
+            <div class="state-dropdown" id="state-dropdown-inline">
+                <div class="state-dropdown-title">${slot.icon} ${slot.label}</div>
+                ${optionsHTML || '<div class="state-dropdown-empty">Sin sugerencias configuradas</div>'}
+            </div>
+        `;
+    }
+
+    // Abre/cierra (toggle) el menú de sugerencias de la tarjeta en
+    // "index". El dropdown se inserta DENTRO de esa misma tarjeta,
+    // justo debajo de su contenido, en vez de flotar al final.
+    window.__toggleStateCard = function (index) {
+        const isSameAndOpen = (openIndex === index);
+        openIndex = isSameAndOpen ? null : index;
+        renderCards();
+    };
+
+    function renderCards() {
+        const gridContainer = document.getElementById('state-bar-grid');
+        if (!gridContainer) return;
+
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+
+        gridContainer.innerHTML = activeSlots.map((slot, index) => {
+            const dropdownHTML = (openIndex === index) ? renderDropdownHTML(slot) : '';
+
+            return `
+                <div class="ikilife-state-card ${slot.class}" onclick="window.__toggleStateCard(${index})">
+                    <div class="state-card-top">
+                        <div class="state-info">
+                            <span>${slot.icon}</span>
+                            <span class="state-label">${slot.label}</span>
+                        </div>
+                        <div class="state-time">${timeStr}</div>
+                    </div>
+                    ${dropdownHTML}
+                </div>
+            `;
+        }).join('');
+    }
 
     function update() {
         const now = new Date();
@@ -2099,60 +2109,18 @@ function renderStateBar(containerId) {
 
         const schedule = isWeekend ? CONFIG.weekend : CONFIG.weekday;
 
-        // Slot principal: el que coincide exactamente con la hora actual
-        const current = schedule.find(s => mins >= s.start && mins < s.end);
+        // Solo se conservan los slots cuyo rango horario incluye la
+        // hora ACTUAL. Nada fuera de horario se muestra. Si dos o más
+        // slots comparten el mismo rango (a propósito), ambos aparecen.
+        activeSlots = schedule.filter(s => isWithinRange(mins, s.start, s.end));
 
-        // Slots alternos: cualquier otro slot del día distinto al actual.
-        // Esto resuelve el caso de hoy: aunque ahora toque "Tiempo Libre",
-        // se siguen viendo como opciones visibles "Senderismo", etc.
-        // Se deduplica por "label": si una misma actividad (ej. Descanso)
-        // ocupa varios tramos horarios, solo se muestra una tarjeta de ella.
-        const seenLabels = new Set();
-        const alternates = schedule.filter(s => {
-            if (s === current) return false;
-            if (seenLabels.has(s.label)) return false;
-            seenLabels.add(s.label);
-            return true;
-        });
-
-        // Reconstruir el mapa de búsqueda label -> slot (incluye el actual
-        // y los alternos) para que los onclick generados como string
-        // siempre encuentren el slot vigente de este ciclo de update().
-        window.__stateSlotsByLabel = {};
-        [current, ...alternates].forEach(s => {
-            if (s) window.__stateSlotsByLabel[s.label] = s;
-        });
-
-        window.__openStateSlotByLabel = function (label) {
-            const slot = window.__stateSlotsByLabel[label];
-            if (slot) openSlotMenu(slot);
-        };
-
-        // Renderizar TODAS las tarjetas (la activa + las alternas) dentro
-        // de una sola cuadrícula, todas con el mismo tamaño/estructura.
-        // Como máximo serán 3-4 tarjetas, así que el grid se ajusta solo.
-        const gridContainer = document.getElementById('state-bar-grid');
-        if (gridContainer) {
-            const allSlots = current ? [current, ...alternates] : alternates;
-
-            gridContainer.innerHTML = allSlots.map(slot => {
-                const isActive = slot === current;
-                const timeHTML = isActive
-                    ? `<div class="state-time" id="state-time">${now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}</div>`
-                    : '';
-
-                return `
-                    <div class="ikilife-state-card ${slot.class}"
-                         onclick='window.__openStateSlotByLabel(${JSON.stringify(slot.label)})'>
-                        <div class="state-info">
-                            <span>${slot.icon}</span>
-                            <span class="state-label">${slot.label}</span>
-                        </div>
-                        ${timeHTML}
-                    </div>
-                `;
-            }).join('');
+        // Si el slot que tenía el dropdown abierto ya no está activo
+        // (cambió la hora), se cierra para no dejar un índice inválido.
+        if (openIndex !== null && openIndex >= activeSlots.length) {
+            openIndex = null;
         }
+
+        renderCards();
     }
 
     update();

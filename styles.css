@@ -1214,6 +1214,10 @@ div.day-segment.future {
  * ==========================================
  * STATE BAR - OPTIMIZADO Y LLAMATIVO
  * ==========================================
+ * Cada tarjeta es ahora un contenedor en columna: arriba el resumen
+ * (icono + nombre + hora) y, si el usuario hizo clic para abrirlo,
+ * el menú de sugerencias aparece anidado DEBAJO de esa misma tarjeta
+ * (no como un elemento flotante aparte al final de la lista).
  */
 
 .ikilife-state-card {
@@ -1223,13 +1227,19 @@ div.day-segment.future {
     border-radius: 12px; /* Un poco más redondeado para modernizar */
     padding: 16px 20px;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
+    flex-direction: column;
+    gap: 0;
     margin-bottom: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); /* Sombra suave para que "flote" */
     transition: transform 0.2s ease, border-left-color 0.3s ease;
     cursor: pointer;
+}
+
+.state-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
 }
 
 .state-info {
@@ -1240,8 +1250,8 @@ div.day-segment.future {
 }
 
 /* Icono más grande para impacto visual */
-#state-icon {
-    font-size: 1.6rem; 
+.state-info span:first-child {
+    font-size: 1.6rem;
     line-height: 1;
 }
 
@@ -1262,6 +1272,7 @@ div.day-segment.future {
     background: rgba(0,0,0,0.03); /* Fondo sutil para el tiempo */
     padding: 4px 8px;
     border-radius: 6px;
+    flex-shrink: 0;
 }
 
 /* Colores de estado más vibrantes */
@@ -1274,11 +1285,11 @@ div.day-segment.future {
  * ==========================================
  * STATE BAR - LISTA DE TARJETAS DE ESTADO
  * ==========================================
- * Todas las tarjetas (la activa + las alternas disponibles en el día)
- * se muestran apiladas, una debajo de otra, cada una ocupando el
- * ancho TOTAL del contenedor principal para que se vean armónicas
- * con el resto de la interfaz (igual de anchas que el progreso
- * semanal, los tabs, etc.).
+ * Solo se muestran las tarjetas vigentes para la hora actual, cada
+ * una ocupando el ancho TOTAL del contenedor principal para que se
+ * vean armónicas con el resto de la interfaz (igual de anchas que el
+ * progreso semanal, los tabs, etc.). Si hay varias activas a la vez
+ * (rangos solapados a propósito), se apilan una debajo de otra.
  */
 .state-bar-grid {
     display: grid;
@@ -1293,25 +1304,30 @@ div.day-segment.future {
     width: 100%;
 }
 
+/**
+ * ==========================================
+ * STATE BAR - DROPDOWN ANIDADO
+ * ==========================================
+ * Ya no es un elemento flotante aparte: vive DENTRO de la tarjeta
+ * que lo abrió, justo debajo de su encabezado. Por eso solo se
+ * inserta en el HTML cuando está realmente abierto (no necesita una
+ * clase .hidden) y usa un fondo semitransparente para integrarse con
+ * el color de la tarjeta en vez de una caja blanca independiente.
+ */
 .state-dropdown {
-    background-color: var(--white);
+    background-color: rgba(255, 255, 255, 0.55);
     border: 1px solid var(--border-color);
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 8px;
-    margin-bottom: 16px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    margin-top: 14px;
     display: flex;
     flex-direction: column;
     gap: 4px;
+    cursor: default;
 }
 
-/* Refuerzo necesario: .state-dropdown define su propio "display: flex",
-   y al aparecer después de la regla genérica .hidden en este archivo,
-   la sobreescribía por orden de cascada (misma especificidad). Este
-   selector más específico asegura que, mientras tenga la clase .hidden,
-   el dropdown realmente quede oculto y no se vea como una caja vacía. */
-.state-dropdown.hidden {
-    display: none;
+.dark-mode .state-dropdown {
+    background-color: rgba(0, 0, 0, 0.2);
 }
 
 .state-dropdown-title {
@@ -1339,7 +1355,11 @@ div.day-segment.future {
 }
 
 .state-dropdown-item:hover {
-    background-color: var(--bg-light);
+    background-color: rgba(255, 255, 255, 0.6);
+}
+
+.dark-mode .state-dropdown-item:hover {
+    background-color: rgba(255, 255, 255, 0.08);
 }
 
 .state-dropdown-empty {
