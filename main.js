@@ -1982,7 +1982,7 @@ function renderStateBar(containerId) {
             },
             {
                 start: 390, end: 1080, label: "Mesa de Ayuda", icon: "💼", class: "state-work",
-                options: ["Revisar tickets pendientes", "Reunión de equipo", "Documentar soluciones"]
+                options: ["Revisar tickets pendientes", "LLenar ordenes", "Adelantar minuta", "Cumplir con la tarea del dia"]
             },
             {
                 start: 1080, end: 1260, label: "Code & Ingles", icon: "🌱", class: "state-grow",
@@ -1994,7 +1994,11 @@ function renderStateBar(containerId) {
             },
             {
                 start: 1080, end: 1260, label: "Lectura & Meditación", icon: "🌙", class: "state-free",
-                options: ["Preparar algo saludable", "Comer con calma, sin pantallas"]
+                options: ["Continuar libro Pideme lo que quieras"]
+            },
+            {
+                start: 1080, end: 1260, label: "Smart", icon: "🌙", class: "state-free",
+                options: ["Clases de Ingles"]
             },
             {
                 start: 1260, end: 300, label: "Descanso", icon: "🌙", class: "state-sleep",
