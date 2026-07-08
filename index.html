@@ -86,6 +86,20 @@
             </div>
         </div>
 
+        <!--
+            ==========================================
+            NUEVO: FRASE MOTIVACIONAL DEL DÍA
+            ==========================================
+            Muestra una frase seleccionada al azar del listado JSON
+            definido en main.js (MOTIVATIONAL_QUOTES). La frase se
+            mantiene fija durante todo el día (se guarda en
+            localStorage) y cambia automáticamente al día siguiente.
+        -->
+        <div class="motivational-container" id="motivational-container">
+            <span class="motivational-icon">✨</span>
+            <p class="motivational-text" id="motivational-text">Cargando frase del día...</p>
+        </div>
+
         <nav class="tabs">
             <button class="tab-btn tab-active" onclick="switchTab('habits', this)">Habits</button>
             <button class="tab-btn tab-inactive" onclick="switchTab('metrics', this)">Metrics</button>
@@ -192,6 +206,19 @@
                         <div id="top-habits-list" class="top-habits-list"></div>
                     </div>
 
+                    <!--
+                        ==========================================
+                        NUEVO: TOP 3 DE LOVES (RANKING)
+                        ==========================================
+                        Muestra las 3 pasiones/actividades con más registros
+                        (columna "count") de la tabla loves_logs, en el mismo
+                        estilo visual que el Top 3 de Hábitos.
+                    -->
+                    <div class="top-habits-wrapper" id="top-loves-wrapper" style="border-top: 1px solid var(--border-color);">
+                        <div class="category-header" style="border-bottom: none;">Tus 3 Loves Favoritos</div>
+                        <div id="top-loves-list" class="top-habits-list"></div>
+                    </div>
+
                 </section>
             </div>
 
@@ -224,11 +251,13 @@
                 <section class="category">
                     <div id="subview-finanzas" style="padding: 16px;">
                         <div id="finance-main">
+                            <!--
+                                Grid 2x2 armónico: las 4 tarjetas tienen
+                                exactamente el mismo tamaño (misma clase,
+                                sin "full-width" en ninguna) para que se
+                                vean uniformes.
+                            -->
                             <section class="summary-grid">
-                                <div class="summary-card full-width">
-                                    <div class="summary-label">Ahorro / Capital</div>
-                                    <div class="summary-value text-savings" id="kpi-ahorro">$0</div>
-                                </div>
                                 <div class="summary-card clickable" onclick="toggleFinanceView('finance-income')"
                                     title="Ver detalles de ingresos">
                                     <div class="summary-label">Ingresos</div>
@@ -239,10 +268,67 @@
                                     <div class="summary-value text-expense" id="kpi-gastos"
                                         title="Suma de lo pagado real">$0</div>
                                 </div>
+                                <div class="summary-card">
+                                    <div class="summary-label">Ahorro / Capital</div>
+                                    <div class="summary-value text-savings" id="kpi-ahorro">$0</div>
+                                </div>
+                                <!--
+                                    ==========================================
+                                    TARJETA DE DEUDAS
+                                    ==========================================
+                                    Misma funcionalidad que "Ingresos": suma
+                                    todos los registros de tipo 'debt' y al
+                                    hacer clic muestra el detalle editable.
+                                -->
+                                <div class="summary-card clickable" onclick="toggleFinanceView('finance-debts')"
+                                    title="Ver detalles de deudas">
+                                    <div class="summary-label">Deudas</div>
+                                    <div class="summary-value text-debt" id="kpi-deudas">$0</div>
+                                </div>
                             </section>
                             <div id="dynamic-expense-categories"></div>
                             <button class="add-habit-btn" style="width: 100%; margin-top: 8px;"
                                 onclick="addFinanceCategory()">+ Nueva Categoría</button>
+                        </div>
+
+                        <!--
+                            Detalle de Ingresos (ya se generaba desde el JS con
+                            toggleFinanceView, pero faltaba el contenedor en el
+                            HTML; se agrega ahora para que funcione correctamente).
+                        -->
+                        <div id="finance-income" class="hidden">
+                            <button class="icon-btn" onclick="toggleFinanceView('finance-main')" title="Volver"
+                                style="margin-bottom: 8px;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="15 18 9 12 15 6"></polyline>
+                                </svg>
+                                Volver
+                            </button>
+                            <div class="category-header" style="border-bottom: none; padding-left:0;">Detalle de Ingresos</div>
+                            <ul id="list-incomes" style="list-style:none;"></ul>
+                            <button class="add-habit-btn" style="width: 100%; margin-top: 8px;"
+                                onclick="addFinanceItem('income','Ingresos')">+ Nuevo Ingreso</button>
+                        </div>
+
+                        <!--
+                            ==========================================
+                            NUEVO: Detalle de Deudas
+                            ==========================================
+                        -->
+                        <div id="finance-debts" class="hidden">
+                            <button class="icon-btn" onclick="toggleFinanceView('finance-main')" title="Volver"
+                                style="margin-bottom: 8px;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="15 18 9 12 15 6"></polyline>
+                                </svg>
+                                Volver
+                            </button>
+                            <div class="category-header" style="border-bottom: none; padding-left:0;">Detalle de Deudas</div>
+                            <ul id="list-debts" style="list-style:none;"></ul>
+                            <button class="add-habit-btn" style="width: 100%; margin-top: 8px;"
+                                onclick="addFinanceItem('debt','Deudas')">+ Nueva Deuda</button>
                         </div>
                     </div>
                 </section>
@@ -252,6 +338,22 @@
 
             <div id="view-ideas" class="view-content">
                 <section class="category">
+                    <!--
+                        ==========================================
+                        NUEVO: PENSAMIENTO ALEATORIO
+                        ==========================================
+                        Toma un registro al azar de ideas_logs y lo muestra
+                        temporalmente. Cada clic en el botón selecciona uno
+                        nuevo al azar.
+                    -->
+                    <div class="random-idea-box" id="random-idea-box">
+                        <div class="random-idea-label">Pensamiento Aleatorio</div>
+                        <div class="random-idea-text" id="random-idea-text">Presiona el botón para ver un pensamiento al azar.</div>
+                        <button class="add-habit-btn" onclick="showRandomIdea()" style="margin-top:10px;">
+                            🎲 Nuevo Pensamiento
+                        </button>
+                    </div>
+
                     <div class="item-list-header idea-header" style="display: flex; gap: 10px; flex-wrap: wrap;">
                         <button class="add-habit-btn" onclick="addIdea()" aria-label="Agregar nueva idea">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"

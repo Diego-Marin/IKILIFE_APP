@@ -35,16 +35,18 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
         applySavedTheme();
         updateWeeklyProgress();
+        loadDailyQuote();
         loadHabits();
         loadEscuelas();
         loadIdeas();
+        showRandomIdea();
         loadTareas();
         loadInversiones();
         loadLoves();
         loadSentimientos();
         loadCompras();
         loadBloques();
-        loadMetrics(); // Esta ya ejecuta internamente renderYearWeeks() y loadTopHabits()
+        loadMetrics(); // Esta ya ejecuta internamente renderYearWeeks(), loadTopHabits() y loadTopLoves()
         loadFinances();
         loadAgradecimientos();
         generateInsights();
@@ -194,6 +196,70 @@ function updateWeeklyProgress() {
         }
     });
 }
+
+
+/**
+ * ==========================================
+ * NUEVO: FRASE MOTIVACIONAL DEL DÍA
+ * ==========================================
+ * Lista editable de frases en formato JSON. Puedes alimentar/editar
+ * este arreglo libremente agregando o quitando strings.
+ *
+ * Lógica: cada día se selecciona UNA frase al azar de la lista y se
+ * guarda en localStorage junto con la fecha del día. Mientras la
+ * fecha guardada coincida con "hoy", se sigue mostrando la misma
+ * frase (no cambia en cada recarga). Al cambiar de día, se elige
+ * una nueva frase aleatoria automáticamente.
+ */
+const MOTIVATIONAL_QUOTES = [
+    "Pequeños pasos consistentes construyen grandes resultados.",
+    "Disciplina es elegir entre lo que quieres ahora y lo que quieres más.",
+    "No necesitas ser perfecto, necesitas ser constante.",
+    "Cada hábito que completas hoy es una inversión en quién quieres ser.",
+    "El progreso rara vez se siente, pero siempre se acumula.",
+    "Hazlo aunque no tengas ganas; las ganas llegan después de empezar.",
+    "Tu futuro se construye con las decisiones aburridas de hoy.",
+    "Enfócate en el proceso, el resultado es solo una consecuencia.",
+    "La motivación te inicia, el hábito te mantiene.",
+    "Un día a la vez es suficiente. No necesitas resolver todo hoy.",
+    "Ordena tu mente y tu vida seguirá el mismo camino.",
+    "Lo que se mide, mejora. Sigue registrando tu progreso.",
+    "Confía en el proceso, incluso en los días lentos.",
+    "La versión de ti que quieres ser se construye hoy, no mañana.",
+    "Actúa como la persona en la que te quieres convertir."
+];
+
+function loadDailyQuote() {
+    const el = document.getElementById('motivational-text');
+    if (!el) return;
+
+    if (!MOTIVATIONAL_QUOTES || MOTIVATIONAL_QUOTES.length === 0) {
+        el.textContent = "Agrega tus frases en MOTIVATIONAL_QUOTES (main.js).";
+        return;
+    }
+
+    const todayStr = formatDateLocal(new Date());
+    let stored = null;
+
+    try {
+        stored = JSON.parse(localStorage.getItem('ikilife_daily_quote') || 'null');
+    } catch (e) {
+        stored = null;
+    }
+
+    let quoteText;
+    if (stored && stored.date === todayStr && typeof stored.quote === 'string') {
+        quoteText = stored.quote;
+    } else {
+        const randomIndex = Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length);
+        quoteText = MOTIVATIONAL_QUOTES[randomIndex];
+        localStorage.setItem('ikilife_daily_quote', JSON.stringify({ date: todayStr, quote: quoteText }));
+    }
+
+    el.textContent = quoteText;
+}
+
+
 /**
  * ==========================================
  * GESTIÓN DE BLOQUES DE RUTINA (JSONB)
@@ -703,6 +769,52 @@ async function loadTopHabits() {
 }
 
 
+/**
+ * ==========================================
+ * NUEVO: MEJORES LOVES (TOP 3 RANKING)
+ * ==========================================
+ * Igual que el Top 3 de Hábitos, pero basado en el contador
+ * ("count") de la tabla loves_logs. Se muestran las 3 pasiones con
+ * más registros acumulados.
+ */
+async function loadTopLoves() {
+    const { data: allLoves, error } = await _supabase
+        .from('loves_logs')
+        .select('name, count')
+        .order('count', { ascending: false })
+        .limit(3);
+
+    const container = document.getElementById('top-loves-list');
+    if (!container) return;
+
+    if (error) {
+        console.error("Error cargando top de loves:", error.message);
+        container.innerHTML = '';
+        return;
+    }
+
+    container.innerHTML = '';
+
+    if (!allLoves || allLoves.length === 0) {
+        container.innerHTML = `<div class="top-habit-empty">Aún no hay Loves registrados para mostrar.</div>`;
+        return;
+    }
+
+    const medals = ['🥇', '🥈', '🥉'];
+
+    allLoves.forEach((love, index) => {
+        const row = `
+            <div class="top-habit-row">
+                <span class="top-habit-medal">${medals[index]}</span>
+                <span class="top-habit-name">${love.name}</span>
+                <span class="top-habit-count">${love.count}x</span>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', row);
+    });
+}
+
+
 
 
 
@@ -754,16 +866,21 @@ async function saveLearning() {
 }
 
 function toggleFinanceView(viewId) {
-    const mainView = document.getElementById('finance-main');
-    const incomeView = document.getElementById('finance-income');
+    // Ahora soporta 3 vistas: 'finance-main', 'finance-income' y
+    // 'finance-debts'. Se muestra únicamente la solicitada y se
+    // ocultan las demás.
+    const views = ['finance-main', 'finance-income', 'finance-debts'];
 
-    if (viewId === 'finance-income') {
-        mainView.classList.add('hidden');
-        incomeView.classList.remove('hidden');
-    } else {
-        incomeView.classList.add('hidden');
-        mainView.classList.remove('hidden');
-    }
+    views.forEach(v => {
+        const el = document.getElementById(v);
+        if (!el) return;
+
+        if (v === viewId) {
+            el.classList.remove('hidden');
+        } else {
+            el.classList.add('hidden');
+        }
+    });
 }
 
 
@@ -940,8 +1057,12 @@ async function addIdea() {
         .from('ideas_logs')
         .insert([{ content: content, type: 'idea', tags: tags }]);
 
-    if (error) alert("Error al guardar: " + error.message);
-    else loadIdeas();
+    if (error) {
+        alert("Error al guardar: " + error.message);
+    } else {
+        randomIdeaCache = []; // Se invalida el caché para que incluya la nueva idea
+        loadIdeas();
+    }
 }
 function parseContentAndTags(text) {
     if (!text) return { content: '', tags: [] };
@@ -966,6 +1087,7 @@ async function editIdea(id, oldContent) {
     if (error) {
         alert("Error al editar: " + error.message);
     } else {
+        randomIdeaCache = [];
         loadIdeas();
     }
 }
@@ -982,8 +1104,48 @@ async function deleteIdea(id) {
     if (error) {
         alert("Error al eliminar: " + error.message);
     } else {
+        randomIdeaCache = [];
         loadIdeas();
     }
+}
+
+
+/**
+ * ==========================================
+ * NUEVO: PENSAMIENTO ALEATORIO (BRAIN DUMP)
+ * ==========================================
+ * Selecciona y muestra temporalmente un registro al azar de
+ * ideas_logs. Cada clic en el botón "Nuevo Pensamiento" trae uno
+ * distinto. Se mantiene un pequeño caché en memoria para no golpear
+ * la base de datos en cada clic; el caché se invalida automáticamente
+ * cuando se agrega, edita o elimina una idea.
+ */
+let randomIdeaCache = [];
+
+async function showRandomIdea() {
+    const textEl = document.getElementById('random-idea-text');
+    if (!textEl) return;
+
+    if (randomIdeaCache.length === 0) {
+        const { data, error } = await _supabase
+            .from('ideas_logs')
+            .select('content')
+            .or('type.eq.idea,type.is.null');
+
+        if (error) {
+            console.error("Error cargando pensamiento aleatorio:", error.message);
+            return;
+        }
+        randomIdeaCache = data || [];
+    }
+
+    if (randomIdeaCache.length === 0) {
+        textEl.textContent = "Aún no tienes ideas guardadas en tu Brain Dump.";
+        return;
+    }
+
+    const randomIndex = Math.floor(Math.random() * randomIdeaCache.length);
+    textEl.textContent = randomIdeaCache[randomIndex].content;
 }
 
 
@@ -1327,6 +1489,7 @@ async function incrementLove(id, currentCount) {
         console.error("Error sumando contador:", error.message);
     } else {
         loadLoves();
+        if (typeof loadTopLoves === 'function') loadTopLoves();
     }
 }
 
@@ -1359,6 +1522,7 @@ async function deleteLove(name, id) {
         alert("Error al eliminar: " + error.message);
     } else {
         loadLoves();
+        if (typeof loadTopLoves === 'function') loadTopLoves();
     }
 }
 
@@ -1548,6 +1712,11 @@ async function loadMetrics() {
     if (typeof loadTopHabits === 'function') {
         loadTopHabits();
     }
+
+    // 3. Renderizar el Top 3 de Loves favoritos
+    if (typeof loadTopLoves === 'function') {
+        loadTopLoves();
+    }
 }
 
 function renderYearWeeks() {
@@ -1597,6 +1766,10 @@ function renderYearWeeks() {
  * ==========================================
  * GESTIÓN DE FINANZAS (DINÁMICO - ACUMULATIVO)
  * ==========================================
+ * Ahora soporta tres tipos de registro en finance_logs:
+ * - 'income' -> Ingresos
+ * - 'expense' -> Gastos (agrupados por categoría)
+ * - 'debt' -> Deudas (NUEVO)
  */
 function formatCurrency(num) {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(num || 0);
@@ -1607,18 +1780,24 @@ async function loadFinances() {
     if (error) return console.error("Error cargando finanzas:", error.message);
 
     const listIncomes = document.getElementById('list-incomes');
+    const listDebts = document.getElementById('list-debts');
     const expensesContainer = document.getElementById('dynamic-expense-categories');
 
     if (listIncomes) listIncomes.innerHTML = '';
+    if (listDebts) listDebts.innerHTML = '';
     if (expensesContainer) expensesContainer.innerHTML = '';
 
     let totalIngresosReal = 0;
     let totalGastosReal = 0;
+    let totalDeudasReal = 0;
     const expensesByCategory = {};
 
     finances.forEach(item => {
         const isIncome = item.type === 'income';
-        const textColorClass = isIncome ? 'text-income' : 'text-expense';
+        const isDebt = item.type === 'debt';
+        let textColorClass = 'text-expense';
+        if (isIncome) textColorClass = 'text-income';
+        if (isDebt) textColorClass = 'text-debt';
 
         const row = `
             <li class="finance-item" oncontextmenu="event.preventDefault(); deleteFinanceItem(${item.id}, '${item.concept}')">
@@ -1637,6 +1816,9 @@ async function loadFinances() {
         if (isIncome) {
             totalIngresosReal += Number(item.real);
             if (listIncomes) listIncomes.insertAdjacentHTML('beforeend', row);
+        } else if (isDebt) {
+            totalDeudasReal += Number(item.real);
+            if (listDebts) listDebts.insertAdjacentHTML('beforeend', row);
         } else {
             totalGastosReal += Number(item.real);
             if (!expensesByCategory[item.category]) expensesByCategory[item.category] = [];
@@ -1666,6 +1848,7 @@ async function loadFinances() {
     if (document.getElementById('kpi-ingresos-detail')) document.getElementById('kpi-ingresos-detail').textContent = formatCurrency(totalIngresosReal);
     if (document.getElementById('kpi-gastos')) document.getElementById('kpi-gastos').textContent = formatCurrency(totalGastosReal);
     if (document.getElementById('kpi-ahorro')) document.getElementById('kpi-ahorro').textContent = formatCurrency(totalAhorro);
+    if (document.getElementById('kpi-deudas')) document.getElementById('kpi-deudas').textContent = formatCurrency(totalDeudasReal);
 }
 
 async function addFinanceCategory() {
@@ -1998,6 +2181,10 @@ function renderStateBar(containerId) {
             },
             {
                 start: 1080, end: 1260, label: "Smart", icon: "🌙", class: "state-free",
+                options: ["Clases de Ingles"]
+            },
+            {
+                start: 1080, end: 1260, label: "Organizar Universidad", icon: "🌙", class: "state-free",
                 options: ["Clases de Ingles"]
             },
             {
