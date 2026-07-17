@@ -108,7 +108,10 @@
             <button class="tab-btn tab-inactive" onclick="switchTab('tareas', this)">Tareas</button>
 
             <button class="tab-btn tab-inactive" onclick="switchTab('loves', this)">Loves</button>
+            <button class="tab-btn tab-inactive" onclick="switchTab('odios', this)">Odios</button>
+
             <button class="tab-btn tab-inactive" onclick="switchTab('sentimientos', this)">Sentimientos</button>
+            <button class="tab-btn tab-inactive" onclick="switchTab('logros', this)">Logros</button>
 
             <button class="tab-btn tab-inactive" onclick="switchTab('money', this)">Finance</button>
             <button class="tab-btn tab-inactive" onclick="switchTab('compras', this)">Compras</button>
@@ -193,6 +196,22 @@
                             <span class="year-progress-subtitle">Calculando días restantes...</span>
                         </div>
                         <div id="year-weeks-grid" class="weeks-grid"></div>
+
+                        <!--
+                            ==========================================
+                            NUEVO: PROGRESO CURSO DE INGLÉS
+                            ==========================================
+                            Cuenta en rojo las semanas transcurridas del
+                            curso de inglés (inicio: abril 2025, fin:
+                            julio 2027). Toda la lógica vive en
+                            renderEnglishCourseWeeks() en main.js.
+                        -->
+                        <div class="category-header year-progress-title" id="english-progress-title"
+                            style="border-bottom: none; padding-left: 0; padding-right: 0; margin-top: 20px;">
+                            Curso de Inglés · Semana -- de --
+                            <span class="year-progress-subtitle">Calculando semanas restantes...</span>
+                        </div>
+                        <div id="english-weeks-grid" class="weeks-grid"></div>
                     </div>
 
                     <!--
@@ -343,12 +362,13 @@
                         NUEVO: PENSAMIENTO ALEATORIO
                         ==========================================
                         Toma un registro al azar de ideas_logs y lo muestra
-                        temporalmente. Cada clic en el botón selecciona uno
-                        nuevo al azar.
+                        temporalmente, junto con la fecha en que se creó.
+                        Cada clic en el botón selecciona uno nuevo al azar.
                     -->
                     <div class="random-idea-box" id="random-idea-box">
                         <div class="random-idea-label">Pensamiento Aleatorio</div>
                         <div class="random-idea-text" id="random-idea-text">Presiona el botón para ver un pensamiento al azar.</div>
+                        <div class="random-idea-date" id="random-idea-date"></div>
                         <button class="add-habit-btn" onclick="showRandomIdea()" style="margin-top:10px;">
                             🎲 Nuevo Pensamiento
                         </button>
@@ -413,6 +433,48 @@
                 </section>
             </div>
 
+            <!--
+                ==========================================
+                NUEVO: ODIOS (LO OPUESTO A LOVES)
+                ==========================================
+                Registra las cosas, situaciones o hábitos que no te
+                gustan o que te generan rechazo. Funciona igual que
+                Loves: doble clic para sumar un registro, clic en el
+                nombre para editarlo, clic derecho para eliminarlo.
+                Requiere una tabla "odios_logs" en Supabase con las
+                mismas columnas que "loves_logs" (id, name, count,
+                image_filename).
+            -->
+            <div id="view-odios" class="view-content">
+                <section class="category">
+                    <div id="subview-odios-pasiones">
+                        <div class="item-list-header love-header" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="add-habit-btn" onclick="addOdio()" aria-label="Agregar nuevo odio">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                Add Odio
+                            </button>
+                            <button class="add-habit-btn" onclick="exportOdiosCSV()"
+                                aria-label="Exportar histórico de Odios"
+                                style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-dark);">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                                    style="margin-right: 4px;">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Historial (CSV)
+                            </button>
+                        </div>
+                        <div id="list-odios"></div>
+                    </div>
+                </section>
+            </div>
+
             <!-- SENTIMIENTOS -->
 
             <div id="view-sentimientos" class="view-content">
@@ -429,6 +491,47 @@
                             </button>
                         </div>
                         <div id="list-sentimientos"></div>
+                    </div>
+                </section>
+            </div>
+
+            <!--
+                ==========================================
+                NUEVO: LOGROS
+                ==========================================
+                Complementa a Sentimientos: además de registrar cómo
+                te sientes, este componente te permite registrar y
+                celebrar tus logros y pequeñas victorias personales,
+                reforzando el progreso que ya trackeas en Hábitos y
+                Tareas. Requiere una tabla "logros_logs" en Supabase
+                con las mismas columnas que "loves_logs".
+            -->
+            <div id="view-logros" class="view-content">
+                <section class="category">
+                    <div id="subview-logros-pasiones">
+                        <div class="item-list-header love-header" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="add-habit-btn" onclick="addLogro()" aria-label="Agregar nuevo logro">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                Add Logro
+                            </button>
+                            <button class="add-habit-btn" onclick="exportLogrosCSV()"
+                                aria-label="Exportar histórico de Logros"
+                                style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-dark);">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                                    style="margin-right: 4px;">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Historial (CSV)
+                            </button>
+                        </div>
+                        <div id="list-logros"></div>
                     </div>
                 </section>
             </div>

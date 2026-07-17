@@ -43,10 +43,12 @@ document.addEventListener('DOMContentLoaded', () => {
         loadTareas();
         loadInversiones();
         loadLoves();
+        loadOdios();
         loadSentimientos();
+        loadLogros();
         loadCompras();
         loadBloques();
-        loadMetrics(); // Esta ya ejecuta internamente renderYearWeeks(), loadTopHabits() y loadTopLoves()
+        loadMetrics(); // Esta ya ejecuta internamente renderYearWeeks(), renderEnglishCourseWeeks(), loadTopHabits() y loadTopLoves()
         loadFinances();
         loadAgradecimientos();
         generateInsights();
@@ -835,7 +837,7 @@ function switchTab(tab, btn) {
     btn.classList.add('tab-active');
     btn.classList.remove('tab-inactive');
 
-    const views = ['view-habits', 'view-metrics', 'view-ideas', 'view-tareas', 'view-loves', 'view-sentimientos', 'view-money', 'view-compras'];
+    const views = ['view-habits', 'view-metrics', 'view-ideas', 'view-tareas', 'view-loves', 'view-odios', 'view-sentimientos', 'view-logros', 'view-money', 'view-compras'];
     views.forEach(v => {
         const viewEl = document.getElementById(v);
         if (viewEl) viewEl.classList.remove('active');
@@ -1115,21 +1117,23 @@ async function deleteIdea(id) {
  * NUEVO: PENSAMIENTO ALEATORIO (BRAIN DUMP)
  * ==========================================
  * Selecciona y muestra temporalmente un registro al azar de
- * ideas_logs. Cada clic en el botón "Nuevo Pensamiento" trae uno
- * distinto. Se mantiene un pequeño caché en memoria para no golpear
- * la base de datos en cada clic; el caché se invalida automáticamente
- * cuando se agrega, edita o elimina una idea.
+ * ideas_logs, junto con la fecha en la que fue creado. Cada clic en
+ * el botón "Nuevo Pensamiento" trae uno distinto. Se mantiene un
+ * pequeño caché en memoria para no golpear la base de datos en cada
+ * clic; el caché se invalida automáticamente cuando se agrega, edita
+ * o elimina una idea.
  */
 let randomIdeaCache = [];
 
 async function showRandomIdea() {
     const textEl = document.getElementById('random-idea-text');
+    const dateEl = document.getElementById('random-idea-date');
     if (!textEl) return;
 
     if (randomIdeaCache.length === 0) {
         const { data, error } = await _supabase
             .from('ideas_logs')
-            .select('content')
+            .select('content, created_at')
             .or('type.eq.idea,type.is.null');
 
         if (error) {
@@ -1141,11 +1145,23 @@ async function showRandomIdea() {
 
     if (randomIdeaCache.length === 0) {
         textEl.textContent = "Aún no tienes ideas guardadas en tu Brain Dump.";
+        if (dateEl) dateEl.textContent = '';
         return;
     }
 
     const randomIndex = Math.floor(Math.random() * randomIdeaCache.length);
-    textEl.textContent = randomIdeaCache[randomIndex].content;
+    const idea = randomIdeaCache[randomIndex];
+    textEl.textContent = idea.content;
+
+    if (dateEl) {
+        if (idea.created_at) {
+            const dateObj = new Date(idea.created_at);
+            const dateString = dateObj.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' });
+            dateEl.textContent = `Escrito el ${dateString}`;
+        } else {
+            dateEl.textContent = '';
+        }
+    }
 }
 
 
@@ -1416,6 +1432,9 @@ function toggleCuota(id, cuotaIndex) {
  * ==========================================
  * GESTIÓN DE COSAS QUE AMO (LOVES)
  * ==========================================
+ * NOTA: al hacer clic sobre el NOMBRE de la tarjeta se puede editar
+ * (editLove). Doble clic en cualquier otra parte de la tarjeta suma
+ * un registro. Clic derecho elimina la tarjeta.
  */
 async function loadLoves() {
     const { data: loves, error } = await _supabase
@@ -1440,10 +1459,18 @@ async function loadLoves() {
             <img src="${localImagePath}" class="passion-img" 
                  onerror="this.src='assets/images/default.jpg'">
             <div class="passion-info">
-                <span class="passion-name">${love.name}</span>
+                <span class="passion-name" title="Clic para editar nombre">${love.name}</span>
                 <span class="passion-count">${love.count}</span>
             </div>
         `;
+
+        const nameEl = card.querySelector('.passion-name');
+        if (nameEl) {
+            nameEl.addEventListener('click', (e) => {
+                e.stopPropagation();
+                editLove(love.name, love.id);
+            });
+        }
 
         card.addEventListener('dblclick', () => {
             card.classList.add('pop-animation');
@@ -1573,6 +1600,179 @@ async function exportLovesCSV() {
 
 /**
  * ==========================================
+ * NUEVO: GESTIÓN DE COSAS QUE ODIO (ODIOS)
+ * ==========================================
+ * Es el componente opuesto a Loves: aquí registras las cosas,
+ * situaciones o hábitos que no te gustan o te generan rechazo.
+ * Funciona igual que Loves (doble clic para sumar, clic en el
+ * nombre para editar, clic derecho para eliminar).
+ *
+ * IMPORTANTE: requiere crear en Supabase la tabla "odios_logs" con
+ * las mismas columnas que "loves_logs" (id, name, count,
+ * image_filename).
+ */
+async function loadOdios() {
+    const { data: odios, error } = await _supabase
+        .from('odios_logs')
+        .select('*')
+        .order('count', { ascending: false });
+
+    if (error) return console.error(error.message);
+
+    const container = document.getElementById('list-odios');
+    if (!container) return;
+    container.className = 'loves-grid';
+    container.innerHTML = '';
+
+    odios.forEach(odio => {
+        const card = document.createElement('div');
+        card.className = 'passion-card odio-card';
+
+        const localImagePath = `assets/images/${odio.image_filename}`;
+
+        card.innerHTML = `
+            <img src="${localImagePath}" class="passion-img" 
+                 onerror="this.src='assets/images/default.jpg'">
+            <div class="passion-info">
+                <span class="passion-name" title="Clic para editar nombre">${odio.name}</span>
+                <span class="passion-count">${odio.count}</span>
+            </div>
+        `;
+
+        const nameEl = card.querySelector('.passion-name');
+        if (nameEl) {
+            nameEl.addEventListener('click', (e) => {
+                e.stopPropagation();
+                editOdio(odio.name, odio.id);
+            });
+        }
+
+        card.addEventListener('dblclick', () => {
+            card.classList.add('pop-animation');
+            incrementOdio(odio.id, odio.count);
+
+            const countEl = card.querySelector('.passion-count');
+            countEl.textContent = parseInt(countEl.textContent) + 1;
+
+            setTimeout(() => card.classList.remove('pop-animation'), 300);
+        });
+
+        card.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            deleteOdio(odio.name, odio.id);
+        });
+
+        container.appendChild(card);
+    });
+}
+
+async function addOdio() {
+    const name = prompt("Qué situación, cosa o hábito no te gusta:");
+    if (!name || name.trim() === "") return;
+
+    const { error } = await _supabase
+        .from('odios_logs')
+        .insert([{ name: name.trim(), count: 0 }]);
+
+    if (error) {
+        alert("Error al guardar: " + error.message);
+    } else {
+        loadOdios();
+    }
+}
+
+async function incrementOdio(id, currentCount) {
+    const { error } = await _supabase
+        .from('odios_logs')
+        .update({ count: currentCount + 1 })
+        .eq('id', id);
+
+    if (error) {
+        console.error("Error sumando contador:", error.message);
+    } else {
+        loadOdios();
+    }
+}
+
+async function editOdio(oldName, id) {
+    const newName = prompt("Editar nombre:", oldName);
+    if (!newName || newName.trim() === "" || newName === oldName) return;
+
+    const { error } = await _supabase
+        .from('odios_logs')
+        .update({ name: newName.trim() })
+        .eq('id', id);
+
+    if (error) {
+        alert("Error al editar: " + error.message);
+    } else {
+        loadOdios();
+    }
+}
+
+async function deleteOdio(name, id) {
+    const confirmDelete = confirm(`¿Deseas eliminar "${name}"?`);
+    if (!confirmDelete) return;
+
+    const { error } = await _supabase
+        .from('odios_logs')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        alert("Error al eliminar: " + error.message);
+    } else {
+        loadOdios();
+    }
+}
+
+/**
+ * Exportar historial completo de Odios a CSV.
+ */
+async function exportOdiosCSV() {
+    try {
+        const { data: allOdios, error } = await _supabase
+            .from('odios_logs')
+            .select('*')
+            .order('count', { ascending: false });
+
+        if (error) {
+            alert("Error al conectar con la base de datos: " + error.message);
+            return;
+        }
+
+        if (!allOdios || allOdios.length === 0) {
+            alert("No hay datos de Odios para exportar.");
+            return;
+        }
+
+        let csvContent = "\uFEFF";
+        csvContent += "ID,Nombre,Veces_Registrado\n";
+
+        allOdios.forEach(odio => {
+            const id = odio.id || "";
+            const nombreLimpio = String(odio.name || "").replace(/"/g, '""');
+            csvContent += `${id},"${nombreLimpio}",${odio.count || 0}\n`;
+        });
+
+        descargarCSV(csvContent, "IKILIFE_Odios_Historial_Completo.csv");
+
+    } catch (err) {
+        console.error("Error al exportar CSV de Odios:", err);
+        alert("Ocurrió un error inesperado generando el archivo:\n" + err.message);
+    }
+}
+
+
+
+
+
+
+
+
+
+/**
+ * ==========================================
  * GESTIÓN DE SENTIMIENTOS (CLON DE LOVES)
  * ==========================================
  */
@@ -1599,10 +1799,18 @@ async function loadSentimientos() {
             <img src="${localImagePath}" class="passion-img" 
                  onerror="this.src='assets/images/default.jpg'">
             <div class="passion-info">
-                <span class="passion-name">${sentimiento.name}</span>
+                <span class="passion-name" title="Clic para editar nombre">${sentimiento.name}</span>
                 <span class="passion-count">${sentimiento.count}</span>
             </div>
         `;
+
+        const nameEl = card.querySelector('.passion-name');
+        if (nameEl) {
+            nameEl.addEventListener('click', (e) => {
+                e.stopPropagation();
+                editSentimiento(sentimiento.name, sentimiento.id);
+            });
+        }
 
         card.addEventListener('dblclick', () => {
             card.classList.add('pop-animation');
@@ -1693,6 +1901,180 @@ async function deleteSentimiento(name, id) {
 
 /**
  * ==========================================
+ * NUEVO: GESTIÓN DE LOGROS
+ * ==========================================
+ * Complementa a Sentimientos: mientras ese componente registra
+ * emociones, este componente registra logros y pequeñas victorias
+ * personales para reforzar el progreso que ya trackeas en Hábitos y
+ * Tareas. Funciona igual que Loves/Sentimientos (doble clic para
+ * sumar, clic en el nombre para editar, clic derecho para eliminar).
+ *
+ * IMPORTANTE: requiere crear en Supabase la tabla "logros_logs" con
+ * las mismas columnas que "loves_logs" (id, name, count,
+ * image_filename).
+ */
+async function loadLogros() {
+    const { data: logros, error } = await _supabase
+        .from('logros_logs')
+        .select('*')
+        .order('count', { ascending: false });
+
+    if (error) return console.error(error.message);
+
+    const container = document.getElementById('list-logros');
+    if (!container) return;
+    container.className = 'loves-grid';
+    container.innerHTML = '';
+
+    logros.forEach(logro => {
+        const card = document.createElement('div');
+        card.className = 'passion-card logro-card';
+
+        const localImagePath = `assets/images/${logro.image_filename}`;
+
+        card.innerHTML = `
+            <img src="${localImagePath}" class="passion-img" 
+                 onerror="this.src='assets/images/default.jpg'">
+            <div class="passion-info">
+                <span class="passion-name" title="Clic para editar nombre">${logro.name}</span>
+                <span class="passion-count">${logro.count}</span>
+            </div>
+        `;
+
+        const nameEl = card.querySelector('.passion-name');
+        if (nameEl) {
+            nameEl.addEventListener('click', (e) => {
+                e.stopPropagation();
+                editLogro(logro.name, logro.id);
+            });
+        }
+
+        card.addEventListener('dblclick', () => {
+            card.classList.add('pop-animation');
+            incrementLogro(logro.id, logro.count);
+
+            const countEl = card.querySelector('.passion-count');
+            countEl.textContent = parseInt(countEl.textContent) + 1;
+
+            setTimeout(() => card.classList.remove('pop-animation'), 300);
+        });
+
+        card.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            deleteLogro(logro.name, logro.id);
+        });
+
+        container.appendChild(card);
+    });
+}
+
+async function addLogro() {
+    const name = prompt("Nuevo logro o pequeña victoria personal:");
+    if (!name || name.trim() === "") return;
+
+    const { error } = await _supabase
+        .from('logros_logs')
+        .insert([{ name: name.trim(), count: 0 }]);
+
+    if (error) {
+        alert("Error al guardar: " + error.message);
+    } else {
+        loadLogros();
+    }
+}
+
+async function incrementLogro(id, currentCount) {
+    const { error } = await _supabase
+        .from('logros_logs')
+        .update({ count: currentCount + 1 })
+        .eq('id', id);
+
+    if (error) {
+        console.error("Error sumando contador:", error.message);
+    } else {
+        loadLogros();
+    }
+}
+
+async function editLogro(oldName, id) {
+    const newName = prompt("Editar nombre:", oldName);
+    if (!newName || newName.trim() === "" || newName === oldName) return;
+
+    const { error } = await _supabase
+        .from('logros_logs')
+        .update({ name: newName.trim() })
+        .eq('id', id);
+
+    if (error) {
+        alert("Error al editar: " + error.message);
+    } else {
+        loadLogros();
+    }
+}
+
+async function deleteLogro(name, id) {
+    const confirmDelete = confirm(`¿Deseas eliminar "${name}"?`);
+    if (!confirmDelete) return;
+
+    const { error } = await _supabase
+        .from('logros_logs')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        alert("Error al eliminar: " + error.message);
+    } else {
+        loadLogros();
+    }
+}
+
+/**
+ * Exportar historial completo de Logros a CSV.
+ */
+async function exportLogrosCSV() {
+    try {
+        const { data: allLogros, error } = await _supabase
+            .from('logros_logs')
+            .select('*')
+            .order('count', { ascending: false });
+
+        if (error) {
+            alert("Error al conectar con la base de datos: " + error.message);
+            return;
+        }
+
+        if (!allLogros || allLogros.length === 0) {
+            alert("No hay datos de Logros para exportar.");
+            return;
+        }
+
+        let csvContent = "\uFEFF";
+        csvContent += "ID,Nombre,Veces_Registrado\n";
+
+        allLogros.forEach(logro => {
+            const id = logro.id || "";
+            const nombreLimpio = String(logro.name || "").replace(/"/g, '""');
+            csvContent += `${id},"${nombreLimpio}",${logro.count || 0}\n`;
+        });
+
+        descargarCSV(csvContent, "IKILIFE_Logros_Historial_Completo.csv");
+
+    } catch (err) {
+        console.error("Error al exportar CSV de Logros:", err);
+        alert("Ocurrió un error inesperado generando el archivo:\n" + err.message);
+    }
+}
+
+
+
+
+
+
+
+
+
+/**
+ * ==========================================
  * GESTIÓN DE MÉTRICAS 
  * ==========================================
  */
@@ -1708,12 +2090,17 @@ async function loadMetrics() {
         renderYearWeeks();
     }
 
-    // 2. Renderizar el Top 3 de mejores hábitos históricos
+    // 2. Renderizar el progreso del curso de inglés
+    if (typeof renderEnglishCourseWeeks === 'function') {
+        renderEnglishCourseWeeks();
+    }
+
+    // 3. Renderizar el Top 3 de mejores hábitos históricos
     if (typeof loadTopHabits === 'function') {
         loadTopHabits();
     }
 
-    // 3. Renderizar el Top 3 de Loves favoritos
+    // 4. Renderizar el Top 3 de Loves favoritos
     if (typeof loadTopLoves === 'function') {
         loadTopLoves();
     }
@@ -1748,6 +2135,65 @@ function renderYearWeeks() {
             box.classList.add('passed');
         } else if (i === currentWeek) {
             box.classList.add('current');
+            box.title = `Semana ${i} (Actual)`;
+        }
+
+        container.appendChild(box);
+    }
+}
+
+/**
+ * ==========================================
+ * NUEVO: PROGRESO DEL CURSO DE INGLÉS
+ * ==========================================
+ * Cuenta, en color rojo, las semanas transcurridas de tu curso de
+ * inglés: inicia el 1 de abril de 2025 y termina el 31 de julio de
+ * 2027. Si en algún momento cambian esas fechas, solo hay que
+ * ajustar "startDate" y "endDate" abajo.
+ */
+function renderEnglishCourseWeeks() {
+    const container = document.getElementById('english-weeks-grid');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const startDate = new Date(2025, 3, 1);  // 1 de abril de 2025
+    const endDate = new Date(2027, 6, 31);   // 31 de julio de 2027
+    const today = new Date();
+
+    const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+    const totalWeeks = Math.max(1, Math.ceil((endDate - startDate) / msPerWeek));
+
+    let weeksElapsed;
+    if (today < startDate) {
+        weeksElapsed = 0;
+    } else if (today > endDate) {
+        weeksElapsed = totalWeeks;
+    } else {
+        weeksElapsed = Math.ceil((today - startDate) / msPerWeek);
+    }
+
+    const currentWeekNumber = Math.min(totalWeeks, Math.max(1, weeksElapsed));
+    const weeksRemaining = Math.max(0, totalWeeks - weeksElapsed);
+
+    const titleEl = document.getElementById('english-progress-title');
+    if (titleEl) {
+        const statusText = today > endDate
+            ? "¡Curso finalizado!"
+            : `Quedan ${weeksRemaining} semanas para terminar tu curso de inglés`;
+
+        titleEl.innerHTML = `Curso de Inglés · Semana ${currentWeekNumber} de ${totalWeeks}
+            <span class="year-progress-subtitle">${statusText}</span>`;
+    }
+
+    for (let i = 1; i <= totalWeeks; i++) {
+        const box = document.createElement('div');
+        box.className = 'week-box';
+        box.title = `Semana ${i} del curso de inglés`;
+
+        if (i < weeksElapsed) {
+            box.classList.add('english-passed');
+        } else if (i === weeksElapsed) {
+            box.classList.add('english-current');
             box.title = `Semana ${i} (Actual)`;
         }
 
@@ -1943,10 +2389,18 @@ async function loadCompras() {
             <img src="${localImagePath}" class="passion-img" 
                  onerror="this.src='assets/images/default.jpg'">
             <div class="passion-info">
-                <span class="passion-name">${compra.name}</span>
+                <span class="passion-name" title="Clic para editar nombre">${compra.name}</span>
                 <span class="passion-count">${compra.count}</span>
             </div>
         `;
+
+        const nameEl = card.querySelector('.passion-name');
+        if (nameEl) {
+            nameEl.addEventListener('click', (e) => {
+                e.stopPropagation();
+                editCompra(compra.name, compra.id);
+            });
+        }
 
         card.addEventListener('dblclick', () => {
             card.classList.add('pop-animation');
@@ -2168,24 +2622,16 @@ function renderStateBar(containerId) {
                 options: ["Revisar tickets pendientes", "LLenar ordenes", "Adelantar minuta", "Cumplir con la tarea del dia"]
             },
             {
-                start: 1080, end: 1260, label: "Code & Ingles", icon: "🌱", class: "state-grow",
+                start: 1080, end: 1260, label: "Code & Ingles", icon: "🌱 &#128218;", class: "state-grow",
                 options: ["Practicar inglés (Duolingo/Anki)", "Curso de programación", "Proyecto personal de código"]
             },
             {
-                start: 1080, end: 1260, label: "Comida", icon: "🍽️", class: "state-free",
+                start: 1080, end: 1200, label: "Comida", icon: "🍽️", class: "state-free",
                 options: ["Preparar algo saludable", "Comer con calma, sin pantallas","Preparar coca"]
             },
             {
-                start: 1080, end: 1260, label: "Lectura & Meditación", icon: "🌙", class: "state-free",
+                start: 1200, end: 1260, label: "Lectura & Meditación", icon: "🌙", class: "state-free",
                 options: ["Continuar libro Pideme lo que quieras"]
-            },
-            {
-                start: 1080, end: 1260, label: "Smart", icon: "🌙", class: "state-free",
-                options: ["Clases de Ingles"]
-            },
-            {
-                start: 1080, end: 1260, label: "Organizar Universidad", icon: "🌙", class: "state-free",
-                options: ["Clases de Ingles"]
             },
             {
                 start: 1260, end: 300, label: "Descanso", icon: "🌙", class: "state-sleep",
@@ -2194,16 +2640,12 @@ function renderStateBar(containerId) {
         ],
         weekend: [
             {
-                start: 0, end: 360, label: "Descanso", icon: "🌙", class: "state-sleep",
+                start: 1260, end: 300, label: "Descanso", icon: "🌙", class: "state-sleep",
                 options: ["Dormir", "Rutina nocturna"]
             },
             {
-                start: 360, end: 720, label: "Senderismo", icon: "⛰️", class: "state-grow",
+                start: 300, end: 1080, label: "FreeTime & Senderismo", icon: "⛰️ + 🍻", class: "state-grow",
                 options: ["Sara Travel", "Cruzamontañas", "Caminantes Medellín", "Ruta libre por el cerro"]
-            },
-            {
-                start: 720, end: 1260, label: "Tiempo Libre", icon: "🍻", class: "state-free",
-                options: ["Ver una película", "Salir con amigos", "Leer un libro", "Cocinar algo nuevo", "Pasear sin rumbo"]
             },
             {
                 start: 1260, end: 1440, label: "Descanso", icon: "🌙", class: "state-sleep",

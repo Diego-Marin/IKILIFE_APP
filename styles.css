@@ -1116,6 +1116,31 @@ div.day-segment.future {
 .passion-name { font-size: 0.8rem; font-weight: 700; display: block; }
 .passion-count { font-size: 1.2rem; font-weight: 800; color: var(--primary-green); }
 
+/*
+    NUEVO: variante visual para las tarjetas de Odios. Reutilizan la
+    estructura de .passion-card, pero con un acento rojo en el borde
+    y en el contador, para diferenciarlas de Loves de un vistazo.
+*/
+.odio-card {
+    border-color: rgba(231, 76, 60, 0.35);
+}
+
+.odio-card .passion-count {
+    color: #e74c3c !important;
+}
+
+/*
+    NUEVO: variante visual para las tarjetas de Logros. Acento dorado
+    para transmitir la sensación de "victoria" o "medalla".
+*/
+.logro-card {
+    border-color: rgba(245, 179, 1, 0.4);
+}
+
+.logro-card .passion-count {
+    color: #f5b301 !important;
+}
+
 /* Animación de "Me gusta" */
 .pop-animation { animation: pop 0.3s ease; }
 @keyframes pop {
@@ -1182,6 +1207,22 @@ div.day-segment.future {
 .week-box.current {
     background-color: var(--text-dark);
     box-shadow: 0 0 0 2px var(--bg-light), 0 0 0 4px var(--text-dark);
+}
+
+/*
+    NUEVO: variante en rojo para el progreso del curso de inglés.
+    Reutiliza la misma cuadrícula .weeks-grid / .week-box, pero con
+    las clases "english-passed" y "english-current" en vez de
+    "passed" / "current", para no mezclarlas con el progreso del año.
+*/
+.week-box.english-passed {
+    background-color: #e74c3c;
+    opacity: 0.85;
+}
+
+.week-box.english-current {
+    background-color: #e74c3c;
+    box-shadow: 0 0 0 2px var(--bg-light), 0 0 0 4px #e74c3c;
 }
 
 /* Título del bloque "Progreso del Año" con subtítulo de días restantes */
@@ -1280,6 +1321,19 @@ div.day-segment.future {
     font-style: italic;
     color: var(--text-dark);
     line-height: 1.4;
+}
+
+/*
+    NUEVO: fecha de creación del pensamiento aleatorio, debajo del
+    texto de la idea.
+*/
+.random-idea-date {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-top: 6px;
 }
 
 
