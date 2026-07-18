@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadLoves();
         loadOdios();
         loadSentimientos();
-        loadLogros();
+        loadReglas();
         loadCompras();
         loadBloques();
         loadMetrics(); // Esta ya ejecuta internamente renderYearWeeks(), renderEnglishCourseWeeks(), loadTopHabits() y loadTopLoves()
@@ -837,7 +837,7 @@ function switchTab(tab, btn) {
     btn.classList.add('tab-active');
     btn.classList.remove('tab-inactive');
 
-    const views = ['view-habits', 'view-metrics', 'view-ideas', 'view-tareas', 'view-loves', 'view-odios', 'view-sentimientos', 'view-logros', 'view-money', 'view-compras'];
+    const views = ['view-habits', 'view-metrics', 'view-ideas', 'view-tareas', 'view-loves', 'view-odios', 'view-sentimientos', 'view-reglas', 'view-money', 'view-compras'];
     views.forEach(v => {
         const viewEl = document.getElementById(v);
         if (viewEl) viewEl.classList.remove('active');
@@ -868,10 +868,10 @@ async function saveLearning() {
 }
 
 function toggleFinanceView(viewId) {
-    // Ahora soporta 3 vistas: 'finance-main', 'finance-income' y
-    // 'finance-debts'. Se muestra únicamente la solicitada y se
-    // ocultan las demás.
-    const views = ['finance-main', 'finance-income', 'finance-debts'];
+    // Ahora soporta 4 vistas: 'finance-main', 'finance-income',
+    // 'finance-savings' y 'finance-debts'. Se muestra únicamente la
+    // solicitada y se ocultan las demás.
+    const views = ['finance-main', 'finance-income', 'finance-savings', 'finance-debts'];
 
     views.forEach(v => {
         const el = document.getElementById(v);
@@ -1901,166 +1901,167 @@ async function deleteSentimiento(name, id) {
 
 /**
  * ==========================================
- * NUEVO: GESTIÓN DE LOGROS
+ * NUEVO: REGLAS DE VIDA (reemplaza a Logros)
  * ==========================================
- * Complementa a Sentimientos: mientras ese componente registra
- * emociones, este componente registra logros y pequeñas victorias
- * personales para reforzar el progreso que ya trackeas en Hábitos y
- * Tareas. Funciona igual que Loves/Sentimientos (doble clic para
- * sumar, clic en el nombre para editar, clic derecho para eliminar).
+ * Es tu manual personal de reglas para una vida feliz y en control
+ * (ej. "Afeitado de barba cada 2 días"). Incluye una "Regla
+ * Destacada" que muestra, al azar, una regla a la vez para ayudarte
+ * a memorizarlas poco a poco (mismo patrón que el Pensamiento
+ * Aleatorio de Brain Dump). Clic sobre una regla = editar. Clic
+ * derecho = eliminar.
  *
- * IMPORTANTE: requiere crear en Supabase la tabla "logros_logs" con
- * las mismas columnas que "loves_logs" (id, name, count,
- * image_filename).
+ * IMPORTANTE: requiere crear en Supabase la tabla "reglas_logs" con
+ * columnas (id, name).
  */
-async function loadLogros() {
-    const { data: logros, error } = await _supabase
-        .from('logros_logs')
+async function loadReglas() {
+    const { data: reglas, error } = await _supabase
+        .from('reglas_logs')
         .select('*')
-        .order('count', { ascending: false });
+        .order('id', { ascending: true });
 
-    if (error) return console.error(error.message);
+    if (error) return console.error("Error cargando reglas:", error.message);
 
-    const container = document.getElementById('list-logros');
-    if (!container) return;
-    container.className = 'loves-grid';
-    container.innerHTML = '';
+    const list = document.getElementById('list-reglas');
+    if (!list) return;
+    list.innerHTML = '';
 
-    logros.forEach(logro => {
-        const card = document.createElement('div');
-        card.className = 'passion-card logro-card';
+    reglas.forEach(regla => {
+        const safeName = String(regla.name || '').replace(/'/g, "\\'");
 
-        const localImagePath = `assets/images/${logro.image_filename}`;
-
-        card.innerHTML = `
-            <img src="${localImagePath}" class="passion-img" 
-                 onerror="this.src='assets/images/default.jpg'">
-            <div class="passion-info">
-                <span class="passion-name" title="Clic para editar nombre">${logro.name}</span>
-                <span class="passion-count">${logro.count}</span>
-            </div>
+        const row = `
+            <li class="tarea-row">
+                <div class="tarea-content"
+                     onclick="editRegla(${regla.id}, '${safeName}')"
+                     oncontextmenu="event.preventDefault(); deleteRegla(${regla.id}, '${safeName}')"
+                     style="cursor: pointer;"
+                     title="Clic: Editar | Clic Derecho: Eliminar">
+                     ${regla.name}
+                </div>
+            </li>
         `;
-
-        const nameEl = card.querySelector('.passion-name');
-        if (nameEl) {
-            nameEl.addEventListener('click', (e) => {
-                e.stopPropagation();
-                editLogro(logro.name, logro.id);
-            });
-        }
-
-        card.addEventListener('dblclick', () => {
-            card.classList.add('pop-animation');
-            incrementLogro(logro.id, logro.count);
-
-            const countEl = card.querySelector('.passion-count');
-            countEl.textContent = parseInt(countEl.textContent) + 1;
-
-            setTimeout(() => card.classList.remove('pop-animation'), 300);
-        });
-
-        card.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            deleteLogro(logro.name, logro.id);
-        });
-
-        container.appendChild(card);
+        list.insertAdjacentHTML('beforeend', row);
     });
 }
 
-async function addLogro() {
-    const name = prompt("Nuevo logro o pequeña victoria personal:");
+async function addRegla() {
+    const name = prompt("Nueva regla de vida (Ej: Afeitado de barba cada 2 días):");
     if (!name || name.trim() === "") return;
 
     const { error } = await _supabase
-        .from('logros_logs')
-        .insert([{ name: name.trim(), count: 0 }]);
+        .from('reglas_logs')
+        .insert([{ name: name.trim() }]);
 
     if (error) {
         alert("Error al guardar: " + error.message);
     } else {
-        loadLogros();
+        randomReglaCache = []; // Se invalida el caché de la regla destacada
+        loadReglas();
     }
 }
 
-async function incrementLogro(id, currentCount) {
-    const { error } = await _supabase
-        .from('logros_logs')
-        .update({ count: currentCount + 1 })
-        .eq('id', id);
-
-    if (error) {
-        console.error("Error sumando contador:", error.message);
-    } else {
-        loadLogros();
-    }
-}
-
-async function editLogro(oldName, id) {
-    const newName = prompt("Editar nombre:", oldName);
+async function editRegla(id, oldName) {
+    const newName = prompt("Editar regla de vida:", oldName);
     if (!newName || newName.trim() === "" || newName === oldName) return;
 
     const { error } = await _supabase
-        .from('logros_logs')
+        .from('reglas_logs')
         .update({ name: newName.trim() })
         .eq('id', id);
 
     if (error) {
         alert("Error al editar: " + error.message);
     } else {
-        loadLogros();
+        randomReglaCache = [];
+        loadReglas();
     }
 }
 
-async function deleteLogro(name, id) {
-    const confirmDelete = confirm(`¿Deseas eliminar "${name}"?`);
+async function deleteRegla(id, name) {
+    const confirmDelete = confirm(`¿Deseas eliminar la regla "${name}"?`);
     if (!confirmDelete) return;
 
     const { error } = await _supabase
-        .from('logros_logs')
+        .from('reglas_logs')
         .delete()
         .eq('id', id);
 
     if (error) {
         alert("Error al eliminar: " + error.message);
     } else {
-        loadLogros();
+        randomReglaCache = [];
+        loadReglas();
     }
 }
 
 /**
- * Exportar historial completo de Logros a CSV.
+ * ==========================================
+ * REGLA DESTACADA (aleatoria)
+ * ==========================================
+ * Igual que el Pensamiento Aleatorio de Brain Dump: mantiene un
+ * pequeño caché en memoria para no golpear la base de datos en cada
+ * clic, y se invalida automáticamente al agregar, editar o eliminar
+ * una regla.
  */
-async function exportLogrosCSV() {
+let randomReglaCache = [];
+
+async function showRandomRegla() {
+    const textEl = document.getElementById('regla-destacada-text');
+    if (!textEl) return;
+
+    if (randomReglaCache.length === 0) {
+        const { data, error } = await _supabase
+            .from('reglas_logs')
+            .select('name');
+
+        if (error) {
+            console.error("Error cargando regla destacada:", error.message);
+            return;
+        }
+        randomReglaCache = data || [];
+    }
+
+    if (randomReglaCache.length === 0) {
+        textEl.textContent = "Aún no tienes reglas guardadas. Agrega tu primera regla de vida.";
+        return;
+    }
+
+    const randomIndex = Math.floor(Math.random() * randomReglaCache.length);
+    textEl.textContent = randomReglaCache[randomIndex].name;
+}
+
+/**
+ * Exportar historial completo de Reglas de Vida a CSV.
+ */
+async function exportReglasCSV() {
     try {
-        const { data: allLogros, error } = await _supabase
-            .from('logros_logs')
+        const { data: allReglas, error } = await _supabase
+            .from('reglas_logs')
             .select('*')
-            .order('count', { ascending: false });
+            .order('id', { ascending: true });
 
         if (error) {
             alert("Error al conectar con la base de datos: " + error.message);
             return;
         }
 
-        if (!allLogros || allLogros.length === 0) {
-            alert("No hay datos de Logros para exportar.");
+        if (!allReglas || allReglas.length === 0) {
+            alert("No hay reglas de vida para exportar.");
             return;
         }
 
         let csvContent = "\uFEFF";
-        csvContent += "ID,Nombre,Veces_Registrado\n";
+        csvContent += "ID,Regla\n";
 
-        allLogros.forEach(logro => {
-            const id = logro.id || "";
-            const nombreLimpio = String(logro.name || "").replace(/"/g, '""');
-            csvContent += `${id},"${nombreLimpio}",${logro.count || 0}\n`;
+        allReglas.forEach(regla => {
+            const id = regla.id || "";
+            const nombreLimpio = String(regla.name || "").replace(/"/g, '""');
+            csvContent += `${id},"${nombreLimpio}"\n`;
         });
 
-        descargarCSV(csvContent, "IKILIFE_Logros_Historial_Completo.csv");
+        descargarCSV(csvContent, "IKILIFE_Reglas_De_Vida.csv");
 
     } catch (err) {
-        console.error("Error al exportar CSV de Logros:", err);
+        console.error("Error al exportar CSV de Reglas de Vida:", err);
         alert("Ocurrió un error inesperado generando el archivo:\n" + err.message);
     }
 }
@@ -2227,23 +2228,28 @@ async function loadFinances() {
 
     const listIncomes = document.getElementById('list-incomes');
     const listDebts = document.getElementById('list-debts');
+    const listSavings = document.getElementById('list-savings');
     const expensesContainer = document.getElementById('dynamic-expense-categories');
 
     if (listIncomes) listIncomes.innerHTML = '';
     if (listDebts) listDebts.innerHTML = '';
+    if (listSavings) listSavings.innerHTML = '';
     if (expensesContainer) expensesContainer.innerHTML = '';
 
     let totalIngresosReal = 0;
     let totalGastosReal = 0;
     let totalDeudasReal = 0;
+    let totalAhorroManual = 0; // Suma de los registros manuales de ahorro (tipo 'saving')
     const expensesByCategory = {};
 
     finances.forEach(item => {
         const isIncome = item.type === 'income';
         const isDebt = item.type === 'debt';
+        const isSaving = item.type === 'saving';
         let textColorClass = 'text-expense';
         if (isIncome) textColorClass = 'text-income';
         if (isDebt) textColorClass = 'text-debt';
+        if (isSaving) textColorClass = 'text-savings';
 
         const row = `
             <li class="finance-item" oncontextmenu="event.preventDefault(); deleteFinanceItem(${item.id}, '${item.concept}')">
@@ -2265,6 +2271,9 @@ async function loadFinances() {
         } else if (isDebt) {
             totalDeudasReal += Number(item.real);
             if (listDebts) listDebts.insertAdjacentHTML('beforeend', row);
+        } else if (isSaving) {
+            totalAhorroManual += Number(item.real);
+            if (listSavings) listSavings.insertAdjacentHTML('beforeend', row);
         } else {
             totalGastosReal += Number(item.real);
             if (!expensesByCategory[item.category]) expensesByCategory[item.category] = [];
@@ -2289,7 +2298,10 @@ async function loadFinances() {
         expensesContainer.insertAdjacentHTML('beforeend', sectionHTML);
     }
 
-    const totalAhorro = totalIngresosReal - totalGastosReal;
+    // La lógica original (Ahorro = Ingresos - Gastos) se mantiene intacta;
+    // simplemente se le suma lo que hayas registrado manualmente como
+    // ahorro (tipo 'saving'), sin tocar el cálculo de Ingresos/Gastos.
+    const totalAhorro = (totalIngresosReal - totalGastosReal) + totalAhorroManual;
     if (document.getElementById('kpi-ingresos')) document.getElementById('kpi-ingresos').textContent = formatCurrency(totalIngresosReal);
     if (document.getElementById('kpi-ingresos-detail')) document.getElementById('kpi-ingresos-detail').textContent = formatCurrency(totalIngresosReal);
     if (document.getElementById('kpi-gastos')) document.getElementById('kpi-gastos').textContent = formatCurrency(totalGastosReal);
@@ -2626,7 +2638,7 @@ function renderStateBar(containerId) {
                 options: ["Practicar inglés (Duolingo/Anki)", "Curso de programación", "Proyecto personal de código"]
             },
             {
-                start: 1080, end: 1200, label: "Comida", icon: "🍽️", class: "state-free",
+                start: 1080, end: 1260, label: "Comida", icon: "🍽️", class: "state-free",
                 options: ["Preparar algo saludable", "Comer con calma, sin pantallas","Preparar coca"]
             },
             {
@@ -2646,6 +2658,10 @@ function renderStateBar(containerId) {
             {
                 start: 300, end: 1080, label: "FreeTime & Senderismo", icon: "⛰️ + 🍻", class: "state-grow",
                 options: ["Sara Travel", "Cruzamontañas", "Caminantes Medellín", "Ruta libre por el cerro"]
+            },
+            {
+                start: 1080, end: 1260, label: "Comida", icon: "🍽️", class: "state-free",
+                options: ["Preparar algo saludable", "Comer con calma, sin pantallas","Preparar coca"]
             },
             {
                 start: 1260, end: 1440, label: "Descanso", icon: "🌙", class: "state-sleep",
