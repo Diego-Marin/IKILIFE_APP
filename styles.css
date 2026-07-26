@@ -1294,6 +1294,10 @@ div.day-segment.future {
     background: var(--border-color);
     outline: none;
     cursor: pointer;
+    /* Deja que el dedo haga scroll vertical de la página al pasar por
+       encima del slider; solo un arrastre horizontal intencional mueve
+       el valor. Evita el cambio accidental al navegar la lista en móvil. */
+    touch-action: pan-y;
 }
 
 .mood-slider::-moz-range-track {
