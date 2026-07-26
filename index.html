@@ -38,21 +38,13 @@
                     </svg>
                 </button>
 
+                <button id="export-json-btn" class="icon-btn" style="font-size: 18px;" onclick="exportAllDataJSON()"
+                    aria-label="Exportar Todo (JSON para IA)" title="Exportar Todo (JSON para IA)">📦</button>
+
                 <div class="header-divider"></div>
 
                 <div class="profile-menu-container">
-                    <button class="profile-btn" aria-label="Menú de usuario"
-                        onclick="document.getElementById('profile-dropdown').classList.toggle('hidden')">
-                        <img src="https://ui-avatars.com/api/?name=Diego&background=74C08A&color=fff"
-                            alt="Foto de perfil" class="profile-pic" id="user-avatar">
-                    </button>
-
-                    <div id="profile-dropdown" class="dropdown-menu hidden">
-                        <div class="dropdown-header">Mi Cuenta</div>
-                        <button class="dropdown-item" onclick="exportAllDataJSON()">📦 Exportar Todo (JSON para IA)</button>
-                        <button class="dropdown-item">Ajustes</button>
-                        <button class="dropdown-item text-danger">Cerrar Sesión</button>
-                    </div>
+                    <img src="assets/images/perfil.jpg" alt="Foto de perfil" class="profile-pic" id="user-avatar">
                 </div>
             </div>
         </header>
