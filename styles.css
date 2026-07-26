@@ -100,6 +100,33 @@ header.main-header {
     background-color: var(--border-color);
 }
 
+/*
+    NUEVO: botón de exportar SQL con el MISMO lenguaje visual que el
+    botón "Historial (SQL)" de Brain Dump / Loves / Odios / Sentimientos
+    (fondo transparente, borde de 1px, texto oscuro), pero en versión
+    compacta para poder vivir dentro de la cabecera angosta de
+    Hábitos, junto a las flechas de semana, sin romper el layout.
+*/
+.sql-btn-compact {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-dark);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color var(--transition), color var(--transition);
+}
+
+.sql-btn-compact:hover {
+    background-color: var(--bg-header);
+}
+
 /* Separador visual */
 .header-divider {
     width: 1px;
@@ -1184,6 +1211,161 @@ div.day-segment.future {
 }
 
 /*
+    NUEVO: Odios y Sentimientos reestructurados como barra de
+    intensidad 1-10 en vez de contador acumulativo. Se muestran como
+    lista (no como grid cuadrado) porque la barra necesita ancho para
+    ser usable. Mantienen imagen + nombre, cambia solo la forma del
+    "count".
+*/
+.mood-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+}
+
+.mood-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px;
+    border-radius: 12px;
+    border: 2px solid var(--border-color);
+    background-color: var(--white);
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.mood-img {
+    width: 76px;
+    height: 76px;
+    flex-shrink: 0;
+    border-radius: 12px;
+    object-fit: cover;
+}
+
+.mood-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.mood-top-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.mood-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mood-value {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--primary-green);
+    flex-shrink: 0;
+    min-width: 1.4em;
+    text-align: right;
+}
+
+/*
+    NUEVO: la barra ahora se ve "rellena" hasta el valor marcado.
+    El relleno real (webkit) se pinta en JS con un linear-gradient
+    inline sobre este mismo elemento (ver actualizarRellenoBarra() en
+    main.js) porque el input[type=range] no tiene una forma nativa de
+    saber "hasta dónde va el valor" en CSS puro. Firefox sí soporta
+    ::-moz-range-progress de forma nativa, así que ahí se pinta solo.
+*/
+.mood-slider {
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--border-color);
+    outline: none;
+    cursor: pointer;
+}
+
+.mood-slider::-moz-range-track {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--border-color);
+}
+
+.mood-slider::-moz-range-progress {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--primary-green);
+}
+
+.mood-card--odio .mood-slider::-moz-range-progress {
+    background: #e74c3c;
+}
+
+.mood-slider::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--primary-green);
+    border: 2px solid var(--white);
+    box-shadow: 0 0 0 1px var(--border-color);
+    cursor: pointer;
+    margin-top: -5px;
+}
+
+.mood-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--primary-green);
+    border: 2px solid var(--white);
+    box-shadow: 0 0 0 1px var(--border-color);
+    cursor: pointer;
+}
+
+.mood-date {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+/* Variante roja para Odios */
+.mood-card--odio {
+    border-color: rgba(231, 76, 60, 0.35);
+}
+
+.mood-card--odio .mood-value {
+    color: #e74c3c;
+}
+
+.mood-card--odio .mood-slider::-webkit-slider-thumb {
+    background: #e74c3c;
+}
+
+.mood-card--odio .mood-slider::-moz-range-thumb {
+    background: #e74c3c;
+}
+
+/* Variante para Sentimientos (usa el verde de la app, igual que Loves) */
+.mood-card--sentimiento {
+    border-color: rgba(116, 192, 138, 0.35);
+}
+
+/*
     NUEVO: tarjetas de "Planes". Cada tarjeta muestra el plan, su fecha/lugar, el clima
     real esperado (cuando está disponible) y, en grande, los días
     que faltan para el evento.
@@ -1431,6 +1613,73 @@ div.day-segment.future {
     font-size: 0.8rem;
     color: var(--text-muted);
     padding: 8px 12px;
+}
+
+/**
+ * ==========================================
+ * NUEVO: EVOLUCIÓN EMOCIONAL (GRÁFICO DE BARRAS, 14 DÍAS)
+ * ==========================================
+ * Mini gráfico de barras hecho en CSS puro (sin canvas ni librerías
+ * externas) que muestra el promedio diario de Sentimientos u Odios de
+ * los últimos 14 días. Cada barra crece desde abajo según el
+ * promedio (0-10 -> 0-100% de alto).
+ */
+.emotion-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 110px;
+    padding: 8px 16px 16px;
+    overflow-x: auto;
+}
+
+.emotion-bar {
+    flex: 1;
+    min-width: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    height: 100%;
+    gap: 4px;
+}
+
+.emotion-bar-track {
+    width: 100%;
+    max-width: 14px;
+    height: 84px;
+    background: var(--bg-header);
+    border-radius: 4px;
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+}
+
+.emotion-bar-fill {
+    width: 100%;
+    min-height: 2px;
+    border-radius: 4px 4px 0 0;
+    transition: height 0.3s ease;
+}
+
+.emotion-bar-label {
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.emotion-avg-badge {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--primary-green);
+    background: var(--bg-header);
+    padding: 3px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+.emotion-avg-badge--odio {
+    color: #e74c3c;
 }
 
 /**

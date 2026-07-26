@@ -11,6 +11,52 @@ const SUPABASE_KEY = sPart1 + sPart2 + sPart3;
 const SUPABASE_URL = "https://pgawswfurouzstkapwby.supabase.co";
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+/**
+ * ==========================================
+ * ÍNDICE DEL ARCHIVO (TABLA DE CONTENIDO)
+ * ==========================================
+ * main.js está organizado por COMPONENTE, cada uno con su propio
+ * banner de comentario (el mismo estilo que este). Para saltar a una
+ * sección, busca (Ctrl/Cmd+F) el texto exacto del banner que aparece
+ * entre comillas abajo.
+ *
+ * Al agregar un componente nuevo a la app (su propio "X_logs" en
+ * Supabase + su vista en el HTML), sigue el mismo patrón que ya usan
+ * Loves / Odios / Sentimientos / Compras: load X(), addX(), editX(),
+ * deleteX() y, si aplica, exportXSQL(). Agrega también su propio
+ * banner de sección y una línea nueva aquí en el índice.
+ *
+ *  1. "INICIALIZACIÓN"                          → arranque de la app (DOMContentLoaded)
+ *  2. "GESTIÓN DEL TEMA"                        → modo claro/oscuro
+ *  3. "UTILIDAD: NÚMERO DE SEMANA DEL AÑO"       → helpers de fecha/semana compartidos
+ *  4. "CÁLCULO DE PROGRESO SEMANAL Y FECHAS"     → barra de progreso semanal de hábitos
+ *  5. "NUEVO: FRASE MOTIVACIONAL DEL DÍA"        → frase del día
+ *  6. "GESTIÓN DE BLOQUES DE RUTINA"             → bloques de rutina diaria (JSONB)
+ *  7. "GESTIÓN DE HÁBITOS"                       → hábitos semanales (grid histórico)
+ *  8. "UTILIDADES DE EXPORTACIÓN (SQL)"          → sqlValue/buildSQLInsert/descargarArchivo (usados por TODOS los exportadores)
+ *  9. "EXPORTAR TODO (JSON PARA IA / NOTEBOOKLM)"→ exportAllDataJSON + TABLAS_EXPORTABLES
+ * 10. "EXPORTAR HÁBITOS A SQL"                   → exportAllHistorySQL
+ * 11. "MEJORES HÁBITOS (TOP 3 HISTÓRICO)"        → loadTopHabits
+ * 12. "NUEVO: MEJORES LOVES (TOP 3 RANKING)"     → loadTopLoves
+ * 13. "NUEVO: TOP 3 DE SENTIMIENTOS Y ODIOS"     → loadTopSentimientos / loadTopOdios / loadTopCompras (por intensidad o count actual)
+ * 14. "NUEVO: EVOLUCIÓN EMOCIONAL"               → gráfico de barras de promedio diario (Sentimientos/Odios, últimos 14 días)
+ * 15. "INTERFAZ DE USUARIO (TABS Y OTROS)"       → switchTab, saveLearning, toggleFinanceView
+ * 16. "GESTIÓN DE IDEAS (BRAIN DUMP)"            → Brain Dump: CRUD de ideas
+ * 17. "PENSAMIENTO ALEATORIO (BRAIN DUMP)"       → showRandomIdea + exportIdeasSQL
+ * 18. "GESTIÓN DE TAREAS"                        → lista única de tareas del día
+ * 19. "GESTIÓN DE INVERSIONES Y DEUDAS"          → inversiones con cuotas (JSONB)
+ * 20. "GESTIÓN DE COSAS QUE AMO (LOVES)"         → Loves: CRUD + contador acumulativo (dblclick)
+ * 21. "GESTIÓN DE COSAS QUE ODIO (ODIOS)"        → Odios: CRUD + barra de intensidad 1-10
+ * 22. "UTILIDADES COMPARTIDAS: TRACKERS DE BARRA 1-10" → helpers usados por Odios Y Sentimientos (fechas, guardado, relleno visual)
+ * 23. "GESTIÓN DE SENTIMIENTOS"                  → Sentimientos: CRUD + barra de intensidad 1-10
+ * 24. "PLANES"                                   → planes futuros + clima (Open-Meteo)
+ * 25. "GESTIÓN DE MÉTRICAS"                      → loadMetrics() orquesta TODOS los Top 3 + gráficos de la pestaña Métricas
+ * 26. "PROGRESO DEL CURSO DE INGLÉS"             → renderEnglishCourseWeeks
+ * 27. "GESTIÓN DE FINANZAS"                      → finanzas dinámicas/acumulativas
+ * 28. "GESTIÓN DE COMPRAS"                       → Compras: CRUD + contador acumulativo (clon de Loves)
+ * 29. "COMPONENTE STATE BAR"                     → tarjetas de "qué hacer ahora" según la hora del día
+ */
+
 
 /**
  * ==========================================
@@ -763,7 +809,8 @@ function descargarArchivo(content, filename, mimeType) {
  */
 const TABLAS_EXPORTABLES = [
     'habit_logs', 'tareas_logs', 'loves_logs', 'odios_logs',
-    'sentimientos_logs', 'ideas_logs', 'compras_logs', 'finance_logs',
+    'odios_registros', 'sentimientos_logs', 'sentimientos_registros',
+    'ideas_logs', 'compras_logs', 'finance_logs',
     'inversiones_logs', 'journal_logs', 'bloques_logs', 'planes_logs'
 ];
 
@@ -935,18 +982,17 @@ async function loadTopLoves() {
 
 /**
  * ==========================================
- * NUEVO: TOP 3 DE SENTIMIENTOS, ODIOS Y COMPRAS
+ * NUEVO: TOP 3 DE SENTIMIENTOS Y ODIOS (POR INTENSIDAD ACTUAL)
  * ==========================================
- * Mismo patrón que loadTopLoves(), aplicado a las otras tres tablas
- * que también llevan un contador ("count"): sentimientos_logs,
- * odios_logs y compras_logs.
+ * Desde la reestructuración a barras 1-10, "count" ya no existe para
+ * estos dos componentes. El Top 3 ahora se calcula con el ÚLTIMO
+ * valor registrado (más reciente por fecha) de cada item, usando
+ * cargarUltimosRegistros() (ver más abajo, junto a loadOdios).
  */
 async function loadTopSentimientos() {
-    const { data: allSentimientos, error } = await _supabase
+    const { data: sentimientos, error } = await _supabase
         .from('sentimientos_logs')
-        .select('name, count')
-        .order('count', { ascending: false })
-        .limit(3);
+        .select('id, name');
 
     const container = document.getElementById('top-sentimientos-list');
     if (!container) return;
@@ -957,21 +1003,29 @@ async function loadTopSentimientos() {
         return;
     }
 
+    const ultimos = await cargarUltimosRegistros('sentimientos_registros', 'sentimiento_id');
+
+    const top3 = (sentimientos || [])
+        .filter(s => ultimos[s.id])
+        .map(s => ({ name: s.name, valor: ultimos[s.id].valor }))
+        .sort((a, b) => b.valor - a.valor)
+        .slice(0, 3);
+
     container.innerHTML = '';
 
-    if (!allSentimientos || allSentimientos.length === 0) {
+    if (top3.length === 0) {
         container.innerHTML = `<div class="top-habit-empty">Aún no hay Sentimientos registrados para mostrar.</div>`;
         return;
     }
 
     const medals = ['🥇', '🥈', '🥉'];
 
-    allSentimientos.forEach((item, index) => {
+    top3.forEach((item, index) => {
         const row = `
             <div class="top-habit-row">
                 <span class="top-habit-medal">${medals[index]}</span>
                 <span class="top-habit-name">${item.name}</span>
-                <span class="top-habit-count">${item.count}x</span>
+                <span class="top-habit-count">${item.valor}/10</span>
             </div>
         `;
         container.insertAdjacentHTML('beforeend', row);
@@ -979,11 +1033,9 @@ async function loadTopSentimientos() {
 }
 
 async function loadTopOdios() {
-    const { data: allOdios, error } = await _supabase
+    const { data: odios, error } = await _supabase
         .from('odios_logs')
-        .select('name, count')
-        .order('count', { ascending: false })
-        .limit(3);
+        .select('id, name');
 
     const container = document.getElementById('top-odios-list');
     if (!container) return;
@@ -994,27 +1046,152 @@ async function loadTopOdios() {
         return;
     }
 
+    const ultimos = await cargarUltimosRegistros('odios_registros', 'odio_id');
+
+    const top3 = (odios || [])
+        .filter(o => ultimos[o.id])
+        .map(o => ({ name: o.name, valor: ultimos[o.id].valor }))
+        .sort((a, b) => b.valor - a.valor)
+        .slice(0, 3);
+
     container.innerHTML = '';
 
-    if (!allOdios || allOdios.length === 0) {
+    if (top3.length === 0) {
         container.innerHTML = `<div class="top-habit-empty">Aún no hay Odios registrados para mostrar.</div>`;
         return;
     }
 
     const medals = ['🥇', '🥈', '🥉'];
 
-    allOdios.forEach((item, index) => {
+    top3.forEach((item, index) => {
         const row = `
             <div class="top-habit-row">
                 <span class="top-habit-medal">${medals[index]}</span>
                 <span class="top-habit-name">${item.name}</span>
-                <span class="top-habit-count">${item.count}x</span>
+                <span class="top-habit-count">${item.valor}/10</span>
             </div>
         `;
         container.insertAdjacentHTML('beforeend', row);
     });
 }
 
+/**
+ * ==========================================
+ * NUEVO: EVOLUCIÓN EMOCIONAL (PROMEDIO DIARIO, GRÁFICO DE BARRAS)
+ * ==========================================
+ * A diferencia del Top 3 (que mira el ÚLTIMO valor de cada item),
+ * esto mira TODOS los registros de los últimos N días, calcula el
+ * promedio de todos los items registrados por día, y lo dibuja como
+ * un mini gráfico de barras para ver la tendencia general (¿en
+ * conjunto las cosas que odio se sienten más o menos fuertes que hace
+ * dos semanas? ¿Y los sentimientos que registro?).
+ *
+ * Es una sola función genérica (cargarEvolucionEmocional) reutilizada
+ * por Sentimientos y Odios, cada uno con su propia tabla de registros
+ * y su color.
+ */
+const DIAS_EVOLUCION_EMOCIONAL = 14;
+
+// Fecha ISO (YYYY-MM-DD) de hace N días exactos, incluyendo hoy si N=0.
+function fechaISODesdeHoy(diasAtras) {
+    const d = new Date();
+    d.setDate(d.getDate() - diasAtras);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+async function cargarEvolucionEmocional(tableName, chartContainerId, promedioBadgeId, colorCss) {
+    const chartContainer = document.getElementById(chartContainerId);
+    const badge = document.getElementById(promedioBadgeId);
+    if (!chartContainer) return;
+
+    const desdeISO = fechaISODesdeHoy(DIAS_EVOLUCION_EMOCIONAL - 1);
+
+    const { data, error } = await _supabase
+        .from(tableName)
+        .select('valor, fecha')
+        .gte('fecha', desdeISO);
+
+    chartContainer.innerHTML = '';
+
+    if (error) {
+        console.error(`Error cargando evolución de ${tableName}:`, error.message);
+        if (badge) badge.textContent = '--';
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        chartContainer.innerHTML = `<div class="top-habit-empty">Aún no hay suficientes registros para graficar la evolución.</div>`;
+        if (badge) badge.textContent = 'Sin datos';
+        return;
+    }
+
+    // Agrupar todos los valores registrados por fecha (puede haber
+    // varios items registrados el mismo día).
+    const valoresPorFecha = {};
+    data.forEach(registro => {
+        if (!valoresPorFecha[registro.fecha]) valoresPorFecha[registro.fecha] = [];
+        valoresPorFecha[registro.fecha].push(registro.valor);
+    });
+
+    // Construir la serie de los últimos N días en orden cronológico,
+    // con "promedio: null" en los días sin ningún registro.
+    const dias = [];
+    for (let i = DIAS_EVOLUCION_EMOCIONAL - 1; i >= 0; i--) {
+        const fechaISO = fechaISODesdeHoy(i);
+        const valores = valoresPorFecha[fechaISO] || [];
+        const promedio = valores.length
+            ? valores.reduce((a, b) => a + b, 0) / valores.length
+            : null;
+        dias.push({ fecha: fechaISO, promedio });
+    }
+
+    dias.forEach(dia => {
+        const pct = dia.promedio !== null ? (dia.promedio / 10) * 100 : 0;
+        const [, mes, diaNum] = dia.fecha.split('-');
+
+        const barWrap = document.createElement('div');
+        barWrap.className = 'emotion-bar';
+        barWrap.title = dia.promedio !== null
+            ? `${diaNum}/${mes}: promedio ${dia.promedio.toFixed(1)}/10`
+            : `${diaNum}/${mes}: sin registros`;
+
+        barWrap.innerHTML = `
+            <div class="emotion-bar-track">
+                <div class="emotion-bar-fill" style="height: ${pct}%; background: ${colorCss};"></div>
+            </div>
+            <span class="emotion-bar-label">${diaNum}/${mes}</span>
+        `;
+        chartContainer.appendChild(barWrap);
+    });
+
+    // Promedio general de todo el periodo (solo días que sí tuvieron registros).
+    const diasConDatos = dias.filter(d => d.promedio !== null);
+    if (badge) {
+        badge.textContent = diasConDatos.length
+            ? `${(diasConDatos.reduce((acc, d) => acc + d.promedio, 0) / diasConDatos.length).toFixed(1)}/10`
+            : 'Sin datos';
+    }
+}
+
+async function loadEvolucionSentimientos() {
+    await cargarEvolucionEmocional(
+        'sentimientos_registros',
+        'chart-sentimientos-evolucion',
+        'sentimientos-promedio-general',
+        'var(--primary-green)'
+    );
+}
+
+async function loadEvolucionOdios() {
+    await cargarEvolucionEmocional(
+        'odios_registros',
+        'chart-odios-evolucion',
+        'odios-promedio-general',
+        '#e74c3c'
+    );
+}
+
+// Top 3 de Compras (sigue basado en "count", ver banner "NUEVO: TOP 3 DE SENTIMIENTOS Y ODIOS" más arriba para contexto general de los Top 3).
 async function loadTopCompras() {
     const { data: allCompras, error } = await _supabase
         .from('compras_logs')
@@ -1769,61 +1946,93 @@ async function exportLovesSQL() {
 
 /**
  * ==========================================
- * GESTIÓN DE COSAS QUE ODIO (ODIOS)
+ * GESTIÓN DE COSAS QUE ODIO (ODIOS) — BARRA DE INTENSIDAD 1-10
  * ==========================================
- * Es el componente opuesto a Loves: aquí registras las cosas,
- * situaciones o hábitos que no te gustan o te generan rechazo.
- * Funciona igual que Loves (doble clic para sumar, clic en el
- * nombre para editar, clic derecho para eliminar).
+ * Cada item (nombre + imagen) ya NO usa un contador acumulativo.
+ * En su lugar se mide con una barra de 1 a 10 que representa qué tan
+ * fuerte se siente ese rechazo AL MOMENTO de registrar. Cada registro
+ * queda guardado con su fecha en una tabla separada, así que el
+ * historial completo se conserva día a día (ej: ansiedad ayer 7, hoy 4).
  *
- * IMPORTANTE: requiere crear en Supabase la tabla "odios_logs" con
- * las mismas columnas que "loves_logs" (id, name, count,
- * image_filename).
+ * La barra siempre se carga con el ÚLTIMO valor registrado (sea de
+ * hoy o de cualquier día anterior). Si hoy mueves la barra, se crea
+ * (o actualiza) el registro de HOY, sin tocar los registros de días
+ * pasados.
+ *
+ * IMPORTANTE: requiere en Supabase, ADEMÁS de "odios_logs" (id, name,
+ * image_filename — la columna "count" ya no se usa y puede quedar o
+ * eliminarse), una tabla nueva "odios_registros" con:
+ *   id          bigint, PK, identity
+ *   odio_id     bigint, FK -> odios_logs(id) ON DELETE CASCADE
+ *   valor       smallint (check valor between 1 and 10)
+ *   fecha       date (default current_date)
+ *   created_at  timestamptz (default now())
+ *   UNIQUE (odio_id, fecha)   <-- clave para que el upsert funcione
  */
 async function loadOdios() {
     const { data: odios, error } = await _supabase
         .from('odios_logs')
         .select('*')
-        .order('count', { ascending: false });
+        .order('name', { ascending: true });
 
     if (error) return console.error(error.message);
 
     const container = document.getElementById('list-odios');
     if (!container) return;
-    container.className = 'loves-grid';
+    container.className = 'mood-grid';
     container.innerHTML = '';
 
+    const ultimos = await cargarUltimosRegistros('odios_registros', 'odio_id');
+
     odios.forEach(odio => {
+        const registro = ultimos[odio.id];
+        const valorActual = registro ? registro.valor : 5;
+        const fechaLabel = registro ? formatFechaRelativa(registro.fecha) : 'Sin registrar';
+
         const card = document.createElement('div');
-        card.className = 'passion-card odio-card';
+        card.className = 'mood-card mood-card--odio';
 
         const localImagePath = `assets/images/${odio.image_filename}`;
 
         card.innerHTML = `
-            <img src="${localImagePath}" class="passion-img" 
+            <img src="${localImagePath}" class="mood-img"
                  onerror="this.src='assets/images/default.jpg'">
-            <div class="passion-info">
-                <span class="passion-name" title="Clic para editar nombre">${odio.name}</span>
-                <span class="passion-count">${odio.count}</span>
+            <div class="mood-info">
+                <div class="mood-top-row">
+                    <span class="mood-name" title="Clic para editar nombre">${odio.name}</span>
+                    <span class="mood-value">${valorActual}</span>
+                </div>
+                <input type="range" min="1" max="10" step="1" value="${valorActual}" class="mood-slider" aria-label="Intensidad de ${odio.name}">
+                <span class="mood-date">${fechaLabel}</span>
             </div>
         `;
 
-        const nameEl = card.querySelector('.passion-name');
-        if (nameEl) {
-            nameEl.addEventListener('click', (e) => {
-                e.stopPropagation();
-                editOdio(odio.name, odio.id);
-            });
-        }
+        const nameEl = card.querySelector('.mood-name');
+        nameEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            editOdio(odio.name, odio.id);
+        });
 
-        card.addEventListener('dblclick', () => {
+        const slider = card.querySelector('.mood-slider');
+        const valueEl = card.querySelector('.mood-value');
+        const dateEl = card.querySelector('.mood-date');
+
+        actualizarRellenoBarra(slider, valorActual, '#e74c3c');
+
+        // Mientras se arrastra, solo actualiza el número y el relleno en vivo.
+        slider.addEventListener('input', () => {
+            valueEl.textContent = slider.value;
+            actualizarRellenoBarra(slider, parseInt(slider.value, 10), '#e74c3c');
+        });
+
+        // Al soltar, se guarda como el registro de HOY.
+        slider.addEventListener('change', async () => {
+            const nuevoValor = parseInt(slider.value, 10);
             card.classList.add('pop-animation');
-            incrementOdio(odio.id, odio.count);
-
-            const countEl = card.querySelector('.passion-count');
-            countEl.textContent = parseInt(countEl.textContent) + 1;
-
+            await guardarRegistroTracker('odios_registros', 'odio_id', odio.id, nuevoValor);
+            dateEl.textContent = 'Hoy';
             setTimeout(() => card.classList.remove('pop-animation'), 300);
+            loadTopOdios();
         });
 
         card.addEventListener('contextmenu', (e) => {
@@ -1850,19 +2059,6 @@ async function addOdio() {
     }
 }
 
-async function incrementOdio(id, currentCount) {
-    const { error } = await _supabase
-        .from('odios_logs')
-        .update({ count: currentCount + 1 })
-        .eq('id', id);
-
-    if (error) {
-        console.error("Error sumando contador:", error.message);
-    } else {
-        loadOdios();
-    }
-}
-
 async function editOdio(oldName, id) {
     const newName = prompt("Editar nombre:", oldName);
     if (!newName || newName.trim() === "" || newName === oldName) return;
@@ -1880,8 +2076,12 @@ async function editOdio(oldName, id) {
 }
 
 async function deleteOdio(name, id) {
-    const confirmDelete = confirm(`¿Deseas eliminar "${name}"?`);
+    const confirmDelete = confirm(`¿Deseas eliminar "${name}" y todo su historial de registros?`);
     if (!confirmDelete) return;
+
+    // Por si la tabla no tiene ON DELETE CASCADE configurado, borramos
+    // primero el historial de registros asociado.
+    await _supabase.from('odios_registros').delete().eq('odio_id', id);
 
     const { error } = await _supabase
         .from('odios_logs')
@@ -1896,14 +2096,14 @@ async function deleteOdio(name, id) {
 }
 
 // ======================================================
-// EXPORTAR ODIOS
+// EXPORTAR ODIOS (exporta el historial diario de registros, no solo los items)
 // ======================================================
 async function exportOdiosSQL() {
     try {
         const { data, error } = await _supabase
-            .from('odios_logs')
+            .from('odios_registros')
             .select('*')
-            .order('created_at', { ascending: true });
+            .order('fecha', { ascending: true });
 
         if (error) throw error;
 
@@ -1912,8 +2112,8 @@ async function exportOdiosSQL() {
             return;
         }
 
-        const sql = buildSQLInsert('odios_logs', data);
-        descargarArchivo(sql, 'odios_logs.sql', 'text/sql');
+        const sql = buildSQLInsert('odios_registros', data);
+        descargarArchivo(sql, 'odios_registros.sql', 'text/sql');
 
     } catch (err) {
         console.error(err);
@@ -1929,55 +2129,180 @@ async function exportOdiosSQL() {
 
 
 
+
 /**
  * ==========================================
- * GESTIÓN DE SENTIMIENTOS (CLON DE LOVES)
+ * UTILIDADES COMPARTIDAS: TRACKERS DE BARRA 1-10
  * ==========================================
+ * Usadas tanto por Odios como por Sentimientos (y por sus respectivos
+ * Top 3), para no duplicar la lógica de fechas y de guardado.
+ */
+
+// Fecha de HOY en formato YYYY-MM-DD (para comparar con la columna "fecha").
+function getFechaHoyISO() {
+    const hoy = new Date();
+    const yyyy = hoy.getFullYear();
+    const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+    const dd = String(hoy.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+}
+
+// Convierte una fecha "YYYY-MM-DD" en una etiqueta legible: Hoy / Ayer / "24 jul".
+function formatFechaRelativa(fechaStr) {
+    if (!fechaStr) return 'Sin registrar';
+
+    const hoyISO = getFechaHoyISO();
+    if (fechaStr === hoyISO) return 'Hoy';
+
+    const ayer = new Date();
+    ayer.setDate(ayer.getDate() - 1);
+    const ayerISO = `${ayer.getFullYear()}-${String(ayer.getMonth() + 1).padStart(2, '0')}-${String(ayer.getDate()).padStart(2, '0')}`;
+    if (fechaStr === ayerISO) return 'Ayer';
+
+    const [y, m, d] = fechaStr.split('-').map(Number);
+    const fecha = new Date(y, m - 1, d);
+    return fecha.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
+}
+
+/**
+ * Trae de una tabla de registros (odios_registros / sentimientos_registros)
+ * el último valor (por fecha) para CADA item, y devuelve un mapa:
+ *   { [itemId]: { valor, fecha } }
+ */
+async function cargarUltimosRegistros(tableName, fkColumn) {
+    const { data, error } = await _supabase
+        .from(tableName)
+        .select(`${fkColumn}, valor, fecha`)
+        .order('fecha', { ascending: false });
+
+    if (error) {
+        console.error(`Error cargando ${tableName}:`, error.message);
+        return {};
+    }
+
+    const mapa = {};
+    (data || []).forEach(registro => {
+        const id = registro[fkColumn];
+        // Como viene ordenado de más reciente a más antiguo, la primera
+        // vez que aparece cada id ya es su valor más actual.
+        if (!(id in mapa)) {
+            mapa[id] = { valor: registro.valor, fecha: registro.fecha };
+        }
+    });
+    return mapa;
+}
+
+/**
+ * Pinta el "relleno" visual de una barra 1-10 hasta el valor actual
+ * (en navegadores basados en Chromium/WebKit, que no soportan
+ * ::-moz-range-progress). Se llama al renderizar la tarjeta y en cada
+ * evento "input" mientras se arrastra, para que se vea rellenar en
+ * vivo. Firefox ignora este inline-style de background porque ya
+ * tiene su propio ::-moz-range-progress definido en el CSS.
+ */
+function actualizarRellenoBarra(slider, valor, colorRelleno) {
+    const pct = ((valor - 1) / 9) * 100; // valor va de 1 a 10
+    slider.style.background =
+        `linear-gradient(to right, ${colorRelleno} ${pct}%, var(--border-color) ${pct}%)`;
+}
+
+/**
+ * Guarda (o actualiza) el registro de HOY para un item, sin tocar los
+ * registros de días anteriores. Requiere que la tabla tenga un UNIQUE
+ * (fkColumn, fecha) para que el upsert sepa cuándo actualizar vs insertar.
+ */
+async function guardarRegistroTracker(tableName, fkColumn, itemId, valor) {
+    const { error } = await _supabase
+        .from(tableName)
+        .upsert(
+            { [fkColumn]: itemId, fecha: getFechaHoyISO(), valor: valor },
+            { onConflict: `${fkColumn},fecha` }
+        );
+
+    if (error) {
+        console.error(`Error guardando registro en ${tableName}:`, error.message);
+        alert("Error al guardar el registro: " + error.message);
+    }
+}
+
+/**
+ * ==========================================
+ * GESTIÓN DE SENTIMIENTOS — BARRA DE INTENSIDAD 1-10
+ * ==========================================
+ * Mismo mecanismo que Odios: cada sentimiento (nombre + imagen) se
+ * mide con una barra de 1 a 10 en vez de un contador acumulativo.
+ * Cada vez que se mueve la barra se guarda un registro con la fecha
+ * de hoy, y la barra siempre arranca cargada con el último valor
+ * conocido (así fue registrado ayer, hace una semana, etc.).
+ *
+ * IMPORTANTE: requiere en Supabase, además de "sentimientos_logs" (id,
+ * name, image_filename), una tabla nueva "sentimientos_registros" con
+ * las mismas columnas que "odios_registros":
+ *   id, sentimiento_id (FK -> sentimientos_logs.id), valor (1-10),
+ *   fecha (date), created_at, UNIQUE (sentimiento_id, fecha)
  */
 async function loadSentimientos() {
     const { data: sentimientos, error } = await _supabase
         .from('sentimientos_logs')
         .select('*')
-        .order('count', { ascending: false });
+        .order('name', { ascending: true });
 
     if (error) return console.error(error.message);
 
     const container = document.getElementById('list-sentimientos');
     if (!container) return;
-    container.className = 'loves-grid';
+    container.className = 'mood-grid';
     container.innerHTML = '';
 
+    const ultimos = await cargarUltimosRegistros('sentimientos_registros', 'sentimiento_id');
+
     sentimientos.forEach(sentimiento => {
+        const registro = ultimos[sentimiento.id];
+        const valorActual = registro ? registro.valor : 5;
+        const fechaLabel = registro ? formatFechaRelativa(registro.fecha) : 'Sin registrar';
+
         const card = document.createElement('div');
-        card.className = 'passion-card';
+        card.className = 'mood-card mood-card--sentimiento';
 
         const localImagePath = `assets/images/${sentimiento.image_filename}`;
 
         card.innerHTML = `
-            <img src="${localImagePath}" class="passion-img" 
+            <img src="${localImagePath}" class="mood-img"
                  onerror="this.src='assets/images/default.jpg'">
-            <div class="passion-info">
-                <span class="passion-name" title="Clic para editar nombre">${sentimiento.name}</span>
-                <span class="passion-count">${sentimiento.count}</span>
+            <div class="mood-info">
+                <div class="mood-top-row">
+                    <span class="mood-name" title="Clic para editar nombre">${sentimiento.name}</span>
+                    <span class="mood-value">${valorActual}</span>
+                </div>
+                <input type="range" min="1" max="10" step="1" value="${valorActual}" class="mood-slider" aria-label="Intensidad de ${sentimiento.name}">
+                <span class="mood-date">${fechaLabel}</span>
             </div>
         `;
 
-        const nameEl = card.querySelector('.passion-name');
-        if (nameEl) {
-            nameEl.addEventListener('click', (e) => {
-                e.stopPropagation();
-                editSentimiento(sentimiento.name, sentimiento.id);
-            });
-        }
+        const nameEl = card.querySelector('.mood-name');
+        nameEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            editSentimiento(sentimiento.name, sentimiento.id);
+        });
 
-        card.addEventListener('dblclick', () => {
+        const slider = card.querySelector('.mood-slider');
+        const valueEl = card.querySelector('.mood-value');
+        const dateEl = card.querySelector('.mood-date');
+
+        actualizarRellenoBarra(slider, valorActual, 'var(--primary-green)');
+
+        slider.addEventListener('input', () => {
+            valueEl.textContent = slider.value;
+            actualizarRellenoBarra(slider, parseInt(slider.value, 10), 'var(--primary-green)');
+        });
+
+        slider.addEventListener('change', async () => {
+            const nuevoValor = parseInt(slider.value, 10);
             card.classList.add('pop-animation');
-            incrementSentimiento(sentimiento.id, sentimiento.count);
-
-            const countEl = card.querySelector('.passion-count');
-            countEl.textContent = parseInt(countEl.textContent) + 1;
-
+            await guardarRegistroTracker('sentimientos_registros', 'sentimiento_id', sentimiento.id, nuevoValor);
+            dateEl.textContent = 'Hoy';
             setTimeout(() => card.classList.remove('pop-animation'), 300);
+            loadTopSentimientos();
         });
 
         card.addEventListener('contextmenu', (e) => {
@@ -2004,19 +2329,6 @@ async function addSentimiento() {
     }
 }
 
-async function incrementSentimiento(id, currentCount) {
-    const { error } = await _supabase
-        .from('sentimientos_logs')
-        .update({ count: currentCount + 1 })
-        .eq('id', id);
-
-    if (error) {
-        console.error("Error sumando contador:", error.message);
-    } else {
-        loadSentimientos();
-    }
-}
-
 async function editSentimiento(oldName, id) {
     const newName = prompt("Editar nombre:", oldName);
     if (!newName || newName.trim() === "" || newName === oldName) return;
@@ -2034,8 +2346,10 @@ async function editSentimiento(oldName, id) {
 }
 
 async function deleteSentimiento(name, id) {
-    const confirmDelete = confirm(`¿Deseas eliminar "${name}"?`);
+    const confirmDelete = confirm(`¿Deseas eliminar "${name}" y todo su historial de registros?`);
     if (!confirmDelete) return;
+
+    await _supabase.from('sentimientos_registros').delete().eq('sentimiento_id', id);
 
     const { error } = await _supabase
         .from('sentimientos_logs')
@@ -2046,6 +2360,32 @@ async function deleteSentimiento(name, id) {
         alert("Error al eliminar: " + error.message);
     } else {
         loadSentimientos();
+    }
+}
+
+// ======================================================
+// EXPORTAR SENTIMIENTOS (historial diario de registros)
+// ======================================================
+async function exportSentimientosSQL() {
+    try {
+        const { data, error } = await _supabase
+            .from('sentimientos_registros')
+            .select('*')
+            .order('fecha', { ascending: true });
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            alert("No hay registros para exportar.");
+            return;
+        }
+
+        const sql = buildSQLInsert('sentimientos_registros', data);
+        descargarArchivo(sql, 'sentimientos_registros.sql', 'text/sql');
+
+    } catch (err) {
+        console.error(err);
+        alert("Error exportando Sentimientos: " + err.message);
     }
 }
 
@@ -2366,6 +2706,14 @@ async function loadMetrics() {
     }
     if (typeof loadTopCompras === 'function') {
         loadTopCompras();
+    }
+
+    // 6. NUEVO: Evolución emocional (promedio diario, 14 días) de Sentimientos y Odios
+    if (typeof loadEvolucionSentimientos === 'function') {
+        loadEvolucionSentimientos();
+    }
+    if (typeof loadEvolucionOdios === 'function') {
+        loadEvolucionOdios();
     }
 }
 
