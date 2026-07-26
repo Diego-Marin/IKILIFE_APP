@@ -559,6 +559,7 @@ div.day-segment.future {
     color: var(--text-dark);
     line-height: 1.4;
     word-break: break-word;
+    min-width: 0;
 }
 
 .idea-content { cursor: pointer; }
@@ -570,12 +571,47 @@ div.day-segment.future {
     text-transform: uppercase;
 }
 
+/*
+    NUEVO: semáforo de importancia para cada tarea. Punto de color
+    que rota entre baja (verde), media (amarillo) y alta (rojo) al
+    hacer clic. flex-shrink:0 asegura que nunca se achique ni
+    deforme, sin importar cuán largo sea el nombre de la tarea.
+*/
+.tarea-importance-dot {
+    width: 14px;
+    height: 14px;
+    min-width: 14px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    transition: transform var(--transition);
+}
+
+.tarea-importance-dot:hover {
+    transform: scale(1.2);
+}
+
+.tarea-importance-dot.importance-baja {
+    background-color: #2ecc71;
+}
+
+.tarea-importance-dot.importance-media {
+    background-color: #f1c40f;
+}
+
+.tarea-importance-dot.importance-alta {
+    background-color: #e74c3c;
+}
+
 .delete-btn {
     background-color: transparent;
     border: 1px solid var(--border-color);
     color: var(--text-muted);
     width: 28px;
     height: 28px;
+    flex-shrink: 0;
     border-radius: 6px;
     cursor: pointer;
     display: flex;
@@ -1148,35 +1184,102 @@ div.day-segment.future {
 }
 
 /*
-    NUEVO: caja de "Regla Destacada" del componente Reglas de Vida.
-    Reutiliza el mismo lenguaje visual que el Pensamiento Aleatorio
-    de Brain Dump, para mantener coherencia entre ambos componentes
-    de "una cosa a la vez, al azar".
+    NUEVO: tarjetas de "Planes". Cada tarjeta muestra el plan, su fecha/lugar, el clima
+    real esperado (cuando está disponible) y, en grande, los días
+    que faltan para el evento.
 */
-.regla-destacada-box {
-    padding: 16px;
+.plan-card {
     border-bottom: 1px solid var(--border-color);
-    background: linear-gradient(to right, var(--bg-header), var(--white));
+}
+
+.plan-card-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 16px;
+    cursor: pointer;
+}
+
+.plan-card-main:hover {
+    background-color: var(--bg-header);
+}
+
+.plan-card-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.plan-card-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+.plan-card-date {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.plan-card-weather {
+    font-size: 0.85rem;
+    color: var(--text-dark);
+    margin-top: 6px;
+    min-height: 1.1em;
+}
+
+.plan-countdown {
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
+    justify-content: center;
+    min-width: 76px;
+    padding: 6px 10px;
+    border-radius: 12px;
+    background: var(--bg-header);
+    text-align: center;
 }
 
-.regla-destacada-label {
+.plan-countdown-num {
+    display: block;
+    font-size: 1.9rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--primary-green);
+}
+
+.plan-countdown-label {
+    display: block;
     font-size: 0.65rem;
     font-weight: 700;
-    color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 8px;
+    letter-spacing: 0.3px;
+    color: var(--text-muted);
+    margin-top: 2px;
 }
 
-.regla-destacada-text {
-    font-size: 0.95rem;
-    font-weight: 700;
-    font-style: italic;
-    color: var(--text-dark);
-    line-height: 1.4;
+.plan-countdown-soon .plan-countdown-num {
+    color: #e67e22;
+}
+
+.plan-countdown-today {
+    background: linear-gradient(135deg, var(--primary-green), #2ecc71);
+}
+
+.plan-countdown-today .plan-countdown-num {
+    color: var(--white);
+    font-size: 1.1rem;
+}
+
+.plan-countdown-past {
+    background: transparent;
+    opacity: 0.55;
+}
+
+.plan-countdown-past .plan-countdown-num {
+    color: var(--text-muted);
 }
 
 /* Animación de "Me gusta" */

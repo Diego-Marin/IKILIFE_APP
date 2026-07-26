@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadLoves();
         loadOdios();
         loadSentimientos();
-        loadReglas();
+        loadPlanes();
         loadCompras();
         loadBloques();
         loadMetrics(); // Esta ya ejecuta internamente renderYearWeeks(), renderEnglishCourseWeeks(), loadTopHabits(), loadTopLoves(), loadTopSentimientos(), loadTopOdios() y loadTopCompras()
@@ -122,9 +122,17 @@ function applySavedTheme() {
     }
 }
 
+
+
+
+
+
+
+
+
 /**
  * ==========================================
- * UTILIDAD: NÚMERO DE SEMANA DEL AÑO (ISO-ish)
+ * UTILIDAD: NÚMERO DE SEMANA DEL AÑO 
  * ==========================================
  * Se centraliza aquí porque ahora la usan tanto el progreso semanal
  * como el bloque de métricas (Progreso del Año).
@@ -203,6 +211,14 @@ function updateWeeklyProgress() {
 }
 
 
+
+
+
+
+
+
+
+
 /**
  * ==========================================
  * NUEVO: FRASE MOTIVACIONAL DEL DÍA
@@ -263,6 +279,14 @@ function loadDailyQuote() {
 
     el.textContent = quoteText;
 }
+
+
+
+
+
+
+
+
 
 
 /**
@@ -1145,7 +1169,6 @@ async function deleteIdea(id) {
     }
 }
 
-
 /**
  * ==========================================
  * PENSAMIENTO ALEATORIO (BRAIN DUMP)
@@ -1232,13 +1255,33 @@ async function exportIdeasSQL() {
 
 
 
+
 /**
  * ==========================================
  * GESTIÓN DE TAREAS (Única Lista)
  * ==========================================
  * Ahora soporta, igual que Brain Dump: editar (clic) y eliminar
  * (clic derecho), conservando también el check para "completar".
+ *
+ * NUEVO: semáforo de importancia. Cada tarea tiene un punto de color
+ * (verde/amarillo/rojo) que, al hacer clic, va rotando entre los 3
+ * niveles: baja -> media -> alta -> baja. No interfiere con el clic
+ * sobre el texto (editar) ni con el clic derecho (eliminar), porque
+ * es un elemento aparte dentro de la fila.
+ *
+ * IMPORTANTE: requiere agregar en Supabase, a la tabla existente
+ * "tareas_logs", la columna "importance" (text, default 'media').
+ * Valores esperados: 'baja', 'media', 'alta'.
  */
+
+// Orden cíclico de importancia: al hacer clic pasa al siguiente nivel.
+const ORDEN_IMPORTANCIA = ['baja', 'media', 'alta'];
+
+function siguienteImportancia(actual) {
+    const idx = ORDEN_IMPORTANCIA.indexOf(actual);
+    return ORDEN_IMPORTANCIA[(idx + 1) % ORDEN_IMPORTANCIA.length];
+}
+
 async function loadTareas() {
     const { data: tareas, error } = await _supabase.from('tareas_logs').select('*').order('id', { ascending: true });
     if (error) return console.error("Error cargando tareas:", error.message);
@@ -1248,9 +1291,16 @@ async function loadTareas() {
 
     tareas.forEach(tarea => {
         const safeName = String(tarea.name || '').replace(/'/g, "\\'");
+        const importancia = ORDEN_IMPORTANCIA.includes(tarea.importance) ? tarea.importance : 'media';
+        const importanciaLabel = { baja: 'Baja', media: 'Media', alta: 'Alta' }[importancia];
 
         const row = `
             <li class="tarea-row">
+                <button class="tarea-importance-dot importance-${importancia}"
+                        onclick="cycleImportanciaTarea(${tarea.id}, '${importancia}')"
+                        aria-label="Importancia: ${importanciaLabel}"
+                        title="Importancia: ${importanciaLabel} (clic para cambiar)">
+                </button>
                 <div class="tarea-content"
                      onclick="editTarea(${tarea.id}, '${safeName}')"
                      oncontextmenu="event.preventDefault(); deleteTarea(${tarea.id})"
@@ -1267,10 +1317,26 @@ async function loadTareas() {
     });
 }
 
+// Cambia la importancia de una tarea al siguiente nivel del semáforo.
+async function cycleImportanciaTarea(id, actual) {
+    const nueva = siguienteImportancia(actual);
+
+    const { error } = await _supabase
+        .from('tareas_logs')
+        .update({ importance: nueva })
+        .eq('id', id);
+
+    if (error) {
+        alert("Error al actualizar importancia: " + error.message);
+    } else {
+        loadTareas();
+    }
+}
+
 async function addTarea() {
     const name = prompt("Nueva obligación:");
     if (!name || name.trim() === "") return;
-    const { error } = await _supabase.from('tareas_logs').insert([{ name: name.trim(), type: 'dia' }]);
+    const { error } = await _supabase.from('tareas_logs').insert([{ name: name.trim(), type: 'dia', importance: 'media' }]);
     if (error) alert("Error al guardar: " + error.message);
     else loadTareas();
 }
@@ -1939,157 +2005,261 @@ async function deleteSentimiento(name, id) {
 
 /**
  * ==========================================
- * REGLAS DE VIDA
+ * PLANES
  * ==========================================
- * Es tu manual personal de reglas para una vida feliz y en control
- * (ej. "Afeitado de barba cada 2 días"). Incluye una "Regla
- * Destacada" que muestra, al azar, una regla a la vez para ayudarte
- * a memorizarlas poco a poco (mismo patrón que el Pensamiento
- * Aleatorio de Brain Dump). Clic sobre una regla = editar. Clic
- * derecho = eliminar.
+ * Guarda planes futuros con fecha (ej. "Caminata de senderismo" el
+ * 9 de agosto), muestra en GRANDE los días que faltan, y consulta
+ * en vivo el clima real esperado ese día en el lugar del plan (vía
+ * Open-Meteo, gratuito y sin API key). El pronóstico diario solo
+ * existe hasta 16 días antes del evento; fuera de ese rango se
+ * muestra solo el conteo de días.
  *
- * IMPORTANTE: requiere crear en Supabase la tabla "reglas_logs" con
- * columnas (id, name).
+ * IMPORTANTE: requiere crear en Supabase la tabla "planes_logs" con
+ * columnas (id, title, plan_date [date], location_name [text,
+ * nullable], lat [float8, nullable], lng [float8, nullable],
+ * created_at).
  */
-async function loadReglas() {
-    const { data: reglas, error } = await _supabase
-        .from('reglas_logs')
+
+// Traduce el código WMO de Open-Meteo a un emoji + descripción corta.
+function weatherCodeInfo(code) {
+    const map = {
+        0: ['☀️', 'Despejado'],
+        1: ['🌤️', 'Mayormente despejado'],
+        2: ['⛅', 'Parcialmente nublado'],
+        3: ['☁️', 'Nublado'],
+        45: ['🌫️', 'Niebla'],
+        48: ['🌫️', 'Niebla escarchada'],
+        51: ['🌦️', 'Llovizna ligera'],
+        53: ['🌦️', 'Llovizna'],
+        55: ['🌧️', 'Llovizna densa'],
+        61: ['🌧️', 'Lluvia ligera'],
+        63: ['🌧️', 'Lluvia'],
+        65: ['🌧️', 'Lluvia fuerte'],
+        71: ['🌨️', 'Nieve ligera'],
+        73: ['🌨️', 'Nieve'],
+        75: ['❄️', 'Nieve fuerte'],
+        80: ['🌦️', 'Chubascos ligeros'],
+        81: ['🌧️', 'Chubascos'],
+        82: ['⛈️', 'Chubascos fuertes'],
+        95: ['⛈️', 'Tormenta'],
+        96: ['⛈️', 'Tormenta con granizo'],
+        99: ['⛈️', 'Tormenta fuerte con granizo'],
+    };
+    return map[code] || ['🌡️', 'Clima variable'];
+}
+
+// Busca coordenadas para un nombre de lugar (ciudad, municipio, etc.)
+async function geocodeLocation(name) {
+    try {
+        const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1&language=es&format=json`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data && data.results && data.results.length > 0) {
+            const r = data.results[0];
+            const parts = [r.name, r.admin1, r.country].filter(Boolean);
+            return { lat: r.latitude, lng: r.longitude, display: parts.join(', ') };
+        }
+    } catch (err) {
+        console.error("Error geocodificando ubicación:", err.message);
+    }
+    return null;
+}
+
+// Trae el pronóstico del día exacto del plan (si cae dentro de los
+// próximos 16 días, que es el límite del pronóstico diario gratuito).
+async function fetchWeatherForPlan(lat, lng, planDateStr) {
+    try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=16`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!data.daily || !data.daily.time) return null;
+        const idx = data.daily.time.indexOf(planDateStr);
+        if (idx === -1) return null;
+        return {
+            code: data.daily.weathercode[idx],
+            tmax: Math.round(data.daily.temperature_2m_max[idx]),
+            tmin: Math.round(data.daily.temperature_2m_min[idx]),
+        };
+    } catch (err) {
+        console.error("Error consultando el clima:", err.message);
+        return null;
+    }
+}
+
+// Calcula los días que faltan (o han pasado) entre hoy y la fecha del plan.
+function diasRestantes(planDateStr) {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const fechaPlan = new Date(planDateStr + 'T00:00:00');
+    return Math.round((fechaPlan - hoy) / 86400000);
+}
+
+function formatearFechaPlan(planDateStr) {
+    const fecha = new Date(planDateStr + 'T00:00:00');
+    return fecha.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+async function loadPlanes() {
+    const { data: planes, error } = await _supabase
+        .from('planes_logs')
         .select('*')
-        .order('id', { ascending: true });
+        .order('plan_date', { ascending: true });
 
-    if (error) return console.error("Error cargando reglas:", error.message);
+    if (error) return console.error("Error cargando planes:", error.message);
 
-    const list = document.getElementById('list-reglas');
+    const list = document.getElementById('list-planes');
     if (!list) return;
+
+    if (!planes || planes.length === 0) {
+        list.innerHTML = '<p style="padding: 16px; color: var(--text-muted);">Aún no tienes planes guardados. Agrega el primero con "Nuevo Plan".</p>';
+        return;
+    }
+
     list.innerHTML = '';
 
-    reglas.forEach(regla => {
-        const safeName = String(regla.name || '').replace(/'/g, "\\'");
+    planes.forEach(plan => {
+        const dias = diasRestantes(plan.plan_date);
+        const safeTitle = String(plan.title || '').replace(/'/g, "\\'");
 
-        const row = `
-            <li class="tarea-row">
-                <div class="tarea-content"
-                     onclick="editRegla(${regla.id}, '${safeName}')"
-                     oncontextmenu="event.preventDefault(); deleteRegla(${regla.id}, '${safeName}')"
-                     style="cursor: pointer;"
+        let contadorHtml;
+        let contadorClase = 'plan-countdown';
+        if (dias > 0) {
+            contadorHtml = `<span class="plan-countdown-num">${dias}</span><span class="plan-countdown-label">${dias === 1 ? 'día falta' : 'días faltan'}</span>`;
+            if (dias <= 7) contadorClase += ' plan-countdown-soon';
+        } else if (dias === 0) {
+            contadorHtml = `<span class="plan-countdown-num">HOY</span>`;
+            contadorClase += ' plan-countdown-today';
+        } else {
+            contadorHtml = `<span class="plan-countdown-num">${Math.abs(dias)}</span><span class="plan-countdown-label">${Math.abs(dias) === 1 ? 'día pasó' : 'días pasaron'}</span>`;
+            contadorClase += ' plan-countdown-past';
+        }
+
+        const card = `
+            <div class="plan-card" id="plan-card-${plan.id}">
+                <div class="plan-card-main"
+                     onclick="editPlan(${plan.id}, '${safeTitle}', '${plan.plan_date}', ${plan.location_name ? `'${String(plan.location_name).replace(/'/g, "\\'")}'` : 'null'})"
+                     oncontextmenu="event.preventDefault(); deletePlan(${plan.id}, '${safeTitle}')"
                      title="Clic: Editar | Clic Derecho: Eliminar">
-                     ${regla.name}
+                    <div class="plan-card-info">
+                        <div class="plan-card-title">${plan.title}</div>
+                        <div class="plan-card-date">${formatearFechaPlan(plan.plan_date)}${plan.location_name ? ' · ' + plan.location_name : ''}</div>
+                        <div class="plan-card-weather" id="plan-weather-${plan.id}">${plan.lat ? 'Consultando clima…' : ''}</div>
+                    </div>
+                    <div class="${contadorClase}">${contadorHtml}</div>
                 </div>
-            </li>
+            </div>
         `;
-        list.insertAdjacentHTML('beforeend', row);
+        list.insertAdjacentHTML('beforeend', card);
+
+        // El clima se consulta aparte para no bloquear el render de la lista.
+        if (plan.lat && plan.lng && dias >= 0) {
+            fetchWeatherForPlan(plan.lat, plan.lng, plan.plan_date).then(w => {
+                const el = document.getElementById(`plan-weather-${plan.id}`);
+                if (!el) return;
+                if (w) {
+                    const [emoji, label] = weatherCodeInfo(w.code);
+                    el.textContent = `${emoji} ${label} · ${w.tmin}° - ${w.tmax}°`;
+                } else if (dias > 15) {
+                    el.textContent = `El pronóstico estará disponible cuando falten 16 días o menos`;
+                } else {
+                    el.textContent = '';
+                }
+            });
+        } else if (plan.lat && dias < 0) {
+            const el = document.getElementById(`plan-weather-${plan.id}`);
+            if (el) el.textContent = '';
+        }
     });
 }
 
-async function addRegla() {
-    const name = prompt("Nueva regla de vida (Ej: Afeitado de barba cada 2 días):");
-    if (!name || name.trim() === "") return;
+async function addPlan() {
+    const title = prompt("¿Qué plan quieres agregar? (Ej: Caminata de senderismo):");
+    if (!title || title.trim() === "") return;
+
+    const dateStr = prompt("Fecha del plan (formato AAAA-MM-DD, ej: 2026-08-09):");
+    if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr.trim())) {
+        alert("Fecha inválida. Usa el formato AAAA-MM-DD.");
+        return;
+    }
+
+    const locationInput = prompt("¿Dónde será? (Ej: Antioquia, Colombia) — deja vacío si no aplica:");
+    let lat = null, lng = null, locationName = locationInput && locationInput.trim() ? locationInput.trim() : null;
+
+    if (locationName) {
+        const geo = await geocodeLocation(locationName);
+        if (geo) {
+            lat = geo.lat;
+            lng = geo.lng;
+            locationName = geo.display;
+        } else {
+            alert("No se encontró esa ubicación. Se guardará el plan sin datos de clima.");
+        }
+    }
 
     const { error } = await _supabase
-        .from('reglas_logs')
-        .insert([{ name: name.trim() }]);
+        .from('planes_logs')
+        .insert([{ title: title.trim(), plan_date: dateStr.trim(), location_name: locationName, lat, lng }]);
 
     if (error) {
-        alert("Error al guardar: " + error.message);
+        alert("Error al guardar el plan: " + error.message);
     } else {
-        randomReglaCache = []; // Se invalida el caché de la regla destacada
-        loadReglas();
+        loadPlanes();
     }
 }
 
-async function editRegla(id, oldName) {
-    const newName = prompt("Editar regla de vida:", oldName);
-    if (!newName || newName.trim() === "" || newName === oldName) return;
+async function editPlan(id, oldTitle, oldDateStr, oldLocationName) {
+    const newTitle = prompt("Editar plan:", oldTitle);
+    if (!newTitle || newTitle.trim() === "") return;
+
+    const newDateStr = prompt("Fecha del plan (formato AAAA-MM-DD):", oldDateStr);
+    if (!newDateStr || !/^\d{4}-\d{2}-\d{2}$/.test(newDateStr.trim())) {
+        alert("Fecha inválida. Usa el formato AAAA-MM-DD.");
+        return;
+    }
+
+    const newLocationInput = prompt("¿Dónde será? — deja vacío si no aplica:", oldLocationName || "");
+    let lat = null, lng = null, locationName = newLocationInput && newLocationInput.trim() ? newLocationInput.trim() : null;
+
+    if (locationName && locationName !== oldLocationName) {
+        const geo = await geocodeLocation(locationName);
+        if (geo) {
+            lat = geo.lat;
+            lng = geo.lng;
+            locationName = geo.display;
+        } else {
+            alert("No se encontró esa ubicación. Se guardará el plan sin datos de clima.");
+        }
+    } else if (locationName === oldLocationName) {
+        // No cambió la ubicación: se conservan las coordenadas ya guardadas.
+        const { data } = await _supabase.from('planes_logs').select('lat, lng').eq('id', id).single();
+        if (data) { lat = data.lat; lng = data.lng; }
+    }
 
     const { error } = await _supabase
-        .from('reglas_logs')
-        .update({ name: newName.trim() })
+        .from('planes_logs')
+        .update({ title: newTitle.trim(), plan_date: newDateStr.trim(), location_name: locationName, lat, lng })
         .eq('id', id);
 
     if (error) {
-        alert("Error al editar: " + error.message);
+        alert("Error al editar el plan: " + error.message);
     } else {
-        randomReglaCache = [];
-        loadReglas();
+        loadPlanes();
     }
 }
 
-async function deleteRegla(id, name) {
-    const confirmDelete = confirm(`¿Deseas eliminar la regla "${name}"?`);
+async function deletePlan(id, title) {
+    const confirmDelete = confirm(`¿Deseas eliminar el plan "${title}"?`);
     if (!confirmDelete) return;
 
     const { error } = await _supabase
-        .from('reglas_logs')
+        .from('planes_logs')
         .delete()
         .eq('id', id);
 
     if (error) {
-        alert("Error al eliminar: " + error.message);
+        alert("Error al eliminar el plan: " + error.message);
     } else {
-        randomReglaCache = [];
-        loadReglas();
-    }
-}
-
-/**
- * ==========================================
- * REGLA DESTACADA (aleatoria)
- * ==========================================
- * Igual que el Pensamiento Aleatorio de Brain Dump: mantiene un
- * pequeño caché en memoria para no golpear la base de datos en cada
- * clic, y se invalida automáticamente al agregar, editar o eliminar
- * una regla.
- */
-let randomReglaCache = [];
-
-async function showRandomRegla() {
-    const textEl = document.getElementById('regla-destacada-text');
-    if (!textEl) return;
-
-    if (randomReglaCache.length === 0) {
-        const { data, error } = await _supabase
-            .from('reglas_logs')
-            .select('name');
-
-        if (error) {
-            console.error("Error cargando regla destacada:", error.message);
-            return;
-        }
-        randomReglaCache = data || [];
-    }
-
-    if (randomReglaCache.length === 0) {
-        textEl.textContent = "Aún no tienes reglas guardadas. Agrega tu primera regla de vida.";
-        return;
-    }
-
-    const randomIndex = Math.floor(Math.random() * randomReglaCache.length);
-    textEl.textContent = randomReglaCache[randomIndex].name;
-}
-
-// ======================================================
-// EXPORTAR REGLAS
-// ======================================================
-async function exportReglasSQL() {
-    try {
-        const { data, error } = await _supabase
-            .from('reglas_logs')
-            .select('*')
-            .order('created_at', { ascending: true });
-
-        if (error) throw error;
-
-        if (!data || data.length === 0) {
-            alert("No hay registros para exportar.");
-            return;
-        }
-
-        const sql = buildSQLInsert('reglas_logs', data);
-        descargarArchivo(sql, 'reglas_logs.sql', 'text/sql');
-
-    } catch (err) {
-        console.error(err);
-        alert("Error exportando Reglas: " + err.message);
+        loadPlanes();
     }
 }
 
