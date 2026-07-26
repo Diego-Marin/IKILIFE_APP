@@ -32,12 +32,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 2. Carga de datos y estado
+    // NOTA: se removió loadEscuelas() porque la tabla "escuelas_logs" ya
+    // no existe en Supabase y ese componente no tiene vista en el HTML
+    // actual (quedó como código muerto). También se removió la llamada a
+    // generateInsights(), una función que nunca llegó a definirse y que
+    // rompía la carga inicial con un ReferenceError en consola.
     try {
         applySavedTheme();
         updateWeeklyProgress();
         loadDailyQuote();
         loadHabits();
-        loadEscuelas();
         loadIdeas();
         showRandomIdea();
         loadTareas();
@@ -48,10 +52,9 @@ document.addEventListener('DOMContentLoaded', () => {
         loadReglas();
         loadCompras();
         loadBloques();
-        loadMetrics(); // Esta ya ejecuta internamente renderYearWeeks(), renderEnglishCourseWeeks(), loadTopHabits() y loadTopLoves()
+        loadMetrics(); // Esta ya ejecuta internamente renderYearWeeks(), renderEnglishCourseWeeks(), loadTopHabits(), loadTopLoves(), loadTopSentimientos(), loadTopOdios() y loadTopCompras()
         loadFinances();
         loadAgradecimientos();
-        generateInsights();
     } catch (error) {
         console.error("Error durante la carga de datos:", error);
     }
@@ -654,13 +657,78 @@ async function deleteHabit(name) {
 
 /**
  * ==========================================
- * EXPORTAR HÁBITOS A CSV
+ * UTILIDADES DE EXPORTACIÓN (SQL)
  * ==========================================
- * Se agrega la lógica que faltaba: el HTML ya llamaba a
- * exportAllHistoryCSV(), pero la función no existía en el JS.
+ * Todos los exportadores de la app ahora generan un archivo .sql con
+ * sentencias INSERT INTO listas para pegar en cualquier motor SQL o
+ * para que una IA analice los datos directamente (el CSV quedaba mal
+ * formateado para ese uso: comas dentro de texto, sin tipado, etc.).
+ *
+ * sqlValue(): castea cada valor de JS a su representación literal en
+ * SQL (strings con comillas simples escapadas, números y booleanos
+ * sin comillas, arrays como literales de array de Postgres, null).
+ *
+ * buildSQLInsert(): arma el bloque de sentencias INSERT a partir del
+ * nombre de la tabla y las filas devueltas por Supabase. Las columnas
+ * se detectan automáticamente desde las llaves del primer registro,
+ * así que si cambia el esquema de una tabla no hay que tocar este
+ * código.
+ */
+function sqlValue(value) {
+    if (value === null || value === undefined) return 'NULL';
+    if (typeof value === 'number') return value;
+    if (typeof value === 'boolean') return value ? 'TRUE' : 'FALSE';
+    if (Array.isArray(value)) {
+        const escaped = value.map(v => String(v).replace(/"/g, '\\"'));
+        return `'{${escaped.join(',')}}'`;
+    }
+    if (typeof value === 'object') {
+        return `'${JSON.stringify(value).replace(/'/g, "''")}'`;
+    }
+    return `'${String(value).replace(/'/g, "''")}'`;
+}
+
+function buildSQLInsert(tableName, rows) {
+    if (!rows || rows.length === 0) {
+        return `-- No hay datos para exportar de la tabla "${tableName}"\n`;
+    }
+
+    const columns = Object.keys(rows[0]);
+    let sql = `-- Exportado desde IKILIFE\n-- Tabla: ${tableName}\n-- Generado: ${new Date().toISOString()}\n\n`;
+
+    rows.forEach(row => {
+        const values = columns.map(col => sqlValue(row[col]));
+        sql += `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${values.join(', ')});\n`;
+    });
+
+    return sql;
+}
+
+/**
+ * Pequeña utilidad compartida para disparar la descarga de cualquier
+ * archivo de texto (reemplaza a la antigua descargarCSV).
+ */
+function descargarArchivo(content, filename, mimeType) {
+    const blob = new Blob([content], { type: mimeType || 'text/plain;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = 'hidden';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+/**
+ * ==========================================
+ * EXPORTAR HÁBITOS A SQL
+ * ==========================================
  * Se exporta TODO el historial de habit_logs (todas las semanas).
  */
-async function exportAllHistoryCSV() {
+async function exportAllHistorySQL() {
     try {
         const { data: allLogs, error } = await _supabase
             .from('habit_logs')
@@ -677,44 +745,13 @@ async function exportAllHistoryCSV() {
             return;
         }
 
-        let csvContent = "\uFEFF";
-        csvContent += "ID,Fecha,Habito,Proyecto,Completado\n";
-
-        allLogs.forEach(log => {
-            const id = log.id || "";
-            const fecha = log.log_date || "";
-            const nombreLimpio = String(log.habit_name || "").replace(/"/g, '""');
-            const habitoCSV = `"${nombreLimpio}"`;
-            const proyecto = log.project_tag || "";
-            const completado = log.is_completed ? "Si" : "No";
-
-            csvContent += `${id},"${fecha}",${habitoCSV},"${proyecto}",${completado}\n`;
-        });
-
-        descargarCSV(csvContent, "IKILIFE_Habitos_Historial_Completo.csv");
+        const sql = buildSQLInsert('habit_logs', allLogs);
+        descargarArchivo(sql, "IKILIFE_Habitos_Historial_Completo.sql", "application/sql;charset=utf-8;");
 
     } catch (err) {
-        console.error("Error al exportar CSV de hábitos:", err);
+        console.error("Error al exportar SQL de hábitos:", err);
         alert("Ocurrió un error inesperado generando el archivo:\n" + err.message);
     }
-}
-
-/**
- * Pequeña utilidad compartida para disparar la descarga de cualquier CSV
- * (evita repetir el mismo bloque de Blob/link en cada exportador).
- */
-function descargarCSV(csvContent, filename) {
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-
-    link.setAttribute("href", url);
-    link.setAttribute("download", filename);
-    link.style.visibility = 'hidden';
-
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
 }
 
 /**
@@ -816,6 +853,125 @@ async function loadTopLoves() {
     });
 }
 
+/**
+ * ==========================================
+ * NUEVO: TOP 3 DE SENTIMIENTOS, ODIOS Y COMPRAS
+ * ==========================================
+ * Mismo patrón que loadTopLoves(), aplicado a las otras tres tablas
+ * que también llevan un contador ("count"): sentimientos_logs,
+ * odios_logs y compras_logs.
+ */
+async function loadTopSentimientos() {
+    const { data: allSentimientos, error } = await _supabase
+        .from('sentimientos_logs')
+        .select('name, count')
+        .order('count', { ascending: false })
+        .limit(3);
+
+    const container = document.getElementById('top-sentimientos-list');
+    if (!container) return;
+
+    if (error) {
+        console.error("Error cargando top de sentimientos:", error.message);
+        container.innerHTML = '';
+        return;
+    }
+
+    container.innerHTML = '';
+
+    if (!allSentimientos || allSentimientos.length === 0) {
+        container.innerHTML = `<div class="top-habit-empty">Aún no hay Sentimientos registrados para mostrar.</div>`;
+        return;
+    }
+
+    const medals = ['🥇', '🥈', '🥉'];
+
+    allSentimientos.forEach((item, index) => {
+        const row = `
+            <div class="top-habit-row">
+                <span class="top-habit-medal">${medals[index]}</span>
+                <span class="top-habit-name">${item.name}</span>
+                <span class="top-habit-count">${item.count}x</span>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', row);
+    });
+}
+
+async function loadTopOdios() {
+    const { data: allOdios, error } = await _supabase
+        .from('odios_logs')
+        .select('name, count')
+        .order('count', { ascending: false })
+        .limit(3);
+
+    const container = document.getElementById('top-odios-list');
+    if (!container) return;
+
+    if (error) {
+        console.error("Error cargando top de odios:", error.message);
+        container.innerHTML = '';
+        return;
+    }
+
+    container.innerHTML = '';
+
+    if (!allOdios || allOdios.length === 0) {
+        container.innerHTML = `<div class="top-habit-empty">Aún no hay Odios registrados para mostrar.</div>`;
+        return;
+    }
+
+    const medals = ['🥇', '🥈', '🥉'];
+
+    allOdios.forEach((item, index) => {
+        const row = `
+            <div class="top-habit-row">
+                <span class="top-habit-medal">${medals[index]}</span>
+                <span class="top-habit-name">${item.name}</span>
+                <span class="top-habit-count">${item.count}x</span>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', row);
+    });
+}
+
+async function loadTopCompras() {
+    const { data: allCompras, error } = await _supabase
+        .from('compras_logs')
+        .select('name, count')
+        .order('count', { ascending: false })
+        .limit(3);
+
+    const container = document.getElementById('top-compras-list');
+    if (!container) return;
+
+    if (error) {
+        console.error("Error cargando top de compras:", error.message);
+        container.innerHTML = '';
+        return;
+    }
+
+    container.innerHTML = '';
+
+    if (!allCompras || allCompras.length === 0) {
+        container.innerHTML = `<div class="top-habit-empty">Aún no hay Compras registradas para mostrar.</div>`;
+        return;
+    }
+
+    const medals = ['🥇', '🥈', '🥉'];
+
+    allCompras.forEach((item, index) => {
+        const row = `
+            <div class="top-habit-row">
+                <span class="top-habit-medal">${medals[index]}</span>
+                <span class="top-habit-name">${item.name}</span>
+                <span class="top-habit-count">${item.count}x</span>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', row);
+    });
+}
+
 
 
 
@@ -895,125 +1051,12 @@ function toggleFinanceView(viewId) {
 
 /**
  * ==========================================
- * GESTIÓN DE ESCUELAS (PROGRESO CONTINUO)
+ * GESTIÓN DE IDEAS (BRAIN DUMP)
  * ==========================================
- */
-async function loadEscuelas() {
-    const { data: escuelas, error } = await _supabase
-        .from('escuelas_logs')
-        .select('*')
-        .order('id', { ascending: true });
-
-    if (error) {
-        console.error("Error cargando escuelas:", error.message);
-        return;
-    }
-
-    const listContainer = document.getElementById('list-escuelas');
-    if (!listContainer) return;
-
-    listContainer.innerHTML = '';
-
-    escuelas.forEach(escuela => {
-        const progress = escuela.progress || 0;
-
-        const row = `
-            <li class="escuela-grid">
-                <div class="item-name" 
-                     onclick="editEscuela('${escuela.name}', ${escuela.id})"
-                     oncontextmenu="event.preventDefault(); deleteEscuela('${escuela.name}', ${escuela.id})"
-                     style="cursor: pointer;"
-                     title="Clic: Editar | Clic Derecho: Eliminar">
-                     ${escuela.name}
-                </div>
-                <div class="progress-wrapper" onclick="incrementEscuelaProgress(${escuela.id}, ${progress})" title="Clic para sumar 1%">
-                    <div class="progress-bar-container">
-                        <div class="progress-bar-fill" style="width: ${progress}%"></div>
-                    </div>
-                    <span class="progress-text">${progress}%</span>
-                </div>
-            </li>
-        `;
-        listContainer.insertAdjacentHTML('beforeend', row);
-    });
-}
-
-async function addEscuela() {
-    const name = prompt("Nuevo aprendizaje/escuela:");
-    if (!name || name.trim() === "") return;
-
-    const { error } = await _supabase
-        .from('escuelas_logs')
-        .insert([{ name: name.trim(), progress: 0 }]);
-
-    if (error) {
-        alert("Error al guardar: " + error.message);
-    } else {
-        loadEscuelas();
-    }
-}
-
-async function incrementEscuelaProgress(id, currentProgress) {
-    const newProgress = currentProgress + 1;
-
-    const { error } = await _supabase
-        .from('escuelas_logs')
-        .update({ progress: newProgress })
-        .eq('id', id);
-
-    if (error) {
-        console.error("Error actualizando progreso:", error.message);
-    } else {
-        loadEscuelas();
-    }
-}
-
-async function editEscuela(oldName, id) {
-    const newName = prompt("Editar nombre:", oldName);
-    if (!newName || newName.trim() === "" || newName === oldName) return;
-
-    const { error } = await _supabase
-        .from('escuelas_logs')
-        .update({ name: newName.trim() })
-        .eq('id', id);
-
-    if (error) {
-        alert("Error al editar: " + error.message);
-    } else {
-        loadEscuelas();
-    }
-}
-
-async function deleteEscuela(name, id) {
-    const confirmDelete = confirm(`¿Deseas eliminar "${name}"?`);
-    if (!confirmDelete) return;
-
-    const { error } = await _supabase
-        .from('escuelas_logs')
-        .delete()
-        .eq('id', id);
-
-    if (error) {
-        alert("Error al eliminar: " + error.message);
-    } else {
-        loadEscuelas();
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-/**
- * ==========================================
- * GESTIÓN DE IDEAS
- * ==========================================
+ * NOTA: se removió el sistema de etiquetado por #hashtags: nunca se
+ * usó desde la interfaz (no hay ningún filtro ni vista que lo
+ * consuma), así que ahora el contenido se guarda tal cual lo escribes,
+ * sin parsear ni separar etiquetas.
  */
 async function loadIdeas() {
     const { data: ideas, error } = await _supabase
@@ -1050,14 +1093,12 @@ async function loadIdeas() {
 }
 
 async function addIdea() {
-    const rawInput = prompt("Escribe tu nueva idea (usa #etiquetas para categorizar):");
-    if (!rawInput || rawInput.trim() === "") return;
-
-    const { content, tags } = parseContentAndTags(rawInput);
+    const content = prompt("Escribe tu nueva idea:");
+    if (!content || content.trim() === "") return;
 
     const { error } = await _supabase
         .from('ideas_logs')
-        .insert([{ content: content, type: 'idea', tags: tags }]);
+        .insert([{ content: content.trim(), type: 'idea' }]);
 
     if (error) {
         alert("Error al guardar: " + error.message);
@@ -1065,13 +1106,6 @@ async function addIdea() {
         randomIdeaCache = []; // Se invalida el caché para que incluya la nueva idea
         loadIdeas();
     }
-}
-function parseContentAndTags(text) {
-    if (!text) return { content: '', tags: [] };
-    const words = text.split(' ');
-    const tags = words.filter(word => word.startsWith('#')).map(tag => tag.substring(1));
-    const content = words.filter(word => !word.startsWith('#')).join(' ').trim();
-    return { content, tags };
 }
 
 function loadAgradecimientos() {
@@ -1114,7 +1148,7 @@ async function deleteIdea(id) {
 
 /**
  * ==========================================
- * NUEVO: PENSAMIENTO ALEATORIO (BRAIN DUMP)
+ * PENSAMIENTO ALEATORIO (BRAIN DUMP)
  * ==========================================
  * Selecciona y muestra temporalmente un registro al azar de
  * ideas_logs, junto con la fecha en la que fue creado. Cada clic en
@@ -1161,6 +1195,32 @@ async function showRandomIdea() {
         } else {
             dateEl.textContent = '';
         }
+    }
+}
+
+// ======================================================
+// EXPORTAR IDEAS (Brain Dump)
+// ======================================================
+async function exportIdeasSQL() {
+    try {
+        const { data, error } = await _supabase
+            .from('ideas_logs')
+            .select('*')
+            .order('created_at', { ascending: true });
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            alert("No hay registros para exportar.");
+            return;
+        }
+
+        const sql = buildSQLInsert('ideas_logs', data);
+        descargarArchivo(sql, 'ideas_logs.sql', 'text/sql');
+
+    } catch (err) {
+        console.error(err);
+        alert("Error exportando Ideas: " + err.message);
     }
 }
 
@@ -1553,40 +1613,29 @@ async function deleteLove(name, id) {
     }
 }
 
-/**
- * Exportar historial completo de Loves a CSV.
- */
-async function exportLovesCSV() {
+// ======================================================
+// EXPORTAR LOVES
+// ======================================================
+async function exportLovesSQL() {
     try {
-        const { data: allLoves, error } = await _supabase
+        const { data, error } = await _supabase
             .from('loves_logs')
             .select('*')
-            .order('count', { ascending: false });
+            .order('created_at', { ascending: true });
 
-        if (error) {
-            alert("Error al conectar con la base de datos: " + error.message);
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            alert("No hay registros para exportar.");
             return;
         }
 
-        if (!allLoves || allLoves.length === 0) {
-            alert("No hay datos de Loves para exportar.");
-            return;
-        }
-
-        let csvContent = "\uFEFF";
-        csvContent += "ID,Nombre,Veces_Registrado\n";
-
-        allLoves.forEach(love => {
-            const id = love.id || "";
-            const nombreLimpio = String(love.name || "").replace(/"/g, '""');
-            csvContent += `${id},"${nombreLimpio}",${love.count || 0}\n`;
-        });
-
-        descargarCSV(csvContent, "IKILIFE_Loves_Historial_Completo.csv");
+        const sql = buildSQLInsert('loves_logs', data);
+        descargarArchivo(sql, 'loves_logs.sql', 'text/sql');
 
     } catch (err) {
-        console.error("Error al exportar CSV de Loves:", err);
-        alert("Ocurrió un error inesperado generando el archivo:\n" + err.message);
+        console.error(err);
+        alert("Error exportando Loves: " + err.message);
     }
 }
 
@@ -1600,7 +1649,7 @@ async function exportLovesCSV() {
 
 /**
  * ==========================================
- * NUEVO: GESTIÓN DE COSAS QUE ODIO (ODIOS)
+ * GESTIÓN DE COSAS QUE ODIO (ODIOS)
  * ==========================================
  * Es el componente opuesto a Loves: aquí registras las cosas,
  * situaciones o hábitos que no te gustan o te generan rechazo.
@@ -1726,40 +1775,29 @@ async function deleteOdio(name, id) {
     }
 }
 
-/**
- * Exportar historial completo de Odios a CSV.
- */
-async function exportOdiosCSV() {
+// ======================================================
+// EXPORTAR ODIOS
+// ======================================================
+async function exportOdiosSQL() {
     try {
-        const { data: allOdios, error } = await _supabase
+        const { data, error } = await _supabase
             .from('odios_logs')
             .select('*')
-            .order('count', { ascending: false });
+            .order('created_at', { ascending: true });
 
-        if (error) {
-            alert("Error al conectar con la base de datos: " + error.message);
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            alert("No hay registros para exportar.");
             return;
         }
 
-        if (!allOdios || allOdios.length === 0) {
-            alert("No hay datos de Odios para exportar.");
-            return;
-        }
-
-        let csvContent = "\uFEFF";
-        csvContent += "ID,Nombre,Veces_Registrado\n";
-
-        allOdios.forEach(odio => {
-            const id = odio.id || "";
-            const nombreLimpio = String(odio.name || "").replace(/"/g, '""');
-            csvContent += `${id},"${nombreLimpio}",${odio.count || 0}\n`;
-        });
-
-        descargarCSV(csvContent, "IKILIFE_Odios_Historial_Completo.csv");
+        const sql = buildSQLInsert('odios_logs', data);
+        descargarArchivo(sql, 'odios_logs.sql', 'text/sql');
 
     } catch (err) {
-        console.error("Error al exportar CSV de Odios:", err);
-        alert("Ocurrió un error inesperado generando el archivo:\n" + err.message);
+        console.error(err);
+        alert("Error exportando Odios: " + err.message);
     }
 }
 
@@ -1901,7 +1939,7 @@ async function deleteSentimiento(name, id) {
 
 /**
  * ==========================================
- * NUEVO: REGLAS DE VIDA (reemplaza a Logros)
+ * REGLAS DE VIDA
  * ==========================================
  * Es tu manual personal de reglas para una vida feliz y en control
  * (ej. "Afeitado de barba cada 2 días"). Incluye una "Regla
@@ -2029,40 +2067,29 @@ async function showRandomRegla() {
     textEl.textContent = randomReglaCache[randomIndex].name;
 }
 
-/**
- * Exportar historial completo de Reglas de Vida a CSV.
- */
-async function exportReglasCSV() {
+// ======================================================
+// EXPORTAR REGLAS
+// ======================================================
+async function exportReglasSQL() {
     try {
-        const { data: allReglas, error } = await _supabase
+        const { data, error } = await _supabase
             .from('reglas_logs')
             .select('*')
-            .order('id', { ascending: true });
+            .order('created_at', { ascending: true });
 
-        if (error) {
-            alert("Error al conectar con la base de datos: " + error.message);
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            alert("No hay registros para exportar.");
             return;
         }
 
-        if (!allReglas || allReglas.length === 0) {
-            alert("No hay reglas de vida para exportar.");
-            return;
-        }
-
-        let csvContent = "\uFEFF";
-        csvContent += "ID,Regla\n";
-
-        allReglas.forEach(regla => {
-            const id = regla.id || "";
-            const nombreLimpio = String(regla.name || "").replace(/"/g, '""');
-            csvContent += `${id},"${nombreLimpio}"\n`;
-        });
-
-        descargarCSV(csvContent, "IKILIFE_Reglas_De_Vida.csv");
+        const sql = buildSQLInsert('reglas_logs', data);
+        descargarArchivo(sql, 'reglas_logs.sql', 'text/sql');
 
     } catch (err) {
-        console.error("Error al exportar CSV de Reglas de Vida:", err);
-        alert("Ocurrió un error inesperado generando el archivo:\n" + err.message);
+        console.error(err);
+        alert("Error exportando Reglas: " + err.message);
     }
 }
 
@@ -2105,6 +2132,17 @@ async function loadMetrics() {
     if (typeof loadTopLoves === 'function') {
         loadTopLoves();
     }
+
+    // 5. Renderizar el Top 3 de Sentimientos, Odios y Compras
+    if (typeof loadTopSentimientos === 'function') {
+        loadTopSentimientos();
+    }
+    if (typeof loadTopOdios === 'function') {
+        loadTopOdios();
+    }
+    if (typeof loadTopCompras === 'function') {
+        loadTopCompras();
+    }
 }
 
 function renderYearWeeks() {
@@ -2145,7 +2183,7 @@ function renderYearWeeks() {
 
 /**
  * ==========================================
- * NUEVO: PROGRESO DEL CURSO DE INGLÉS
+ * PROGRESO DEL CURSO DE INGLÉS
  * ==========================================
  * Cuenta, en color rojo, las semanas transcurridas de tu curso de
  * inglés: inicia el 1 de abril de 2025 y termina el 31 de julio de
@@ -2213,10 +2251,11 @@ function renderEnglishCourseWeeks() {
  * ==========================================
  * GESTIÓN DE FINANZAS (DINÁMICO - ACUMULATIVO)
  * ==========================================
- * Ahora soporta tres tipos de registro en finance_logs:
+ * Soporta cuatro tipos de registro en finance_logs:
  * - 'income' -> Ingresos
  * - 'expense' -> Gastos (agrupados por categoría)
- * - 'debt' -> Deudas (NUEVO)
+ * - 'debt' -> Deudas
+ * - 'saving' -> Ahorros manuales (se suman al cálculo automático)
  */
 function formatCurrency(num) {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(num || 0);
@@ -2499,70 +2538,6 @@ async function deleteCompra(name, id) {
 
 
 
-/**
- * ==========================================
- * EXPORTAR HISTORIAL DE IDEAS A CSV
- * ==========================================
- */
-async function exportIdeasCSV() {
-    try {
-        const { data: allIdeas, error } = await _supabase
-            .from('ideas_logs')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-        if (error) {
-            alert("Error al conectar con la base de datos: " + error.message);
-            return;
-        }
-
-        if (!allIdeas || allIdeas.length === 0) {
-            alert("No hay datos históricos para exportar.");
-            return;
-        }
-
-        let csvContent = "\uFEFF";
-        csvContent += "ID,Fecha,Tipo,Contenido,Etiquetas\n";
-
-        allIdeas.forEach(idea => {
-            const id = idea.id || "";
-
-            let fecha = "";
-            if (idea.created_at) {
-                fecha = new Date(idea.created_at).toLocaleString('es-CO');
-            }
-
-            const tipo = idea.type || "idea";
-
-            const rawContent = idea.content ? String(idea.content) : "";
-            const contenidoLimpio = rawContent.replace(/"/g, '""');
-            const contenidoCSV = `"${contenidoLimpio}"`;
-
-            let etiquetasStr = "";
-            if (Array.isArray(idea.tags)) {
-                etiquetasStr = idea.tags.join(', ');
-            } else if (typeof idea.tags === 'string') {
-                etiquetasStr = idea.tags;
-            }
-            const etiquetasCSV = `"${etiquetasStr}"`;
-
-            csvContent += `${id},"${fecha}","${tipo}",${contenidoCSV},${etiquetasCSV}\n`;
-        });
-
-        descargarCSV(csvContent, "IKILIFE_BrainDump_Completo.csv");
-
-    } catch (err) {
-        console.error("Error al exportar CSV:", err);
-        alert("Ocurrió un error inesperado generando el archivo:\n" + err.message + "\n\nRevisa la consola (F12) para más detalles.");
-    }
-}
-
-
-
-
-
-
-
 
 
 /**
@@ -2646,7 +2621,7 @@ function renderStateBar(containerId) {
                 options: ["Continuar libro Pideme lo que quieras"]
             },
             {
-                start: 1260, end: 300, label: "Descanso", icon: "🌙", class: "state-sleep",
+                start: 1260, end: 300, label: "Dormir", icon: "🌙", class: "state-sleep",
                 options: ["Dormir", "Rutina nocturna"]
             }
         ],
