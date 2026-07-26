@@ -748,6 +748,62 @@ function descargarArchivo(content, filename, mimeType) {
 
 /**
  * ==========================================
+ * EXPORTAR TODO (JSON PARA IA / NOTEBOOKLM)
+ * ==========================================
+ * Trae, vía la API de Supabase (igual que el snippet de ideas_logs:
+ * supabase.from(tabla).select('*')), el contenido completo de TODAS
+ * las tablas de la app y lo empaqueta en un único archivo .json.
+ *
+ * A diferencia del CSV o el SQL (INSERT INTO ...), un JSON es texto
+ * plano y estructurado que cualquier IA o NotebookLM puede leer e
+ * interpretar directamente al subirlo como fuente, sin necesidad de
+ * parsear sintaxis SQL ni columnas sueltas de un CSV.
+ *
+ * Si agregas una tabla nueva a la app, súmala también aquí.
+ */
+const TABLAS_EXPORTABLES = [
+    'habit_logs', 'tareas_logs', 'loves_logs', 'odios_logs',
+    'sentimientos_logs', 'ideas_logs', 'compras_logs', 'finance_logs',
+    'inversiones_logs', 'journal_logs', 'bloques_logs', 'planes_logs'
+];
+
+async function exportAllDataJSON() {
+    try {
+        const tablas = {};
+        const errores = [];
+
+        await Promise.all(TABLAS_EXPORTABLES.map(async (nombreTabla) => {
+            const { data, error } = await _supabase.from(nombreTabla).select('*');
+            if (error) {
+                errores.push(`${nombreTabla}: ${error.message}`);
+                tablas[nombreTabla] = [];
+            } else {
+                tablas[nombreTabla] = data || [];
+            }
+        }));
+
+        const payload = {
+            app: 'IKILIFE',
+            exportado_el: new Date().toISOString(),
+            tablas: tablas
+        };
+
+        const json = JSON.stringify(payload, null, 2);
+        const fecha = new Date().toISOString().slice(0, 10);
+        descargarArchivo(json, `IKILIFE_datos_completos_${fecha}.json`, 'application/json;charset=utf-8;');
+
+        if (errores.length > 0) {
+            console.warn("Algunas tablas fallaron al exportar:", errores);
+            alert("Se exportó el archivo, pero algunas tablas fallaron:\n" + errores.join('\n'));
+        }
+    } catch (err) {
+        console.error("Error exportando todos los datos:", err);
+        alert("Ocurrió un error inesperado generando el archivo:\n" + err.message);
+    }
+}
+
+/**
+ * ==========================================
  * EXPORTAR HÁBITOS A SQL
  * ==========================================
  * Se exporta TODO el historial de habit_logs (todas las semanas).
@@ -1086,7 +1142,6 @@ async function loadIdeas() {
     const { data: ideas, error } = await _supabase
         .from('ideas_logs')
         .select('*')
-        .or('type.eq.idea,type.is.null')
         .order('created_at', { ascending: false })
         .limit(30);
 
@@ -1122,7 +1177,7 @@ async function addIdea() {
 
     const { error } = await _supabase
         .from('ideas_logs')
-        .insert([{ content: content.trim(), type: 'idea' }]);
+        .insert([{ content: content.trim() }]);
 
     if (error) {
         alert("Error al guardar: " + error.message);
@@ -1190,8 +1245,7 @@ async function showRandomIdea() {
     if (randomIdeaCache.length === 0) {
         const { data, error } = await _supabase
             .from('ideas_logs')
-            .select('content, created_at')
-            .or('type.eq.idea,type.is.null');
+            .select('content, created_at');
 
         if (error) {
             console.error("Error cargando pensamiento aleatorio:", error.message);
