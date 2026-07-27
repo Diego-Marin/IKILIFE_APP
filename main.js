@@ -38,7 +38,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
  * 10. "EXPORTAR HÁBITOS A SQL"                   → exportAllHistorySQL
  * 11. "MEJORES HÁBITOS (TOP 3 HISTÓRICO)"        → loadTopHabits
  * 12. "NUEVO: MEJORES LOVES (TOP 3 RANKING)"     → loadTopLoves
- * 13. "NUEVO: TOP 3 DE SENTIMIENTOS Y ODIOS"     → loadTopSentimientos / loadTopOdios / loadTopCompras (por intensidad o count actual)
+ * 13. "NUEVO: TOP 3 DE SENTIMIENTOS"              → loadTopSentimientos (por intensidad actual)
  * 14. "NUEVO: EVOLUCIÓN EMOCIONAL"               → gráfico de barras de promedio diario (Sentimientos/Odios, últimos 14 días)
  * 15. "INTERFAZ DE USUARIO (TABS Y OTROS)"       → switchTab, saveLearning, toggleFinanceView
  * 16. "GESTIÓN DE IDEAS (BRAIN DUMP)"            → Brain Dump: CRUD de ideas
@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadPlanes();
         loadCompras();
         loadBloques();
-        loadMetrics(); // Esta ya ejecuta internamente renderYearWeeks(), renderEnglishCourseWeeks(), loadTopHabits(), loadTopLoves(), loadTopSentimientos(), loadTopOdios() y loadTopCompras()
+        loadMetrics(); // Esta ya ejecuta internamente renderYearWeeks(), renderEnglishCourseWeeks(), loadTopHabits(), loadTopLoves() y loadTopSentimientos()
         loadFinances();
         loadAgradecimientos();
     } catch (error) {
@@ -117,6 +117,14 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (error) {
         console.error("Error en la suscripción de Supabase:", error);
     }
+
+    // 4. Refresco periódico de Odios y Sentimientos, solo para mantener
+    // al día el contador "Disponible en Xh Ym" del bloqueo de 12 horas
+    // (no afecta el resto de la app).
+    setInterval(() => {
+        loadOdios();
+        loadSentimientos();
+    }, 60000);
 });
 
 
@@ -1032,202 +1040,7 @@ async function loadTopSentimientos() {
     });
 }
 
-async function loadTopOdios() {
-    const { data: odios, error } = await _supabase
-        .from('odios_logs')
-        .select('id, name');
 
-    const container = document.getElementById('top-odios-list');
-    if (!container) return;
-
-    if (error) {
-        console.error("Error cargando top de odios:", error.message);
-        container.innerHTML = '';
-        return;
-    }
-
-    const ultimos = await cargarUltimosRegistros('odios_registros', 'odio_id');
-
-    const top3 = (odios || [])
-        .filter(o => ultimos[o.id])
-        .map(o => ({ name: o.name, valor: ultimos[o.id].valor }))
-        .sort((a, b) => b.valor - a.valor)
-        .slice(0, 3);
-
-    container.innerHTML = '';
-
-    if (top3.length === 0) {
-        container.innerHTML = `<div class="top-habit-empty">Aún no hay Odios registrados para mostrar.</div>`;
-        return;
-    }
-
-    const medals = ['🥇', '🥈', '🥉'];
-
-    top3.forEach((item, index) => {
-        const row = `
-            <div class="top-habit-row">
-                <span class="top-habit-medal">${medals[index]}</span>
-                <span class="top-habit-name">${item.name}</span>
-                <span class="top-habit-count">${item.valor}/10</span>
-            </div>
-        `;
-        container.insertAdjacentHTML('beforeend', row);
-    });
-}
-
-/**
- * ==========================================
- * NUEVO: EVOLUCIÓN EMOCIONAL (PROMEDIO DIARIO, GRÁFICO DE BARRAS)
- * ==========================================
- * A diferencia del Top 3 (que mira el ÚLTIMO valor de cada item),
- * esto mira TODOS los registros de los últimos N días, calcula el
- * promedio de todos los items registrados por día, y lo dibuja como
- * un mini gráfico de barras para ver la tendencia general (¿en
- * conjunto las cosas que odio se sienten más o menos fuertes que hace
- * dos semanas? ¿Y los sentimientos que registro?).
- *
- * Es una sola función genérica (cargarEvolucionEmocional) reutilizada
- * por Sentimientos y Odios, cada uno con su propia tabla de registros
- * y su color.
- */
-const DIAS_EVOLUCION_EMOCIONAL = 14;
-
-// Fecha ISO (YYYY-MM-DD) de hace N días exactos, incluyendo hoy si N=0.
-function fechaISODesdeHoy(diasAtras) {
-    const d = new Date();
-    d.setDate(d.getDate() - diasAtras);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-async function cargarEvolucionEmocional(tableName, chartContainerId, promedioBadgeId, colorCss) {
-    const chartContainer = document.getElementById(chartContainerId);
-    const badge = document.getElementById(promedioBadgeId);
-    if (!chartContainer) return;
-
-    const desdeISO = fechaISODesdeHoy(DIAS_EVOLUCION_EMOCIONAL - 1);
-
-    const { data, error } = await _supabase
-        .from(tableName)
-        .select('valor, fecha')
-        .gte('fecha', desdeISO);
-
-    chartContainer.innerHTML = '';
-
-    if (error) {
-        console.error(`Error cargando evolución de ${tableName}:`, error.message);
-        if (badge) badge.textContent = '--';
-        return;
-    }
-
-    if (!data || data.length === 0) {
-        chartContainer.innerHTML = `<div class="top-habit-empty">Aún no hay suficientes registros para graficar la evolución.</div>`;
-        if (badge) badge.textContent = 'Sin datos';
-        return;
-    }
-
-    // Agrupar todos los valores registrados por fecha (puede haber
-    // varios items registrados el mismo día).
-    const valoresPorFecha = {};
-    data.forEach(registro => {
-        if (!valoresPorFecha[registro.fecha]) valoresPorFecha[registro.fecha] = [];
-        valoresPorFecha[registro.fecha].push(registro.valor);
-    });
-
-    // Construir la serie de los últimos N días en orden cronológico,
-    // con "promedio: null" en los días sin ningún registro.
-    const dias = [];
-    for (let i = DIAS_EVOLUCION_EMOCIONAL - 1; i >= 0; i--) {
-        const fechaISO = fechaISODesdeHoy(i);
-        const valores = valoresPorFecha[fechaISO] || [];
-        const promedio = valores.length
-            ? valores.reduce((a, b) => a + b, 0) / valores.length
-            : null;
-        dias.push({ fecha: fechaISO, promedio });
-    }
-
-    dias.forEach(dia => {
-        const pct = dia.promedio !== null ? (dia.promedio / 10) * 100 : 0;
-        const [, mes, diaNum] = dia.fecha.split('-');
-
-        const barWrap = document.createElement('div');
-        barWrap.className = 'emotion-bar';
-        barWrap.title = dia.promedio !== null
-            ? `${diaNum}/${mes}: promedio ${dia.promedio.toFixed(1)}/10`
-            : `${diaNum}/${mes}: sin registros`;
-
-        barWrap.innerHTML = `
-            <div class="emotion-bar-track">
-                <div class="emotion-bar-fill" style="height: ${pct}%; background: ${colorCss};"></div>
-            </div>
-            <span class="emotion-bar-label">${diaNum}/${mes}</span>
-        `;
-        chartContainer.appendChild(barWrap);
-    });
-
-    // Promedio general de todo el periodo (solo días que sí tuvieron registros).
-    const diasConDatos = dias.filter(d => d.promedio !== null);
-    if (badge) {
-        badge.textContent = diasConDatos.length
-            ? `${(diasConDatos.reduce((acc, d) => acc + d.promedio, 0) / diasConDatos.length).toFixed(1)}/10`
-            : 'Sin datos';
-    }
-}
-
-async function loadEvolucionSentimientos() {
-    await cargarEvolucionEmocional(
-        'sentimientos_registros',
-        'chart-sentimientos-evolucion',
-        'sentimientos-promedio-general',
-        'var(--primary-green)'
-    );
-}
-
-async function loadEvolucionOdios() {
-    await cargarEvolucionEmocional(
-        'odios_registros',
-        'chart-odios-evolucion',
-        'odios-promedio-general',
-        '#e74c3c'
-    );
-}
-
-// Top 3 de Compras (sigue basado en "count", ver banner "NUEVO: TOP 3 DE SENTIMIENTOS Y ODIOS" más arriba para contexto general de los Top 3).
-async function loadTopCompras() {
-    const { data: allCompras, error } = await _supabase
-        .from('compras_logs')
-        .select('name, count')
-        .order('count', { ascending: false })
-        .limit(3);
-
-    const container = document.getElementById('top-compras-list');
-    if (!container) return;
-
-    if (error) {
-        console.error("Error cargando top de compras:", error.message);
-        container.innerHTML = '';
-        return;
-    }
-
-    container.innerHTML = '';
-
-    if (!allCompras || allCompras.length === 0) {
-        container.innerHTML = `<div class="top-habit-empty">Aún no hay Compras registradas para mostrar.</div>`;
-        return;
-    }
-
-    const medals = ['🥇', '🥈', '🥉'];
-
-    allCompras.forEach((item, index) => {
-        const row = `
-            <div class="top-habit-row">
-                <span class="top-habit-medal">${medals[index]}</span>
-                <span class="top-habit-name">${item.name}</span>
-                <span class="top-habit-count">${item.count}x</span>
-            </div>
-        `;
-        container.insertAdjacentHTML('beforeend', row);
-    });
-}
 
 
 
@@ -1988,9 +1801,10 @@ async function loadOdios() {
         const registro = ultimos[odio.id];
         const valorActual = registro ? registro.valor : 5;
         const fechaLabel = registro ? formatFechaRelativa(registro.fecha) : 'Sin registrar';
+        const bloqueo = calcularBloqueoRegistro(registro && registro.created_at);
 
         const card = document.createElement('div');
-        card.className = 'mood-card mood-card--odio';
+        card.className = 'mood-card mood-card--odio' + (bloqueo.locked ? ' mood-card--locked' : '');
 
         const localImagePath = `assets/images/${odio.image_filename}`;
 
@@ -2002,8 +1816,8 @@ async function loadOdios() {
                     <span class="mood-name" title="Clic para editar nombre">${odio.name}</span>
                     <span class="mood-value">${valorActual}</span>
                 </div>
-                <input type="range" min="1" max="10" step="1" value="${valorActual}" class="mood-slider" aria-label="Intensidad de ${odio.name}">
-                <span class="mood-date">${fechaLabel}</span>
+                <input type="range" min="1" max="10" step="1" value="${valorActual}" class="mood-slider" aria-label="Intensidad de ${odio.name}"${bloqueo.locked ? ' disabled' : ''}>
+                <span class="mood-date${bloqueo.locked ? ' mood-date--locked' : ''}">${bloqueo.locked ? `🔒 Disponible en ${formatTiempoRestante(bloqueo.restanteMs)}` : fechaLabel}</span>
             </div>
         `;
 
@@ -2025,14 +1839,16 @@ async function loadOdios() {
             actualizarRellenoBarra(slider, parseInt(slider.value, 10), '#e74c3c');
         });
 
-        // Al soltar, se guarda como el registro de HOY.
+        // Al soltar, se guarda como el registro de HOY y se bloquea por 12 horas.
         slider.addEventListener('change', async () => {
             const nuevoValor = parseInt(slider.value, 10);
             card.classList.add('pop-animation');
             await guardarRegistroTracker('odios_registros', 'odio_id', odio.id, nuevoValor);
-            dateEl.textContent = 'Hoy';
+            slider.disabled = true;
+            card.classList.add('mood-card--locked');
+            dateEl.classList.add('mood-date--locked');
+            dateEl.textContent = `🔒 Disponible en ${formatTiempoRestante(HORAS_BLOQUEO_REGISTRO * 60 * 60 * 1000)}`;
             setTimeout(() => card.classList.remove('pop-animation'), 300);
-            loadTopOdios();
         });
 
         card.addEventListener('contextmenu', (e) => {
@@ -2095,31 +1911,7 @@ async function deleteOdio(name, id) {
     }
 }
 
-// ======================================================
-// EXPORTAR ODIOS (exporta el historial diario de registros, no solo los items)
-// ======================================================
-async function exportOdiosSQL() {
-    try {
-        const { data, error } = await _supabase
-            .from('odios_registros')
-            .select('*')
-            .order('fecha', { ascending: true });
 
-        if (error) throw error;
-
-        if (!data || data.length === 0) {
-            alert("No hay registros para exportar.");
-            return;
-        }
-
-        const sql = buildSQLInsert('odios_registros', data);
-        descargarArchivo(sql, 'odios_registros.sql', 'text/sql');
-
-    } catch (err) {
-        console.error(err);
-        alert("Error exportando Odios: " + err.message);
-    }
-}
 
 
 
@@ -2172,7 +1964,7 @@ function formatFechaRelativa(fechaStr) {
 async function cargarUltimosRegistros(tableName, fkColumn) {
     const { data, error } = await _supabase
         .from(tableName)
-        .select(`${fkColumn}, valor, fecha`)
+        .select(`${fkColumn}, valor, fecha, created_at`)
         .order('fecha', { ascending: false });
 
     if (error) {
@@ -2186,10 +1978,44 @@ async function cargarUltimosRegistros(tableName, fkColumn) {
         // Como viene ordenado de más reciente a más antiguo, la primera
         // vez que aparece cada id ya es su valor más actual.
         if (!(id in mapa)) {
-            mapa[id] = { valor: registro.valor, fecha: registro.fecha };
+            mapa[id] = { valor: registro.valor, fecha: registro.fecha, created_at: registro.created_at };
         }
     });
     return mapa;
+}
+
+/**
+ * ==========================================
+ * BLOQUEO DE 12 HORAS ENTRE REGISTROS
+ * ==========================================
+ * Cada vez que se completa un registro (se suelta el slider y se
+ * guarda), ese item queda bloqueado por 12 horas para evitar
+ * registros impulsivos y llevar un control real de la evolución
+ * emocional. Se calcula a partir de "created_at" del último registro
+ * (que guardarRegistroTracker actualiza en cada guardado, sea inserción
+ * o edición del registro de hoy).
+ */
+const HORAS_BLOQUEO_REGISTRO = 12;
+
+// Devuelve { locked, restanteMs } a partir del created_at del último registro.
+// Si no hay registro previo, nunca está bloqueado (primer registro libre).
+function calcularBloqueoRegistro(createdAtStr) {
+    if (!createdAtStr) return { locked: false, restanteMs: 0 };
+
+    const transcurridoMs = Date.now() - new Date(createdAtStr).getTime();
+    const ventanaMs = HORAS_BLOQUEO_REGISTRO * 60 * 60 * 1000;
+    const restanteMs = ventanaMs - transcurridoMs;
+
+    return { locked: restanteMs > 0, restanteMs: Math.max(restanteMs, 0) };
+}
+
+// Formatea el tiempo restante de bloqueo como "3h 24m" (o "5m" si ya es menos de 1h).
+function formatTiempoRestante(ms) {
+    const totalMin = Math.ceil(ms / 60000);
+    const horas = Math.floor(totalMin / 60);
+    const min = totalMin % 60;
+    if (horas <= 0) return `${min}m`;
+    return `${horas}h ${min}m`;
 }
 
 /**
@@ -2215,7 +2041,7 @@ async function guardarRegistroTracker(tableName, fkColumn, itemId, valor) {
     const { error } = await _supabase
         .from(tableName)
         .upsert(
-            { [fkColumn]: itemId, fecha: getFechaHoyISO(), valor: valor },
+            { [fkColumn]: itemId, fecha: getFechaHoyISO(), valor: valor, created_at: new Date().toISOString() },
             { onConflict: `${fkColumn},fecha` }
         );
 
@@ -2260,9 +2086,10 @@ async function loadSentimientos() {
         const registro = ultimos[sentimiento.id];
         const valorActual = registro ? registro.valor : 5;
         const fechaLabel = registro ? formatFechaRelativa(registro.fecha) : 'Sin registrar';
+        const bloqueo = calcularBloqueoRegistro(registro && registro.created_at);
 
         const card = document.createElement('div');
-        card.className = 'mood-card mood-card--sentimiento';
+        card.className = 'mood-card mood-card--sentimiento' + (bloqueo.locked ? ' mood-card--locked' : '');
 
         const localImagePath = `assets/images/${sentimiento.image_filename}`;
 
@@ -2274,8 +2101,8 @@ async function loadSentimientos() {
                     <span class="mood-name" title="Clic para editar nombre">${sentimiento.name}</span>
                     <span class="mood-value">${valorActual}</span>
                 </div>
-                <input type="range" min="1" max="10" step="1" value="${valorActual}" class="mood-slider" aria-label="Intensidad de ${sentimiento.name}">
-                <span class="mood-date">${fechaLabel}</span>
+                <input type="range" min="1" max="10" step="1" value="${valorActual}" class="mood-slider" aria-label="Intensidad de ${sentimiento.name}"${bloqueo.locked ? ' disabled' : ''}>
+                <span class="mood-date${bloqueo.locked ? ' mood-date--locked' : ''}">${bloqueo.locked ? `🔒 Disponible en ${formatTiempoRestante(bloqueo.restanteMs)}` : fechaLabel}</span>
             </div>
         `;
 
@@ -2300,7 +2127,10 @@ async function loadSentimientos() {
             const nuevoValor = parseInt(slider.value, 10);
             card.classList.add('pop-animation');
             await guardarRegistroTracker('sentimientos_registros', 'sentimiento_id', sentimiento.id, nuevoValor);
-            dateEl.textContent = 'Hoy';
+            slider.disabled = true;
+            card.classList.add('mood-card--locked');
+            dateEl.classList.add('mood-date--locked');
+            dateEl.textContent = `🔒 Disponible en ${formatTiempoRestante(HORAS_BLOQUEO_REGISTRO * 60 * 60 * 1000)}`;
             setTimeout(() => card.classList.remove('pop-animation'), 300);
             loadTopSentimientos();
         });
@@ -2363,31 +2193,7 @@ async function deleteSentimiento(name, id) {
     }
 }
 
-// ======================================================
-// EXPORTAR SENTIMIENTOS (historial diario de registros)
-// ======================================================
-async function exportSentimientosSQL() {
-    try {
-        const { data, error } = await _supabase
-            .from('sentimientos_registros')
-            .select('*')
-            .order('fecha', { ascending: true });
 
-        if (error) throw error;
-
-        if (!data || data.length === 0) {
-            alert("No hay registros para exportar.");
-            return;
-        }
-
-        const sql = buildSQLInsert('sentimientos_registros', data);
-        descargarArchivo(sql, 'sentimientos_registros.sql', 'text/sql');
-
-    } catch (err) {
-        console.error(err);
-        alert("Error exportando Sentimientos: " + err.message);
-    }
-}
 
 
 
@@ -2408,10 +2214,20 @@ async function exportSentimientosSQL() {
  * existe hasta 16 días antes del evento; fuera de ese rango se
  * muestra solo el conteo de días.
  *
+ * NUEVO: cada plan se puede expandir/contraer tocando la tarjeta
+ * (misma interacción que las cards del State Bar) para agregar
+ * "cosas" del plan — una checklist simple con texto libre, marcar
+ * como hecho y eliminar. Solo un plan puede estar expandido a la vez.
+ *
  * IMPORTANTE: requiere crear en Supabase la tabla "planes_logs" con
  * columnas (id, title, plan_date [date], location_name [text,
  * nullable], lat [float8, nullable], lng [float8, nullable],
- * created_at).
+ * created_at), y ADEMÁS una tabla nueva "planes_items" con:
+ *   id          bigint, PK, identity
+ *   plan_id     bigint, FK -> planes_logs(id) ON DELETE CASCADE
+ *   text        text
+ *   done        boolean (default false)
+ *   created_at  timestamptz (default now())
  */
 
 // Traduce el código WMO de Open-Meteo a un emoji + descripción corta.
@@ -2493,6 +2309,15 @@ function formatearFechaPlan(planDateStr) {
     return fecha.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+// Cache de la última carga de planes (para poder re-pintar al
+// expandir/contraer una tarjeta sin tener que volver a consultar
+// Supabase). Se refresca cada vez que loadPlanes() corre de verdad.
+let planesCache = [];
+
+// Id del plan actualmente expandido (solo uno a la vez, igual que el
+// dropdown del State Bar).
+let openPlanId = null;
+
 async function loadPlanes() {
     const { data: planes, error } = await _supabase
         .from('planes_logs')
@@ -2501,19 +2326,32 @@ async function loadPlanes() {
 
     if (error) return console.error("Error cargando planes:", error.message);
 
+    planesCache = planes || [];
+    renderPlanesCards();
+}
+
+// Toggle de expandir/contraer una tarjeta (misma lógica que
+// window.__toggleStateCard del State Bar: un solo índice/id abierto a la vez).
+window.__togglePlanCard = function (planId) {
+    openPlanId = (openPlanId === planId) ? null : planId;
+    renderPlanesCards();
+};
+
+function renderPlanesCards() {
     const list = document.getElementById('list-planes');
     if (!list) return;
 
-    if (!planes || planes.length === 0) {
+    if (!planesCache || planesCache.length === 0) {
         list.innerHTML = '<p style="padding: 16px; color: var(--text-muted);">Aún no tienes planes guardados. Agrega el primero con "Nuevo Plan".</p>';
         return;
     }
 
     list.innerHTML = '';
 
-    planes.forEach(plan => {
+    planesCache.forEach(plan => {
         const dias = diasRestantes(plan.plan_date);
         const safeTitle = String(plan.title || '').replace(/'/g, "\\'");
+        const isOpen = openPlanId === plan.id;
 
         let contadorHtml;
         let contadorClase = 'plan-countdown';
@@ -2529,21 +2367,34 @@ async function loadPlanes() {
         }
 
         const card = `
-            <div class="plan-card" id="plan-card-${plan.id}">
+            <div class="plan-card${isOpen ? ' plan-card--open' : ''}" id="plan-card-${plan.id}">
                 <div class="plan-card-main"
-                     onclick="editPlan(${plan.id}, '${safeTitle}', '${plan.plan_date}', ${plan.location_name ? `'${String(plan.location_name).replace(/'/g, "\\'")}'` : 'null'})"
+                     onclick="window.__togglePlanCard(${plan.id})"
                      oncontextmenu="event.preventDefault(); deletePlan(${plan.id}, '${safeTitle}')"
-                     title="Clic: Editar | Clic Derecho: Eliminar">
+                     title="Toca para ver/agregar cosas del plan · Clic Derecho: Eliminar">
                     <div class="plan-card-info">
-                        <div class="plan-card-title">${plan.title}</div>
+                        <div class="plan-card-title-row">
+                            <span class="plan-card-title" title="Clic para editar">${plan.title}</span>
+                            <span class="plan-card-caret">${isOpen ? '▾' : '▸'}</span>
+                        </div>
                         <div class="plan-card-date">${formatearFechaPlan(plan.plan_date)}${plan.location_name ? ' · ' + plan.location_name : ''}</div>
                         <div class="plan-card-weather" id="plan-weather-${plan.id}">${plan.lat ? 'Consultando clima…' : ''}</div>
                     </div>
                     <div class="${contadorClase}">${contadorHtml}</div>
                 </div>
+                ${isOpen ? `<div class="plan-items-panel" id="plan-items-panel-${plan.id}" onclick="event.stopPropagation();"><div class="top-habit-empty">Cargando…</div></div>` : ''}
             </div>
         `;
         list.insertAdjacentHTML('beforeend', card);
+
+        // Clic en el título edita el plan; el resto de la tarjeta expande/contrae.
+        const titleEl = document.querySelector(`#plan-card-${plan.id} .plan-card-title`);
+        if (titleEl) {
+            titleEl.addEventListener('click', (e) => {
+                e.stopPropagation();
+                editPlan(plan.id, safeTitle, plan.plan_date, plan.location_name || null);
+            });
+        }
 
         // El clima se consulta aparte para no bloquear el render de la lista.
         if (plan.lat && plan.lng && dias >= 0) {
@@ -2563,7 +2414,120 @@ async function loadPlanes() {
             const el = document.getElementById(`plan-weather-${plan.id}`);
             if (el) el.textContent = '';
         }
+
+        if (isOpen) {
+            loadPlanItemsPanel(plan.id);
+        }
     });
+}
+
+/**
+ * ==========================================
+ * COSAS DE CADA PLAN (planes_items)
+ * ==========================================
+ * Checklist simple por plan: texto libre, marcar como hecho, eliminar.
+ * Se carga solo cuando el panel de ese plan está expandido.
+ */
+async function loadPlanItemsPanel(planId) {
+    const panel = document.getElementById(`plan-items-panel-${planId}`);
+    if (!panel) return;
+
+    const { data: items, error } = await _supabase
+        .from('planes_items')
+        .select('*')
+        .eq('plan_id', planId)
+        .order('created_at', { ascending: true });
+
+    if (error) {
+        panel.innerHTML = `<div class="top-habit-empty">No se pudo cargar la lista (${error.message}).</div>`;
+        return;
+    }
+
+    const rowsHtml = (items && items.length > 0)
+        ? items.map(item => `
+            <div class="plan-item-row${item.done ? ' plan-item-row--done' : ''}">
+                <button class="plan-item-check" data-item-id="${item.id}" aria-label="Marcar como hecho">${item.done ? '✅' : '⬜'}</button>
+                <span class="plan-item-text">${item.text}</span>
+                <button class="plan-item-delete" data-item-id="${item.id}" aria-label="Eliminar">×</button>
+            </div>
+        `).join('')
+        : `<div class="top-habit-empty">Aún no agregaste nada a este plan.</div>`;
+
+    panel.innerHTML = `
+        <div class="plan-items-list">${rowsHtml}</div>
+        <button class="plan-item-add-btn" type="button">+ Agregar cosa al plan</button>
+    `;
+
+    panel.querySelectorAll('.plan-item-check').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            togglePlanItemDone(Number(btn.dataset.itemId), planId);
+        });
+    });
+
+    panel.querySelectorAll('.plan-item-delete').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            deletePlanItem(Number(btn.dataset.itemId), planId);
+        });
+    });
+
+    const addBtn = panel.querySelector('.plan-item-add-btn');
+    if (addBtn) {
+        addBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            addPlanItem(planId);
+        });
+    }
+}
+
+async function addPlanItem(planId) {
+    const text = prompt("¿Qué quieres agregar a este plan?");
+    if (!text || text.trim() === "") return;
+
+    const { error } = await _supabase
+        .from('planes_items')
+        .insert([{ plan_id: planId, text: text.trim() }]);
+
+    if (error) {
+        alert("Error al agregar: " + error.message);
+    } else {
+        loadPlanItemsPanel(planId);
+    }
+}
+
+async function togglePlanItemDone(itemId, planId) {
+    const { data, error: errSelect } = await _supabase
+        .from('planes_items')
+        .select('done')
+        .eq('id', itemId)
+        .single();
+
+    if (errSelect || !data) return;
+
+    const { error } = await _supabase
+        .from('planes_items')
+        .update({ done: !data.done })
+        .eq('id', itemId);
+
+    if (error) {
+        alert("Error al actualizar: " + error.message);
+    } else {
+        loadPlanItemsPanel(planId);
+    }
+}
+
+async function deletePlanItem(itemId, planId) {
+    const { error } = await _supabase
+        .from('planes_items')
+        .delete()
+        .eq('id', itemId);
+
+    if (error) {
+        alert("Error al eliminar: " + error.message);
+    } else {
+        loadPlanItemsPanel(planId);
+    }
 }
 
 async function addPlan() {
@@ -2645,6 +2609,9 @@ async function deletePlan(id, title) {
     const confirmDelete = confirm(`¿Deseas eliminar el plan "${title}"?`);
     if (!confirmDelete) return;
 
+    // Por si "planes_items" no tiene ON DELETE CASCADE configurado.
+    await _supabase.from('planes_items').delete().eq('plan_id', id);
+
     const { error } = await _supabase
         .from('planes_logs')
         .delete()
@@ -2653,6 +2620,7 @@ async function deletePlan(id, title) {
     if (error) {
         alert("Error al eliminar el plan: " + error.message);
     } else {
+        if (openPlanId === id) openPlanId = null;
         loadPlanes();
     }
 }
@@ -2697,23 +2665,9 @@ async function loadMetrics() {
         loadTopLoves();
     }
 
-    // 5. Renderizar el Top 3 de Sentimientos, Odios y Compras
+    // 5. Renderizar el Top 3 de Sentimientos
     if (typeof loadTopSentimientos === 'function') {
         loadTopSentimientos();
-    }
-    if (typeof loadTopOdios === 'function') {
-        loadTopOdios();
-    }
-    if (typeof loadTopCompras === 'function') {
-        loadTopCompras();
-    }
-
-    // 6. NUEVO: Evolución emocional (promedio diario, 14 días) de Sentimientos y Odios
-    if (typeof loadEvolucionSentimientos === 'function') {
-        loadEvolucionSentimientos();
-    }
-    if (typeof loadEvolucionOdios === 'function') {
-        loadEvolucionOdios();
     }
 }
 

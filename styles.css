@@ -71,7 +71,7 @@ header.main-header {
 }
 
 .brand-name {
-    font-size: 2.3rem; 
+    font-size: 2.7rem; 
     font-weight: 700;
     letter-spacing: -0.5px;
 }
@@ -127,13 +127,6 @@ header.main-header {
     background-color: var(--bg-header);
 }
 
-/* Separador visual */
-.header-divider {
-    width: 1px;
-    height: 20px;
-    background-color: var(--border-color);
-}
-
 /* Contenedor y Botón de Perfil */
 .profile-menu-container {
     position: relative;
@@ -156,8 +149,8 @@ header.main-header {
 }
 
 .profile-pic {
-    width: 60px;  
-    height: 60px; 
+    width: 70px;  
+    height: 70px; 
     border-radius: 50%;
     object-fit: cover; 
     border: 1px solid var(--border-color);
@@ -1347,6 +1340,31 @@ div.day-segment.future {
     letter-spacing: 0.3px;
 }
 
+/* Estado bloqueado (12h desde el último registro) */
+.mood-slider[disabled] {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.mood-slider[disabled]::-webkit-slider-thumb {
+    cursor: not-allowed;
+}
+
+.mood-slider[disabled]::-moz-range-thumb {
+    cursor: not-allowed;
+}
+
+.mood-card--locked {
+    opacity: 0.75;
+}
+
+.mood-date--locked {
+    color: var(--text-muted);
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 700;
+}
+
 /* Variante roja para Odios */
 .mood-card--odio {
     border-color: rgba(231, 76, 60, 0.35);
@@ -1378,6 +1396,10 @@ div.day-segment.future {
     border-bottom: 1px solid var(--border-color);
 }
 
+.plan-card--open .plan-card-main {
+    background-color: var(--bg-header);
+}
+
 .plan-card-main {
     display: flex;
     align-items: center;
@@ -1396,10 +1418,26 @@ div.day-segment.future {
     min-width: 0;
 }
 
+.plan-card-title-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
 .plan-card-title {
     font-size: 1rem;
     font-weight: 700;
     color: var(--text-dark);
+}
+
+.plan-card-title:hover {
+    text-decoration: underline;
+}
+
+.plan-card-caret {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
 }
 
 .plan-card-date {
@@ -1413,6 +1451,88 @@ div.day-segment.future {
     color: var(--text-dark);
     margin-top: 6px;
     min-height: 1.1em;
+}
+
+/* Panel expandible con la checklist de "cosas" del plan */
+.plan-items-panel {
+    padding: 4px 16px 16px 16px;
+    cursor: default;
+    animation: fadeInDown 0.2s ease;
+}
+
+.plan-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 10px;
+}
+
+.plan-item-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    background: var(--bg-header);
+}
+
+.plan-item-row--done .plan-item-text {
+    text-decoration: line-through;
+    color: var(--text-muted);
+}
+
+.plan-item-check {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.plan-item-text {
+    flex: 1;
+    font-size: 0.9rem;
+    color: var(--text-dark);
+    word-break: break-word;
+}
+
+.plan-item-delete {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+    color: var(--text-muted);
+    padding: 0 4px;
+    flex-shrink: 0;
+}
+
+.plan-item-delete:hover {
+    color: #e74c3c;
+}
+
+.plan-item-add-btn {
+    background: transparent;
+    border: 1px dashed var(--border-color);
+    border-radius: 8px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 8px 12px;
+    width: 100%;
+    cursor: pointer;
+}
+
+.plan-item-add-btn:hover {
+    border-color: var(--primary-green);
+    color: var(--primary-green);
+}
+
+@keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .plan-countdown {

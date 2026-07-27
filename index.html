@@ -38,10 +38,15 @@
                     </svg>
                 </button>
 
-                <button id="export-json-btn" class="icon-btn" style="font-size: 18px;" onclick="exportAllDataJSON()"
-                    aria-label="Exportar Todo (JSON para IA)" title="Exportar Todo (JSON para IA)">📦</button>
-
-                <div class="header-divider"></div>
+                <button id="export-json-btn" class="icon-btn" onclick="exportAllDataJSON()"
+                    aria-label="Exportar Todo (JSON para IA)" title="Exportar Todo (JSON para IA)">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                </button>
 
                 <div class="profile-menu-container">
                     <img src="assets/images/perfil.jpg" alt="Foto de perfil" class="profile-pic" id="user-avatar">
@@ -100,10 +105,10 @@
             <button class="tab-btn tab-inactive" onclick="switchTab('ideas', this)">Brain Dump</button>
             <button class="tab-btn tab-inactive" onclick="switchTab('tareas', this)">Tareas</button>
 
-            <button class="tab-btn tab-inactive" onclick="switchTab('sentimientos', this)">Sentimientos</button>
-            <button class="tab-btn tab-inactive" onclick="switchTab('odios', this)">Odios</button>
-            
             <button class="tab-btn tab-inactive" onclick="switchTab('loves', this)">Loves</button>
+            <button class="tab-btn tab-inactive" onclick="switchTab('odios', this)">Odios</button>
+
+            <button class="tab-btn tab-inactive" onclick="switchTab('sentimientos', this)">Sentimientos</button>
             <button class="tab-btn tab-inactive" onclick="switchTab('reglas', this)">Planes</button>
 
             <button class="tab-btn tab-inactive" onclick="switchTab('money', this)">Finance</button>
@@ -226,61 +231,15 @@
 
                     <!--
                         ==========================================
-                        NUEVO: TOP 3 DE SENTIMIENTOS Y ODIOS (POR INTENSIDAD ACTUAL)
+                        TOP 3 DE SENTIMIENTOS (POR INTENSIDAD ACTUAL)
                         ==========================================
-                        Estos contenedores existían referenciados en main.js
-                        (loadTopSentimientos / loadTopOdios / loadTopCompras)
-                        pero faltaban en el HTML, así que nunca se pintaban.
-                        Se agregan aquí con el mismo estilo que el resto de
-                        los Top 3.
+                        Referenciado en main.js (loadTopSentimientos).
                     -->
                     <div class="top-habits-wrapper" id="top-sentimientos-wrapper"
                         style="border-top: 1px solid var(--border-color);">
                         <div class="category-header" style="border-bottom: none;">Tus 3 Sentimientos Más Fuertes
                             Hoy</div>
                         <div id="top-sentimientos-list" class="top-habits-list"></div>
-                    </div>
-
-                    <div class="top-habits-wrapper" id="top-odios-wrapper"
-                        style="border-top: 1px solid var(--border-color);">
-                        <div class="category-header" style="border-bottom: none;">Tus 3 Odios Más Fuertes Hoy</div>
-                        <div id="top-odios-list" class="top-habits-list"></div>
-                    </div>
-
-                    <div class="top-habits-wrapper" id="top-compras-wrapper"
-                        style="border-top: 1px solid var(--border-color);">
-                        <div class="category-header" style="border-bottom: none;">Tus 3 Compras Más Repetidas</div>
-                        <div id="top-compras-list" class="top-habits-list"></div>
-                    </div>
-
-                    <!--
-                        ==========================================
-                        NUEVO: EVOLUCIÓN EMOCIONAL (PROMEDIO DIARIO, 14 DÍAS)
-                        ==========================================
-                        A partir de los registros diarios de sentimientos_registros
-                        y odios_registros, se calcula el promedio de todos los
-                        items registrados cada día y se grafica como barras, para
-                        ver de un vistazo si en conjunto van subiendo o bajando.
-                        Toda la lógica vive en cargarEvolucionEmocional() en main.js.
-                    -->
-                    <div class="top-habits-wrapper" id="evolucion-sentimientos-wrapper"
-                        style="border-top: 1px solid var(--border-color);">
-                        <div class="category-header"
-                            style="border-bottom: none; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                            <span>Evolución de Sentimientos · últimos 14 días</span>
-                            <span id="sentimientos-promedio-general" class="emotion-avg-badge">--</span>
-                        </div>
-                        <div id="chart-sentimientos-evolucion" class="emotion-chart"></div>
-                    </div>
-
-                    <div class="top-habits-wrapper" id="evolucion-odios-wrapper"
-                        style="border-top: 1px solid var(--border-color);">
-                        <div class="category-header"
-                            style="border-bottom: none; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                            <span>Evolución de Odios · últimos 14 días</span>
-                            <span id="odios-promedio-general" class="emotion-avg-badge emotion-avg-badge--odio">--</span>
-                        </div>
-                        <div id="chart-odios-evolucion" class="emotion-chart"></div>
                     </div>
 
                 </section>
@@ -548,18 +507,6 @@
                                 </svg>
                                 Add Odio
                             </button>
-                            <button class="add-habit-btn" onclick="exportOdiosSQL()"
-                                aria-label="Exportar histórico de Odios"
-                                style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-dark);">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-                                    style="margin-right: 4px;">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="7 10 12 15 17 10"></polyline>
-                                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                                </svg>
-                                Historial (SQL)
-                            </button>
                         </div>
                         <div id="list-odios"></div>
                     </div>
@@ -585,18 +532,6 @@
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                 </svg>
                                 Add Sentimiento
-                            </button>
-                            <button class="add-habit-btn" onclick="exportSentimientosSQL()"
-                                aria-label="Exportar histórico de Sentimientos"
-                                style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-dark);">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-                                    style="margin-right: 4px;">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="7 10 12 15 17 10"></polyline>
-                                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                                </svg>
-                                Historial (SQL)
                             </button>
                         </div>
                         <div id="list-sentimientos"></div>
