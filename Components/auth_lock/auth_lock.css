@@ -1,0 +1,201 @@
+/**
+ * ==========================================
+ * COMPONENTE: AUTH LOCK — ESTILOS
+ * ==========================================
+ */
+#auth-lock-overlay {
+    display: none;
+}
+
+#auth-lock-overlay.auth-lock-active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    inset: 0;
+    background-color: var(--bg-light);
+    z-index: 9999;
+    padding: 20px;
+}
+
+.auth-lock-box {
+    width: 100%;
+    max-width: 340px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    text-align: center;
+}
+
+.auth-lock-title {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--text-dark);
+}
+
+.auth-lock-subtitle {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: -8px;
+}
+
+.auth-lock-tabs {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+}
+
+.auth-lock-tab {
+    flex: 1;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--white);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.auth-lock-tab--active {
+    background: var(--text-dark);
+    color: var(--bg-light);
+    border-color: var(--text-dark);
+}
+
+.auth-lock-error {
+    min-height: 18px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #e74c3c;
+}
+
+.auth-lock-forgot {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    text-decoration: underline;
+    cursor: pointer;
+    margin-top: 4px;
+}
+
+.auth-lock-cooldown {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    padding: 20px 0;
+}
+
+/* --- Código numérico --- */
+.auth-lock-dots {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 6px 0 4px;
+}
+
+.auth-lock-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--border-color);
+    background: transparent;
+    transition: background-color var(--transition);
+}
+
+.auth-lock-dot--filled {
+    background-color: var(--primary-green);
+    border-color: var(--primary-green);
+}
+
+.auth-lock-keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    width: 100%;
+}
+
+.auth-lock-key {
+    padding: 14px 0;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--white);
+    color: var(--text-dark);
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color var(--transition);
+}
+
+.auth-lock-key:hover {
+    background-color: var(--bg-header);
+}
+
+.auth-lock-key--ok {
+    background-color: var(--primary-green);
+    color: var(--white);
+    border-color: var(--primary-green);
+}
+
+.auth-lock-key--del {
+    color: #e74c3c;
+}
+
+/* --- Patrón --- */
+.auth-lock-pattern-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    width: 100%;
+    max-width: 240px;
+    margin: 6px auto;
+}
+
+.auth-lock-pattern-dot {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    border: 2px solid var(--border-color);
+    background: var(--white);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition);
+}
+
+.auth-lock-pattern-dot--active {
+    background-color: var(--primary-green);
+    border-color: var(--primary-green);
+}
+
+.auth-lock-pattern-order {
+    color: var(--white);
+    font-size: 0.85rem;
+    font-weight: 800;
+}
+
+.auth-lock-pattern-actions {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+}
+
+.auth-lock-pattern-actions button {
+    flex: 1;
+    padding: 10px 0;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--white);
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.auth-lock-pattern-actions .auth-lock-key--ok {
+    background-color: var(--primary-green);
+    color: var(--white);
+    border-color: var(--primary-green);
+}

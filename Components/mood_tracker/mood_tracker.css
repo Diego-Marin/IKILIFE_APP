@@ -1,0 +1,161 @@
+/**
+ * ==========================================
+ * COMPONENTE: MOOD TRACKER — ESTILOS
+ * ==========================================
+ * Odios y Sentimientos: tarjeta con imagen + nombre + fila de chips
+ * numerados (1-10) para marcar la intensidad, y una barra de
+ * herramientas de sección (botón "Guardar" o banner de bloqueo).
+ */
+
+.mood-toolbar {
+    padding: 0 16px;
+    margin-top: 4px;
+}
+
+.mood-save-btn {
+    width: 100%;
+}
+
+.mood-lock-banner {
+    width: 100%;
+    text-align: center;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background-color: var(--bg-header);
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.mood-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+}
+
+.mood-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px;
+    border-radius: 12px;
+    border: 2px solid var(--border-color);
+    background-color: var(--white);
+    transition: opacity var(--transition);
+}
+
+.mood-img {
+    width: 76px;
+    height: 76px;
+    flex-shrink: 0;
+    border-radius: 12px;
+    object-fit: cover;
+}
+
+.mood-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.mood-top-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.mood-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mood-value {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--primary-green);
+    flex-shrink: 0;
+    min-width: 1.4em;
+    text-align: right;
+}
+
+.mood-card--odio .mood-value {
+    color: #e74c3c;
+}
+
+/*
+    Fila de chips 1-10: reemplaza al slider anterior. Un clic siempre
+    marca el valor (a diferencia del slider, que solo disparaba
+    "change" cuando el valor era distinto al anterior).
+*/
+.mood-chip-row {
+    display: flex;
+    gap: 4px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+}
+
+.mood-chip {
+    flex: 1 0 auto;
+    min-width: 22px;
+    height: 26px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-light);
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.mood-chip:hover:not(:disabled) {
+    border-color: var(--chip-color, var(--primary-green));
+}
+
+.mood-chip--active {
+    background-color: var(--chip-color, var(--primary-green));
+    border-color: var(--chip-color, var(--primary-green));
+    color: var(--white);
+}
+
+.mood-chip:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.mood-date {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.mood-card--locked {
+    opacity: 0.7;
+}
+
+.mood-date--locked {
+    color: var(--text-muted);
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 700;
+}
+
+.mood-card--odio {
+    border-color: rgba(231, 76, 60, 0.35);
+}
+
+.mood-card--sentimiento {
+    border-color: rgba(116, 192, 138, 0.35);
+}

@@ -1,0 +1,57 @@
+/**
+ * ==========================================
+ * COMPONENTE: NAV MENU — ESTILOS
+ * ==========================================
+ */
+#nav-menu-container {
+    position: relative;
+}
+
+#nav-menu-toggle.nav-menu-toggle--open {
+    background-color: var(--border-color);
+}
+
+.nav-menu-panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    width: 220px;
+    max-height: 70vh;
+    overflow-y: auto;
+    background-color: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px;
+    z-index: 200;
+}
+
+.nav-menu-panel.hidden {
+    display: none;
+}
+
+.nav-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    padding: 10px 12px;
+    border-radius: 8px;
+}
+
+.nav-menu-item-icon {
+    font-size: 1.1rem;
+}
+
+/* En móvil, que el panel no se salga de la pantalla por la izquierda */
+@media (max-width: 420px) {
+    .nav-menu-panel {
+        left: -10px;
+        width: 90vw;
+        max-width: 260px;
+    }
+}
