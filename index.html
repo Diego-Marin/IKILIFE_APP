@@ -32,25 +32,17 @@
                 <span class="brand-name">IKILIFE</span>
             </div>
 
-            <div class="header-actions">
+            <div class="header-actions">S
 
-                <button id="lock-app-btn" class="icon-btn" onclick="lockApp()" aria-label="Bloquear app"
-                    title="Bloquear app">
+                <button id="metrics-btn" class="icon-btn" onclick="switchTab('metrics', this)" aria-label="Ver métricas"
+                    title="Métricas">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                         stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        <line x1="12" y1="20" x2="12" y2="10"></line>
+                        <line x1="18" y1="20" x2="18" y2="4"></line>
+                        <line x1="6" y1="20" x2="6" y2="16"></line>
                     </svg>
                 </button>
-
-                <button id="metrics-btn" class="icon-btn" onclick="switchTab('metrics', this)" aria-label="Ver métricas" title="Métricas">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="12" y1="20" x2="12" y2="10"></line>
-        <line x1="18" y1="20" x2="18" y2="4"></line>
-        <line x1="6" y1="20" x2="6" y2="16"></line>
-    </svg>
-</button>
 
                 <button id="theme-toggle" class="icon-btn" onclick="toggleTheme()" aria-label="Cambiar modo">
                     <svg class="sun-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -78,13 +70,14 @@
                         <line x1="12" y1="15" x2="12" y2="3"></line>
                     </svg>
                 </button>
-                <button id="lock-app-btn" class="icon-btn" onclick="lockApp()" aria-label="Bloquear app" title="Bloquear app">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="5" y="11" width="14" height="10" rx="2"></rect>
-        <path d="M8 11V7a4 4 0 0 1 8 0v4"></path>
-    </svg>
-</button>
+                <button id="lock-app-btn" class="icon-btn" onclick="lockApp()" aria-label="Bloquear app"
+                    title="Bloquear app">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="5" y="11" width="14" height="10" rx="2"></rect>
+                        <path d="M8 11V7a4 4 0 0 1 8 0v4"></path>
+                    </svg>
+                </button>
             </div>
         </header>
 
