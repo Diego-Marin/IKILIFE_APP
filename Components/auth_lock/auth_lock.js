@@ -2,19 +2,16 @@
  * ==========================================
  * COMPONENTE: AUTH LOCK (Bloqueo de la App)
  * ==========================================
- * Componente independiente y autocontenido. Se encarga de:
- *   1. Pedir una contraseña (código numérico o patrón tipo Android)
- *      antes de mostrar cualquier contenido de la app.
- *   2. Si es la primera vez que se usa (no hay contraseña guardada),
- *      guía al usuario para crearla.
- *   3. Exponer window.lockApp() para poder re-bloquear la app desde
- *      un botón del header en cualquier momento.
+ * Solo código numérico (4-6 dígitos). El desbloqueo se recuerda de
+ * forma PERSISTENTE en localStorage: una vez que ingresas el código
+ * correcto, la app queda desbloqueada indefinidamente (incluso
+ * cerrando el navegador o recargando) hasta que TÚ mismo la bloquees
+ * a propósito con el botón de candado del header (window.lockApp()).
  *
  * La contraseña NUNCA se guarda en texto plano: se guarda su hash
  * SHA-256 (Web Crypto API) en localStorage bajo la llave
- * "ikilife_auth". El desbloqueo se recuerda solo durante la sesión
- * actual del navegador (sessionStorage) — al reabrir la app se vuelve
- * a pedir.
+ * "ikilife_auth". El estado de desbloqueo se guarda en localStorage
+ * bajo "ikilife_unlocked".
  *
  * No requiere ninguna tabla de Supabase: toda la lógica es local.
  *
@@ -25,11 +22,9 @@
 
 (function () {
     const STORAGE_KEY = 'ikilife_auth';
-    const SESSION_KEY = 'ikilife_unlocked';
-    const MIN_PATTERN_DOTS = 4;
+    const UNLOCKED_KEY = 'ikilife_unlocked';
 
     let overlay = null;
-    let mode = null;          // 'code' | 'pattern' — modo actualmente elegido en el UI
     let draftFirst = null;    // guarda el primer intento al crear contraseña (para confirmar)
     let attempts = 0;
     let lockedUntil = 0;
@@ -49,18 +44,18 @@
         }
     }
 
-    function isUnlockedThisSession() {
-        return sessionStorage.getItem(SESSION_KEY) === '1';
+    function isUnlocked() {
+        return localStorage.getItem(UNLOCKED_KEY) === '1';
     }
 
     function markUnlocked() {
-        sessionStorage.setItem(SESSION_KEY, '1');
+        localStorage.setItem(UNLOCKED_KEY, '1');
     }
 
     /**
      * Punto de entrada: decide si hay que mostrar pantalla de
      * "crear contraseña" o de "ingresar contraseña", o si ya se puede
-     * dejar pasar directo (ya desbloqueado en esta sesión).
+     * dejar pasar directo (ya desbloqueada de forma persistente).
      */
     function initAuthLock() {
         overlay = document.getElementById('auth-lock-overlay');
@@ -76,7 +71,7 @@
             return;
         }
 
-        if (isUnlockedThisSession()) {
+        if (isUnlocked()) {
             overlay.classList.remove('auth-lock-active');
             overlay.innerHTML = '';
             return;
@@ -87,7 +82,7 @@
 
     // Fuerza a mostrar la pantalla de desbloqueo de nuevo (botón de candado del header).
     window.lockApp = function () {
-        sessionStorage.removeItem(SESSION_KEY);
+        localStorage.removeItem(UNLOCKED_KEY);
         const config = getAuthConfig();
         if (!config) {
             renderSetupScreen();
@@ -101,68 +96,35 @@
        ========================================== */
     function renderSetupScreen(confirming) {
         overlay.classList.add('auth-lock-active');
-        mode = mode || 'code';
 
         overlay.innerHTML = `
             <div class="auth-lock-box">
                 <div class="auth-lock-title">🔒 Protege tu IKILIFE</div>
-                <div class="auth-lock-subtitle">${confirming ? 'Confírmala de nuevo' : 'Crea una contraseña para proteger tu app'}</div>
-
-                <div class="auth-lock-tabs">
-                    <button type="button" class="auth-lock-tab ${mode === 'code' ? 'auth-lock-tab--active' : ''}" data-mode="code" ${confirming ? 'disabled' : ''}>Código</button>
-                    <button type="button" class="auth-lock-tab ${mode === 'pattern' ? 'auth-lock-tab--active' : ''}" data-mode="pattern" ${confirming ? 'disabled' : ''}>Patrón</button>
-                </div>
-
+                <div class="auth-lock-subtitle">${confirming ? 'Confírmalo de nuevo' : 'Crea un código para proteger tu app'}</div>
                 <div id="auth-lock-input-area"></div>
                 <div class="auth-lock-error" id="auth-lock-error"></div>
             </div>
         `;
 
-        overlay.querySelectorAll('.auth-lock-tab').forEach(btn => {
-            btn.addEventListener('click', () => {
-                mode = btn.dataset.mode;
-                draftFirst = null;
-                renderSetupScreen(false);
-            });
+        renderCodeInput(async (value) => {
+            if (!confirming) {
+                draftFirst = value;
+                renderSetupScreen(true);
+            } else {
+                if (value !== draftFirst) {
+                    showError('Los códigos no coinciden. Intenta de nuevo.');
+                    draftFirst = null;
+                    renderSetupScreen(false);
+                    return;
+                }
+                await saveAuthConfig(value);
+            }
         });
-
-        if (mode === 'code') {
-            renderCodeInput(async (value) => {
-                if (!confirming) {
-                    draftFirst = value;
-                    renderSetupScreen(true);
-                } else {
-                    if (value !== draftFirst) {
-                        showError('Los códigos no coinciden. Intenta de nuevo.');
-                        draftFirst = null;
-                        renderSetupScreen(false);
-                        return;
-                    }
-                    await saveAuthConfig('code', value);
-                }
-            });
-        } else {
-            renderPatternInput(async (sequence) => {
-                const value = sequence.join('-');
-                if (!confirming) {
-                    draftFirst = value;
-                    renderSetupScreen(true);
-                } else {
-                    if (value !== draftFirst) {
-                        showError('El patrón no coincide. Intenta de nuevo.');
-                        draftFirst = null;
-                        renderSetupScreen(false);
-                        return;
-                    }
-                    await saveAuthConfig('pattern', value);
-                }
-            });
-        }
     }
 
-    async function saveAuthConfig(type, rawValue) {
+    async function saveAuthConfig(rawValue) {
         const hash = await sha256Hex(rawValue);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ type, hash }));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ type: 'code', hash }));
         draftFirst = null;
         markUnlocked();
         overlay.classList.remove('auth-lock-active');
@@ -178,19 +140,18 @@
         overlay.innerHTML = `
             <div class="auth-lock-box">
                 <div class="auth-lock-title">🔒 IKILIFE bloqueado</div>
-                <div class="auth-lock-subtitle">${config.type === 'code' ? 'Ingresa tu código' : 'Dibuja tu patrón'}</div>
+                <div class="auth-lock-subtitle">Ingresa tu código</div>
                 <div id="auth-lock-input-area"></div>
                 <div class="auth-lock-error" id="auth-lock-error"></div>
-                <button type="button" class="auth-lock-forgot" id="auth-lock-forgot">¿Olvidaste tu contraseña?</button>
+                <button type="button" class="auth-lock-forgot" id="auth-lock-forgot">¿Olvidaste tu código?</button>
             </div>
         `;
 
         document.getElementById('auth-lock-forgot').addEventListener('click', () => {
-            const ok = confirm('Esto borrará tu contraseña actual y tendrás que crear una nueva. ¿Continuar?');
+            const ok = confirm('Esto borrará tu código actual y tendrás que crear uno nuevo. ¿Continuar?');
             if (ok) {
                 localStorage.removeItem(STORAGE_KEY);
-                sessionStorage.removeItem(SESSION_KEY);
-                mode = null;
+                localStorage.removeItem(UNLOCKED_KEY);
                 draftFirst = null;
                 renderSetupScreen(false);
             }
@@ -202,7 +163,7 @@
             return;
         }
 
-        const onAttempt = async (rawValue) => {
+        renderCodeInput(async (rawValue) => {
             const hash = await sha256Hex(rawValue);
             if (hash === config.hash) {
                 attempts = 0;
@@ -216,17 +177,11 @@
                     showError('Demasiados intentos. Espera 30 segundos.');
                     disableInputTemporarily(config);
                 } else {
-                    showError('Contraseña incorrecta. Intenta de nuevo.');
+                    showError('Código incorrecto. Intenta de nuevo.');
                     renderUnlockScreen(config);
                 }
             }
-        };
-
-        if (config.type === 'code') {
-            renderCodeInput(onAttempt);
-        } else {
-            renderPatternInput(onAttempt);
-        }
+        });
     }
 
     function disableInputTemporarily(config) {
@@ -287,58 +242,6 @@
         });
 
         renderDots();
-    }
-
-    /* ==========================================
-       INPUT: PATRÓN (grilla 3x3, tocar en orden)
-       ========================================== */
-    function renderPatternInput(onComplete) {
-        const area = document.getElementById('auth-lock-input-area');
-        if (!area) return;
-        let sequence = [];
-
-        area.innerHTML = `
-            <div class="auth-lock-pattern-grid" id="auth-lock-pattern-grid"></div>
-            <div class="auth-lock-pattern-actions">
-                <button type="button" class="auth-lock-key--del" id="auth-lock-pattern-reset">⌫ Reiniciar</button>
-                <button type="button" class="auth-lock-key--ok" id="auth-lock-pattern-ok">✓ Confirmar</button>
-            </div>
-        `;
-
-        const grid = document.getElementById('auth-lock-pattern-grid');
-        for (let i = 0; i < 9; i++) {
-            const dot = document.createElement('button');
-            dot.type = 'button';
-            dot.className = 'auth-lock-pattern-dot';
-            dot.dataset.index = i;
-            dot.addEventListener('click', () => {
-                if (sequence.includes(i)) return;
-                sequence.push(i);
-                dot.classList.add('auth-lock-pattern-dot--active');
-                const badge = document.createElement('span');
-                badge.className = 'auth-lock-pattern-order';
-                badge.textContent = sequence.length;
-                dot.appendChild(badge);
-            });
-            grid.appendChild(dot);
-        }
-
-        function resetPattern() {
-            sequence = [];
-            grid.querySelectorAll('.auth-lock-pattern-dot').forEach(d => {
-                d.classList.remove('auth-lock-pattern-dot--active');
-                d.innerHTML = '';
-            });
-        }
-
-        document.getElementById('auth-lock-pattern-reset').addEventListener('click', resetPattern);
-        document.getElementById('auth-lock-pattern-ok').addEventListener('click', () => {
-            if (sequence.length < MIN_PATTERN_DOTS) {
-                showError(`Conecta al menos ${MIN_PATTERN_DOTS} puntos.`);
-                return;
-            }
-            onComplete(sequence);
-        });
     }
 
     document.addEventListener('DOMContentLoaded', initAuthLock);
