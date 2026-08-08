@@ -2,48 +2,127 @@
  * ==========================================
  * COMPONENTE: AUTH LOCK (Bloqueo de la App)
  * ==========================================
- * Solo código numérico (4-6 dígitos). El desbloqueo se recuerda de
- * forma PERSISTENTE en localStorage: una vez que ingresas el código
- * correcto, la app queda desbloqueada indefinidamente (incluso
- * cerrando el navegador o recargando) hasta que TÚ mismo la bloquees
- * a propósito con el botón de candado del header (window.lockApp()).
+ * 
+ * MEJORAS:
+ * 1. BLOQUEO POR INACTIVIDAD: si no hay interaccion durante
+ *    15 minutos, la app se bloquea automaticamente.
+ * 2. HASH EN SUPABASE: la contrasena (hash SHA-256) se guarda
+ *    preferentemente en la tabla "app_auth" de Supabase para
+ *    mayor seguridad y persistencia. Si falla la conexion o la
+ *    tabla no existe, hace fallback a localStorage.
+ * 3. NUNCA EXPIRA: el hash se almacena de forma permanente.
  *
- * La contraseña NUNCA se guarda en texto plano: se guarda su hash
- * SHA-256 (Web Crypto API) en localStorage bajo la llave
- * "ikilife_auth". El estado de desbloqueo se guarda en localStorage
- * bajo "ikilife_unlocked".
+ * TABLA REQUERIDA EN SUPABASE:
+ *   CREATE TABLE app_auth (
+ *     id int PRIMARY KEY DEFAULT 1,
+ *     hash text NOT NULL,
+ *     updated_at timestamptz DEFAULT now()
+ *   );
  *
- * No requiere ninguna tabla de Supabase: toda la lógica es local.
- *
- * USO: este script debe cargarse ANTES que main.js. Al cargar,
- * inserta y controla su propio overlay (#auth-lock-overlay), que ya
- * debe existir vacío en el HTML como primer hijo del <body>.
+ * USO: cargar DESPUES de main.js (o asegurar que _supabase exista).
  */
 
 (function () {
     const STORAGE_KEY = 'ikilife_auth';
     const UNLOCKED_KEY = 'ikilife_unlocked';
+    const INACTIVITY_MS = 15 * 60 * 1000; // 15 minutos
 
-    let overlay = null;
-    let draftFirst = null;    // guarda el primer intento al crear contraseña (para confirmar)
-    let attempts = 0;
-    let lockedUntil = 0;
+    var overlay = null;
+    var draftFirst = null;
+    var attempts = 0;
+    var lockedUntil = 0;
+    var inactivityTimer = null;
+    var _configCache = null;
 
+    /* ---------- Utilidades criptograficas ---------- */
     async function sha256Hex(text) {
-        const enc = new TextEncoder().encode(text);
-        const buf = await crypto.subtle.digest('SHA-256', enc);
-        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+        var enc = new TextEncoder().encode(text);
+        var buf = await crypto.subtle.digest('SHA-256', enc);
+        return Array.from(new Uint8Array(buf)).map(function(b) {
+            return b.toString(16).padStart(2, '0');
+        }).join('');
     }
 
-    function getAuthConfig() {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            return raw ? JSON.parse(raw) : null;
-        } catch (e) {
-            return null;
+    function getSupabaseClient() {
+        return (typeof _supabase !== 'undefined' && _supabase) ? _supabase : null;
+    }
+
+    /* ---------- Persistencia: Supabase primero, localStorage fallback ---------- */
+    async function loadAuthConfig() {
+        if (_configCache) return _configCache;
+
+        var client = getSupabaseClient();
+        if (client) {
+            try {
+                var result = await client
+                    .from('app_auth')
+                    .select('hash')
+                    .eq('id', 1)
+                    .single();
+                if (!result.error && result.data && result.data.hash) {
+                    _configCache = { type: 'code', hash: result.data.hash, source: 'supabase' };
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(_configCache));
+                    return _configCache;
+                }
+            } catch (e) {
+                console.warn('Auth Lock: fallo al leer de Supabase, usando localStorage.', e.message);
+            }
         }
+
+        try {
+            var raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) {
+                _configCache = JSON.parse(raw);
+                return _configCache;
+            }
+        } catch (e) {
+            console.warn('Auth Lock: localStorage corrupto.', e.message);
+        }
+        return null;
     }
 
+    async function saveAuthConfig(rawValue) {
+        var hash = await sha256Hex(rawValue);
+        var payload = { type: 'code', hash: hash };
+
+        var client = getSupabaseClient();
+        if (client) {
+            try {
+                var result = await client
+                    .from('app_auth')
+                    .upsert({ id: 1, hash: hash, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+                if (!result.error) {
+                    payload.source = 'supabase';
+                } else {
+                    console.warn('Auth Lock: no se pudo guardar en Supabase.', result.error.message);
+                }
+            } catch (e) {
+                console.warn('Auth Lock: excepcion guardando en Supabase.', e.message);
+            }
+        }
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        _configCache = payload;
+        draftFirst = null;
+        markUnlocked();
+        hideOverlay();
+        startInactivityTimer();
+    }
+
+    async function clearAuthConfig() {
+        var client = getSupabaseClient();
+        if (client) {
+            try {
+                await client.from('app_auth').delete().eq('id', 1);
+            } catch (e) { /* ignore */ }
+        }
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(UNLOCKED_KEY);
+        _configCache = null;
+        draftFirst = null;
+    }
+
+    /* ---------- Estado de desbloqueo ---------- */
     function isUnlocked() {
         return localStorage.getItem(UNLOCKED_KEY) === '1';
     }
@@ -52,19 +131,63 @@
         localStorage.setItem(UNLOCKED_KEY, '1');
     }
 
-    /**
-     * Punto de entrada: decide si hay que mostrar pantalla de
-     * "crear contraseña" o de "ingresar contraseña", o si ya se puede
-     * dejar pasar directo (ya desbloqueada de forma persistente).
-     */
-    function initAuthLock() {
+    function markLocked() {
+        localStorage.removeItem(UNLOCKED_KEY);
+    }
+
+    /* ---------- Inactividad ---------- */
+    function startInactivityTimer() {
+        stopInactivityTimer();
+        inactivityTimer = setTimeout(function() {
+            if (isUnlocked()) {
+                lockApp();
+            }
+        }, INACTIVITY_MS);
+    }
+
+    function stopInactivityTimer() {
+        if (inactivityTimer) {
+            clearTimeout(inactivityTimer);
+            inactivityTimer = null;
+        }
+    }
+
+    function resetInactivityTimer() {
+        if (!isUnlocked()) return;
+        startInactivityTimer();
+    }
+
+    function setupInactivityDetection() {
+        var events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click', 'keydown'];
+        events.forEach(function(evt) {
+            document.addEventListener(evt, resetInactivityTimer, true);
+        });
+    }
+
+    /* ---------- Overlay ---------- */
+    function showOverlay(htmlContent) {
+        overlay = document.getElementById('auth-lock-overlay');
+        if (!overlay) return;
+        overlay.classList.add('auth-lock-active');
+        overlay.innerHTML = htmlContent;
+    }
+
+    function hideOverlay() {
+        overlay = document.getElementById('auth-lock-overlay');
+        if (!overlay) return;
+        overlay.classList.remove('auth-lock-active');
+        overlay.innerHTML = '';
+    }
+
+    /* ---------- Punto de entrada ---------- */
+    async function initAuthLock() {
         overlay = document.getElementById('auth-lock-overlay');
         if (!overlay) {
             console.warn('auth_lock: no existe #auth-lock-overlay en el HTML.');
             return;
         }
 
-        const config = getAuthConfig();
+        var config = await loadAuthConfig();
 
         if (!config) {
             renderSetupScreen();
@@ -72,18 +195,20 @@
         }
 
         if (isUnlocked()) {
-            overlay.classList.remove('auth-lock-active');
-            overlay.innerHTML = '';
+            hideOverlay();
+            setupInactivityDetection();
+            startInactivityTimer();
             return;
         }
 
         renderUnlockScreen(config);
     }
 
-    // Fuerza a mostrar la pantalla de desbloqueo de nuevo (botón de candado del header).
-    window.lockApp = function () {
-        localStorage.removeItem(UNLOCKED_KEY);
-        const config = getAuthConfig();
+    /* ---------- API publica ---------- */
+    window.lockApp = async function() {
+        markLocked();
+        stopInactivityTimer();
+        var config = await loadAuthConfig();
         if (!config) {
             renderSetupScreen();
         } else {
@@ -91,28 +216,23 @@
         }
     };
 
-    /* ==========================================
-       PANTALLA: CREAR CONTRASEÑA (primer uso)
-       ========================================== */
+    /* ---------- Pantallas ---------- */
     function renderSetupScreen(confirming) {
-        overlay.classList.add('auth-lock-active');
-
-        overlay.innerHTML = `
-            <div class="auth-lock-box">
-                <div class="auth-lock-title">🔒 Protege tu IKILIFE</div>
-                <div class="auth-lock-subtitle">${confirming ? 'Confírmalo de nuevo' : 'Crea un código para proteger tu app'}</div>
-                <div id="auth-lock-input-area"></div>
-                <div class="auth-lock-error" id="auth-lock-error"></div>
-            </div>
-        `;
-
-        renderCodeInput(async (value) => {
+        showOverlay(
+            '<div class="auth-lock-box">' +
+                '<div class="auth-lock-title">\uD83D\uDD12 Protege tu IKILIFE</div>' +
+                '<div class="auth-lock-subtitle">' + (confirming ? 'Confirma de nuevo' : 'Crea un codigo para proteger tu app') + '</div>' +
+                '<div id="auth-lock-input-area"></div>' +
+                '<div class="auth-lock-error" id="auth-lock-error"></div>' +
+            '</div>'
+        );
+        renderCodeInput(async function(value) {
             if (!confirming) {
                 draftFirst = value;
                 renderSetupScreen(true);
             } else {
                 if (value !== draftFirst) {
-                    showError('Los códigos no coinciden. Intenta de nuevo.');
+                    showError('Los codigos no coinciden. Intenta de nuevo.');
                     draftFirst = null;
                     renderSetupScreen(false);
                     return;
@@ -122,54 +242,39 @@
         });
     }
 
-    async function saveAuthConfig(rawValue) {
-        const hash = await sha256Hex(rawValue);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ type: 'code', hash }));
-        draftFirst = null;
-        markUnlocked();
-        overlay.classList.remove('auth-lock-active');
-        overlay.innerHTML = '';
-    }
-
-    /* ==========================================
-       PANTALLA: INGRESAR CONTRASEÑA (uso normal)
-       ========================================== */
     function renderUnlockScreen(config) {
-        overlay.classList.add('auth-lock-active');
+        showOverlay(
+            '<div class="auth-lock-box">' +
+                '<div class="auth-lock-title">\uD83D\uDD12 IKILIFE bloqueado</div>' +
+                '<div class="auth-lock-subtitle">Ingresa tu codigo</div>' +
+                '<div id="auth-lock-input-area"></div>' +
+                '<div class="auth-lock-error" id="auth-lock-error"></div>' +
+                '<button type="button" class="auth-lock-forgot" id="auth-lock-forgot">Olvidaste tu codigo?</button>' +
+            '</div>'
+        );
 
-        overlay.innerHTML = `
-            <div class="auth-lock-box">
-                <div class="auth-lock-title">🔒 IKILIFE bloqueado</div>
-                <div class="auth-lock-subtitle">Ingresa tu código</div>
-                <div id="auth-lock-input-area"></div>
-                <div class="auth-lock-error" id="auth-lock-error"></div>
-                <button type="button" class="auth-lock-forgot" id="auth-lock-forgot">¿Olvidaste tu código?</button>
-            </div>
-        `;
-
-        document.getElementById('auth-lock-forgot').addEventListener('click', () => {
-            const ok = confirm('Esto borrará tu código actual y tendrás que crear uno nuevo. ¿Continuar?');
+        document.getElementById('auth-lock-forgot').addEventListener('click', async function() {
+            var ok = confirm('Esto borrara tu codigo actual y tendras que crear uno nuevo. Continuar?');
             if (ok) {
-                localStorage.removeItem(STORAGE_KEY);
-                localStorage.removeItem(UNLOCKED_KEY);
-                draftFirst = null;
+                await clearAuthConfig();
                 renderSetupScreen(false);
             }
         });
 
-        const now = Date.now();
+        var now = Date.now();
         if (lockedUntil > now) {
             disableInputTemporarily(config);
             return;
         }
 
-        renderCodeInput(async (rawValue) => {
-            const hash = await sha256Hex(rawValue);
+        renderCodeInput(async function(rawValue) {
+            var hash = await sha256Hex(rawValue);
             if (hash === config.hash) {
                 attempts = 0;
                 markUnlocked();
-                overlay.classList.remove('auth-lock-active');
-                overlay.innerHTML = '';
+                hideOverlay();
+                setupInactivityDetection();
+                startInactivityTimer();
             } else {
                 attempts += 1;
                 if (attempts >= 5) {
@@ -177,7 +282,7 @@
                     showError('Demasiados intentos. Espera 30 segundos.');
                     disableInputTemporarily(config);
                 } else {
-                    showError('Código incorrecto. Intenta de nuevo.');
+                    showError('Codigo incorrecto. Intenta de nuevo.');
                     renderUnlockScreen(config);
                 }
             }
@@ -185,53 +290,52 @@
     }
 
     function disableInputTemporarily(config) {
-        const area = document.getElementById('auth-lock-input-area');
-        if (area) area.innerHTML = `<div class="auth-lock-cooldown">Vuelve a intentar en unos segundos…</div>`;
-        setTimeout(() => renderUnlockScreen(config), Math.max(1000, lockedUntil - Date.now()));
+        var area = document.getElementById('auth-lock-input-area');
+        if (area) area.innerHTML = '<div class="auth-lock-cooldown">Vuelve a intentar en unos segundos...</div>';
+        setTimeout(function() { renderUnlockScreen(config); }, Math.max(1000, lockedUntil - Date.now()));
     }
 
     function showError(msg) {
-        const err = document.getElementById('auth-lock-error');
+        var err = document.getElementById('auth-lock-error');
         if (err) err.textContent = msg;
     }
 
-    /* ==========================================
-       INPUT: CÓDIGO NUMÉRICO (4-6 dígitos)
-       ========================================== */
+    /* ---------- Input numerico ---------- */
     function renderCodeInput(onComplete) {
-        const area = document.getElementById('auth-lock-input-area');
+        var area = document.getElementById('auth-lock-input-area');
         if (!area) return;
-        let value = '';
-        const maxDigits = 6;
+        var value = '';
+        var maxDigits = 6;
 
-        area.innerHTML = `
-            <div class="auth-lock-dots" id="auth-lock-dots"></div>
-            <div class="auth-lock-keypad" id="auth-lock-keypad"></div>
-        `;
+        area.innerHTML =
+            '<div class="auth-lock-dots" id="auth-lock-dots"></div>' +
+            '<div class="auth-lock-keypad" id="auth-lock-keypad"></div>';
 
         function renderDots() {
-            const dotsEl = document.getElementById('auth-lock-dots');
+            var dotsEl = document.getElementById('auth-lock-dots');
             dotsEl.innerHTML = '';
-            for (let i = 0; i < maxDigits; i++) {
-                const dot = document.createElement('span');
+            for (var i = 0; i < maxDigits; i++) {
+                var dot = document.createElement('span');
                 dot.className = 'auth-lock-dot' + (i < value.length ? ' auth-lock-dot--filled' : '');
                 dotsEl.appendChild(dot);
             }
         }
 
-        const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'borrar', '0', 'ok'];
-        const keypad = document.getElementById('auth-lock-keypad');
-        keys.forEach(k => {
-            const btn = document.createElement('button');
+        var keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'borrar', '0', 'ok'];
+        var keypad = document.getElementById('auth-lock-keypad');
+        keys.forEach(function(k) {
+            var btn = document.createElement('button');
             btn.type = 'button';
-            btn.className = 'auth-lock-key' + (k === 'ok' ? ' auth-lock-key--ok' : '') + (k === 'borrar' ? ' auth-lock-key--del' : '');
-            btn.textContent = k === 'borrar' ? '⌫' : (k === 'ok' ? '✓' : k);
-            btn.addEventListener('click', () => {
+            btn.className = 'auth-lock-key' +
+                (k === 'ok' ? ' auth-lock-key--ok' : '') +
+                (k === 'borrar' ? ' auth-lock-key--del' : '');
+            btn.textContent = k === 'borrar' ? '\u232B' : (k === 'ok' ? '\u2713' : k);
+            btn.addEventListener('click', function() {
                 if (k === 'borrar') {
                     value = value.slice(0, -1);
                 } else if (k === 'ok') {
                     if (value.length >= 4) onComplete(value);
-                    else showError('Usa al menos 4 dígitos.');
+                    else showError('Usa al menos 4 digitos.');
                     return;
                 } else if (value.length < maxDigits) {
                     value += k;
@@ -244,5 +348,10 @@
         renderDots();
     }
 
-    document.addEventListener('DOMContentLoaded', initAuthLock);
+    /* ---------- Arranque ---------- */
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAuthLock);
+    } else {
+        initAuthLock();
+    }
 })();

@@ -174,6 +174,8 @@ async function loadFinances() {
         patrimonioEl.classList.toggle('text-debt', patrimonioNeto < 0);
         patrimonioEl.classList.toggle('text-savings', patrimonioNeto >= 0);
     }
+
+    renderPatrimonioWidget(patrimonioNeto, totalGastosReal);
 }
 
 /* ==========================================
@@ -298,4 +300,92 @@ async function exportFinanceSQL() {
 
     const sql = buildSQLInsert('finance_logs', data);
     descargarArchivo(sql, `ikilife_finance_${getFechaHoyISO ? getFechaHoyISO() : Date.now()}.sql`, 'text/plain;charset=utf-8;');
+}
+
+
+/* ==========================================
+   PATRIMONIO NETO INTERACTIVO
+   ========================================== */
+function renderPatrimonioWidget(patrimonio, gastosMensuales) {
+    const container = document.getElementById('finance-main');
+    if (!container) return;
+
+    const oldWidget = document.getElementById('patrimonio-widget');
+    if (oldWidget) oldWidget.remove();
+
+    const widget = document.createElement('div');
+    widget.id = 'patrimonio-widget';
+    widget.className = 'patrimonio-widget';
+
+    var mensaje = '';
+    var submensaje = '';
+    var emoji = '';
+    var claseColor = '';
+    var barraPct = 50;
+
+    if (patrimonio < 0) {
+        emoji = '\uD83D\uDEA8';
+        claseColor = 'patrimonio--rojo';
+        var mesesSalir = gastosMensuales > 0 ? Math.abs(patrimonio) / gastosMensuales : 0;
+        mensaje = 'Estás en zona de riesgo financiero';
+        submensaje = 'Necesitas aproximadamente ' + mesesSalir.toFixed(1) + ' meses de ingresos para salir de rojo.';
+        barraPct = Math.max(5, 50 - (mesesSalir / 3) * 50);
+    } else if (patrimonio === 0 || (gastosMensuales > 0 && patrimonio < gastosMensuales)) {
+        emoji = '\u2696\uFE0F';
+        claseColor = 'patrimonio--amarillo';
+        mensaje = 'En equilibrio frágil';
+        submensaje = 'Cualquier imprevisto te sacaría de tu zona de confort. Intenta aumentar tu colchón.';
+        barraPct = 55;
+    } else {
+        var meses = gastosMensuales > 0 ? patrimonio / gastosMensuales : 0;
+        claseColor = 'patrimonio--verde';
+        if (meses < 3) {
+            emoji = '\uD83C\uDF31';
+            mensaje = 'Tienes ' + meses.toFixed(1) + ' meses de ventaja de vida';
+            submensaje = 'Buen comienzo. Sigue construyendo tu libertad financiera.';
+            barraPct = 55 + (meses / 3) * 20;
+        } else if (meses < 6) {
+            emoji = '\uD83D\uDEE1\uFE0F';
+            mensaje = 'Tienes ' + meses.toFixed(1) + ' meses de ventaja de vida';
+            submensaje = 'Colchón financiero sólido. Puedes respirar tranquilo ante imprevistos.';
+            barraPct = 75 + ((meses - 3) / 3) * 10;
+        } else if (meses < 12) {
+            emoji = '\uD83D\uDE80';
+            mensaje = 'Tienes ' + meses.toFixed(1) + ' meses de ventaja de vida';
+            submensaje = 'Libertad parcial alcanzada. Estás muy cerca de la independencia.';
+            barraPct = 85 + ((meses - 6) / 6) * 10;
+        } else {
+            emoji = '\uD83C\uDFC6';
+            mensaje = meses.toFixed(1) + ' meses de libertad financiera!';
+            submensaje = 'Has alcanzado un nivel de seguridad envidiable. Tu dinero trabaja para ti.';
+            barraPct = 95;
+        }
+    }
+
+    widget.innerHTML =
+        '<div class="patrimonio-header ' + claseColor + '">' +
+            '<span class="patrimonio-emoji">' + emoji + '</span>' +
+            '<div class="patrimonio-texts">' +
+                '<div class="patrimonio-mensaje">' + mensaje + '</div>' +
+                '<div class="patrimonio-submensaje">' + submensaje + '</div>' +
+            '</div>' +
+        '</div>' +
+        '<div class="patrimonio-bar-wrap">' +
+            '<div class="patrimonio-bar-track">' +
+                '<div class="patrimonio-bar-fill ' + claseColor + '" style="width:' + barraPct + '%;"></div>' +
+                '<div class="patrimonio-bar-marker" style="left:' + barraPct + '%"></div>' +
+            '</div>' +
+            '<div class="patrimonio-bar-labels">' +
+                '<span>Endeudado</span>' +
+                '<span>Equilibrio</span>' +
+                '<span>Libre</span>' +
+            '</div>' +
+        '</div>';
+
+    var summaryGrid = container.querySelector('.summary-grid');
+    if (summaryGrid && summaryGrid.nextSibling) {
+        container.insertBefore(widget, summaryGrid.nextSibling);
+    } else {
+        container.appendChild(widget);
+    }
 }

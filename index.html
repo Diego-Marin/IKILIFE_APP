@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="./Components/mood_tracker/mood_tracker.css">
     <link rel="stylesheet" href="./Components/finance/finance.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<base target="_blank">
 </head>
 
 <body>
@@ -32,7 +33,7 @@
                 <span class="brand-name">IKILIFE</span>
             </div>
 
-            <div class="header-actions">S
+            <div class="header-actions">
 
                 <button id="metrics-btn" class="icon-btn" onclick="switchTab('metrics', this)" aria-label="Ver métricas"
                     title="Métricas">
@@ -635,16 +636,15 @@
     </div>
 
     <!--
-        Componentes independientes: deben cargarse ANTES que main.js
-        porque exponen funciones globales (loadOdios, addOdio,
-        loadFinances, lockApp, etc.) que main.js y los onclick="" del
-        HTML siguen usando por nombre.
+        Orden de carga:
+        1. main.js define _supabase y funciones core
+        2. Componentes usan _supabase y exponen funciones globales
     -->
+    <script src="main.js"></script>
     <script src="./Components/auth_lock/auth_lock.js"></script>
     <script src="./Components/nav_menu/nav_menu.js"></script>
     <script src="./Components/mood_tracker/mood_tracker.js"></script>
     <script src="./Components/finance/finance.js"></script>
-    <script src="main.js"></script>
 </body>
 
 </html>

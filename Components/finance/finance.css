@@ -207,3 +207,118 @@
 .summary-card--wide {
     grid-column: 1 / -1;
 }
+
+
+/* ==========================================
+   PATRIMONIO NETO INTERACTIVO
+   ========================================== */
+.patrimonio-widget {
+    margin: 16px 0 24px;
+    padding: 20px;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    background: linear-gradient(135deg, var(--bg-header) 0%, var(--white) 100%);
+    animation: fadeInUp 0.4s ease;
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.patrimonio-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+}
+
+.patrimonio-emoji {
+    font-size: 2.4rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.patrimonio-texts {
+    flex: 1;
+    min-width: 0;
+}
+
+.patrimonio-mensaje {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--text-dark);
+    line-height: 1.3;
+    margin-bottom: 4px;
+}
+
+.patrimonio-submensaje {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+.patrimonio-submensaje strong {
+    color: var(--text-dark);
+    font-weight: 700;
+}
+
+/* Estados de color */
+.patrimonio--rojo   .patrimonio-mensaje { color: #e74c3c; }
+.patrimonio--amarillo .patrimonio-mensaje { color: #e67e22; }
+.patrimonio--verde  .patrimonio-mensaje { color: #16a34a; }
+
+/* Barra visual */
+.patrimonio-bar-wrap {
+    margin-top: 8px;
+}
+
+.patrimonio-bar-track {
+    position: relative;
+    width: 100%;
+    height: 14px;
+    border-radius: 7px;
+    background: linear-gradient(to right, 
+        #e74c3c 0%, 
+        #e74c3c 30%, 
+        #f1c40f 45%, 
+        #f1c40f 55%, 
+        #2ecc71 70%, 
+        #2ecc71 100%
+    );
+    overflow: visible;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.patrimonio-bar-fill {
+    height: 100%;
+    border-radius: 7px;
+    background: rgba(255,255,255,0.35);
+    transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+}
+
+.patrimonio-bar-marker {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--white);
+    border: 3px solid var(--text-dark);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    transition: left 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    z-index: 2;
+}
+
+.patrimonio-bar-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
