@@ -1015,42 +1015,48 @@ div.day-segment.future {
 .passion-count { font-size: 1.2rem; font-weight: 800; color: var(--primary-green); }
 
 /*
-    NUEVO: tarjetas de Compras — meta de ahorro por item (foto, nombre
-    y barra de progreso = ahorro / precio promedio). Clic en el nombre
-    edita el nombre; clic en el monto agrega ahorro; doble clic define
-    el precio promedio objetivo; clic derecho elimina.
+    NUEVO: tarjetas de Compras — meta de ahorro por item. Layout en
+    fila (imagen a la izquierda, info a la derecha) para que la foto
+    no se vea recortada: nombre arriba, barra de progreso, y debajo de
+    la barra el ahorro actual y el precio objetivo (cada uno
+    clickeable por separado). Clic en el nombre edita el nombre; clic
+    derecho elimina.
 */
 .compras-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
     padding: 16px;
 }
 
 .compra-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px;
     border-radius: 12px;
-    overflow: hidden;
     cursor: default;
     border: 2px solid var(--border-color);
     background-color: var(--white);
-    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), border-color var(--transition);
+    transition: border-color var(--transition);
 }
-
-.compra-card:hover { transform: scale(1.02); }
 
 .compra-card--lista {
     border-color: var(--primary-green);
 }
 
 .compra-img {
-    width: 100%;
-    height: 110px;
+    width: 76px;
+    height: 76px;
+    flex-shrink: 0;
+    border-radius: 12px;
     object-fit: cover;
     display: block;
 }
 
 .compra-info {
-    padding: 10px;
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -1064,7 +1070,7 @@ div.day-segment.future {
 }
 
 .compra-name {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     font-weight: 700;
     color: var(--text-dark);
     cursor: pointer;
@@ -1078,6 +1084,7 @@ div.day-segment.future {
     font-weight: 800;
     color: var(--primary-green);
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .compra-progress-track {
@@ -1099,15 +1106,35 @@ div.day-segment.future {
     background-color: #16a34a;
 }
 
-.compra-amounts {
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    cursor: pointer;
+/* Fila debajo de la barra: ahorro actual (izq) y precio objetivo (der),
+   cada uno es su propio botón para que quede claro que se puede editar. */
+.compra-amounts-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
 }
 
-.compra-amounts-sep {
-    opacity: 0.5;
+.compra-amount-btn {
+    font-size: 0.72rem;
+    font-weight: 700;
+    border: none;
+    background: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+}
+
+.compra-amount-ahorro {
+    color: var(--primary-green);
+}
+
+.compra-amount-meta {
+    color: var(--text-muted);
+}
+
+.compra-amount-meta--vacio {
+    text-decoration: underline dotted;
 }
 
 /*

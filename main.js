@@ -2437,8 +2437,9 @@ async function loadCompras() {
                 <div class="compra-progress-track">
                     <div class="compra-progress-fill${lista ? ' compra-progress-fill--lista' : ''}" style="width:${pct}%;"></div>
                 </div>
-                <div class="compra-amounts" title="Clic para agregar ahorro">
-                    ${formatCurrency(ahorro)} <span class="compra-amounts-sep">/</span> ${meta > 0 ? formatCurrency(meta) : 'Sin precio objetivo'}
+                <div class="compra-amounts-row">
+                    <button type="button" class="compra-amount-btn compra-amount-ahorro" title="Clic para agregar ahorro">${formatCurrency(ahorro)}</button>
+                    <button type="button" class="compra-amount-btn compra-amount-meta${meta > 0 ? '' : ' compra-amount-meta--vacio'}" title="Clic para definir el precio del producto">${meta > 0 ? formatCurrency(meta) : '+ Definir precio'}</button>
                 </div>
             </div>
         `;
@@ -2448,12 +2449,13 @@ async function loadCompras() {
             editCompra(compra.name, compra.id);
         });
 
-        card.querySelector('.compra-amounts').addEventListener('click', (e) => {
+        card.querySelector('.compra-amount-ahorro').addEventListener('click', (e) => {
             e.stopPropagation();
             addAhorroCompra(compra.id, ahorro);
         });
 
-        card.addEventListener('dblclick', () => {
+        card.querySelector('.compra-amount-meta').addEventListener('click', (e) => {
+            e.stopPropagation();
             setPrecioPromedioCompra(compra.id, meta);
         });
 
