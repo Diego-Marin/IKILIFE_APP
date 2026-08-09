@@ -2385,53 +2385,76 @@ function renderEnglishCourseWeeks() {
 
 /**
  * ==========================================
- * GESTIÓN DE COMPRAS (CLON DE LOVES)
+ * GESTIÓN DE COMPRAS (AHORRO POR ITEM)
  * ==========================================
+ * Cada compra ya no es un contador acumulativo (como Loves); ahora es
+ * una meta de ahorro: tiene un "ahorro" (lo que ya has guardado para
+ * ese item) y un "precio_promedio" (precio estimado del artículo).
+ * La tarjeta muestra nombre, foto y una barra de progreso = ahorro /
+ * precio_promedio, para saber de un vistazo qué tan cerca estás de
+ * poder comprarlo.
+ *
+ * COLUMNAS REQUERIDAS EN "compras_logs" (Supabase):
+ *   ahorro           numeric DEFAULT 0   -- lo ahorrado hasta hoy
+ *   precio_promedio  numeric DEFAULT 0   -- precio estimado del item
+ * (la columna "count" ya no se usa y puede quedar o eliminarse).
+ *
+ * Usa formatCurrency() (definida en Components/finance/finance.js,
+ * ya cargado antes de que se ejecute loadCompras()).
  */
 async function loadCompras() {
     const { data: compras, error } = await _supabase
         .from('compras_logs')
         .select('*')
-        .order('count', { ascending: false });
+        .order('name', { ascending: true });
 
     if (error) return console.error(error.message);
 
     const container = document.getElementById('list-compras');
     if (!container) return;
-    container.className = 'loves-grid';
+    container.className = 'compras-grid';
     container.innerHTML = '';
 
     compras.forEach(compra => {
+        const ahorro = Number(compra.ahorro) || 0;
+        const meta = Number(compra.precio_promedio) || 0;
+        const pct = meta > 0 ? Math.min((ahorro / meta) * 100, 100) : 0;
+        const lista = meta > 0 && ahorro >= meta;
+
         const card = document.createElement('div');
-        card.className = 'passion-card';
+        card.className = 'compra-card' + (lista ? ' compra-card--lista' : '');
 
         const localImagePath = `assets/images/${compra.image_filename}`;
 
         card.innerHTML = `
-            <img src="${localImagePath}" class="passion-img" 
+            <img src="${localImagePath}" class="compra-img"
                  onerror="this.src='assets/images/default.jpg'">
-            <div class="passion-info">
-                <span class="passion-name" title="Clic para editar nombre">${compra.name}</span>
-                <span class="passion-count">${compra.count}</span>
+            <div class="compra-info">
+                <div class="compra-top-row">
+                    <span class="compra-name" title="Clic para editar nombre">${compra.name}</span>
+                    ${lista ? '<span class="compra-ready-badge">✅ Listo</span>' : ''}
+                </div>
+                <div class="compra-progress-track">
+                    <div class="compra-progress-fill${lista ? ' compra-progress-fill--lista' : ''}" style="width:${pct}%;"></div>
+                </div>
+                <div class="compra-amounts" title="Clic para agregar ahorro">
+                    ${formatCurrency(ahorro)} <span class="compra-amounts-sep">/</span> ${meta > 0 ? formatCurrency(meta) : 'Sin precio objetivo'}
+                </div>
             </div>
         `;
 
-        const nameEl = card.querySelector('.passion-name');
-        if (nameEl) {
-            nameEl.addEventListener('click', (e) => {
-                e.stopPropagation();
-                editCompra(compra.name, compra.id);
-            });
-        }
+        card.querySelector('.compra-name').addEventListener('click', (e) => {
+            e.stopPropagation();
+            editCompra(compra.name, compra.id);
+        });
+
+        card.querySelector('.compra-amounts').addEventListener('click', (e) => {
+            e.stopPropagation();
+            addAhorroCompra(compra.id, ahorro);
+        });
 
         card.addEventListener('dblclick', () => {
-            card.classList.add('pop-animation');
-            incrementCompra(compra.id, compra.count);
-
-            const countEl = card.querySelector('.passion-count');
-            countEl.textContent = parseInt(countEl.textContent) + 1;
-
-            setTimeout(() => card.classList.remove('pop-animation'), 300);
+            setPrecioPromedioCompra(compra.id, meta);
         });
 
         card.addEventListener('contextmenu', (e) => {
@@ -2449,7 +2472,7 @@ async function addCompra() {
 
     const { error } = await _supabase
         .from('compras_logs')
-        .insert([{ name: name.trim(), count: 0 }]);
+        .insert([{ name: name.trim(), ahorro: 0, precio_promedio: 0 }]);
 
     if (error) {
         alert("Error al guardar: " + error.message);
@@ -2458,14 +2481,38 @@ async function addCompra() {
     }
 }
 
-async function incrementCompra(id, currentCount) {
+async function addAhorroCompra(id, currentAhorro) {
+    const input = prompt("Cuánto quieres agregar al ahorro (sin puntos):");
+    if (input === null) return;
+    const monto = Number(input);
+    if (isNaN(monto) || monto === 0) return;
+
+    const nuevoAhorro = Math.max(0, currentAhorro + monto);
     const { error } = await _supabase
         .from('compras_logs')
-        .update({ count: currentCount + 1 })
+        .update({ ahorro: nuevoAhorro })
         .eq('id', id);
 
     if (error) {
-        console.error("Error sumando contador:", error.message);
+        alert("Error al guardar el ahorro: " + error.message);
+    } else {
+        loadCompras();
+    }
+}
+
+async function setPrecioPromedioCompra(id, currentPrecio) {
+    const input = prompt("Precio promedio estimado (sin puntos):", currentPrecio || '');
+    if (input === null) return;
+    const monto = Number(input);
+    if (isNaN(monto)) return;
+
+    const { error } = await _supabase
+        .from('compras_logs')
+        .update({ precio_promedio: monto })
+        .eq('id', id);
+
+    if (error) {
+        alert("Error al guardar el precio: " + error.message);
     } else {
         loadCompras();
     }

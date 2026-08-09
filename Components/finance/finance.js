@@ -34,10 +34,10 @@ function formatCurrency(num) {
 }
 
 function toggleFinanceView(viewId) {
-    // Soporta 4 vistas: 'finance-main', 'finance-income',
-    // 'finance-savings' y 'finance-debts'. Se muestra únicamente la
-    // solicitada y se ocultan las demás.
-    const views = ['finance-main', 'finance-income', 'finance-savings', 'finance-debts'];
+    // Soporta 3 vistas: 'finance-main', 'finance-income' y
+    // 'finance-debts'. El ahorro manual (tipo 'saving') se eliminó:
+    // "Ahorro / Capital" ahora es solo informativo (Ingresos - Gastos).
+    const views = ['finance-main', 'finance-income', 'finance-debts'];
 
     views.forEach(v => {
         const el = document.getElementById(v);
@@ -73,12 +73,10 @@ async function loadFinances() {
 
     const listIncomes = document.getElementById('list-incomes');
     const listDebts = document.getElementById('list-debts');
-    const listSavings = document.getElementById('list-savings');
     const expensesContainer = document.getElementById('dynamic-expense-categories');
 
     if (listIncomes) listIncomes.innerHTML = '';
     if (listDebts) listDebts.innerHTML = '';
-    if (listSavings) listSavings.innerHTML = '';
     if (expensesContainer) expensesContainer.innerHTML = '';
 
     const budgets = await loadFinanceBudgets();
@@ -86,18 +84,18 @@ async function loadFinances() {
     let totalIngresosReal = 0;
     let totalGastosReal = 0;
     let totalDeudasReal = 0;
-    let totalAhorroManual = 0;
     const expensesByCategory = {};
     const totalsByCategory = {};
 
     finances.forEach(item => {
         const isIncome = item.type === 'income';
         const isDebt = item.type === 'debt';
-        const isSaving = item.type === 'saving';
+        // NOTA: el ahorro manual (type === 'saving') ya no tiene UI propia;
+        // si quedan filas antiguas de ese tipo en finance_logs, se ignoran
+        // aquí (no se suman a ningún total) para no romper nada existente.
         let textColorClass = 'text-expense';
         if (isIncome) textColorClass = 'text-income';
         if (isDebt) textColorClass = 'text-debt';
-        if (isSaving) textColorClass = 'text-savings';
 
         const row = `
             <li class="finance-item" oncontextmenu="event.preventDefault(); deleteFinanceItem(${item.id}, '${item.concept}')">
@@ -119,10 +117,7 @@ async function loadFinances() {
         } else if (isDebt) {
             totalDeudasReal += Number(item.real);
             if (listDebts) listDebts.insertAdjacentHTML('beforeend', row);
-        } else if (isSaving) {
-            totalAhorroManual += Number(item.real);
-            if (listSavings) listSavings.insertAdjacentHTML('beforeend', row);
-        } else {
+        } else if (item.type !== 'saving') {
             totalGastosReal += Number(item.real);
             if (!expensesByCategory[item.category]) expensesByCategory[item.category] = [];
             expensesByCategory[item.category].push(row);
@@ -157,9 +152,10 @@ async function loadFinances() {
         expensesContainer.insertAdjacentHTML('beforeend', sectionHTML);
     }
 
-    // La lógica original (Ahorro = Ingresos - Gastos) se mantiene intacta;
-    // se le suma lo registrado manualmente como ahorro (tipo 'saving').
-    const totalAhorro = (totalIngresosReal - totalGastosReal) + totalAhorroManual;
+    // Ahorro = Ingresos - Gastos (cálculo automático). El ahorro manual
+    // se eliminó: ahora el ahorro "real" por item se registra en Compras
+    // (ver Components/compras en main.js, columnas ahorro/precio_promedio).
+    const totalAhorro = totalIngresosReal - totalGastosReal;
     const patrimonioNeto = totalAhorro - totalDeudasReal;
 
     if (document.getElementById('kpi-ingresos')) document.getElementById('kpi-ingresos').textContent = formatCurrency(totalIngresosReal);

@@ -282,6 +282,36 @@ div.day-segment.future {
 
 /**
  * ==========================================
+ * TARJETA "HOY": STATE BAR + FRASE MOTIVACIONAL
+ * ==========================================
+ * Encapsula visualmente el state bar y la frase motivacional en un
+ * solo bloque (un único borde/fondo exterior), aunque cada uno sigue
+ * gobernado por su propia lógica en JS (renderStateBar / loadDailyQuote).
+ */
+.today-info-card {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* Dentro de la tarjeta, la frase pierde su borde/fondo/margen propios
+   para fundirse con el state bar como un solo componente visual. */
+.today-info-card .motivational-container {
+    background: transparent;
+    border: none;
+    border-top: 1px solid var(--border-color);
+    border-radius: 0;
+    padding: 14px 0 0;
+    margin-bottom: 0;
+}
+
+/**
+ * ==========================================
  * NUEVO: FRASE MOTIVACIONAL DEL DÍA
  * ==========================================
  */
@@ -983,6 +1013,102 @@ div.day-segment.future {
 
 .passion-name { font-size: 0.8rem; font-weight: 700; display: block; }
 .passion-count { font-size: 1.2rem; font-weight: 800; color: var(--primary-green); }
+
+/*
+    NUEVO: tarjetas de Compras — meta de ahorro por item (foto, nombre
+    y barra de progreso = ahorro / precio promedio). Clic en el nombre
+    edita el nombre; clic en el monto agrega ahorro; doble clic define
+    el precio promedio objetivo; clic derecho elimina.
+*/
+.compras-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 16px;
+    padding: 16px;
+}
+
+.compra-card {
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: default;
+    border: 2px solid var(--border-color);
+    background-color: var(--white);
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), border-color var(--transition);
+}
+
+.compra-card:hover { transform: scale(1.02); }
+
+.compra-card--lista {
+    border-color: var(--primary-green);
+}
+
+.compra-img {
+    width: 100%;
+    height: 110px;
+    object-fit: cover;
+    display: block;
+}
+
+.compra-info {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.compra-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+.compra-name {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.compra-ready-badge {
+    font-size: 0.62rem;
+    font-weight: 800;
+    color: var(--primary-green);
+    white-space: nowrap;
+}
+
+.compra-progress-track {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background-color: var(--border-color);
+    overflow: hidden;
+}
+
+.compra-progress-fill {
+    height: 100%;
+    background-color: var(--primary-green);
+    border-radius: 3px;
+    transition: width var(--transition);
+}
+
+.compra-progress-fill--lista {
+    background-color: #16a34a;
+}
+
+.compra-amounts {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.compra-amounts-sep {
+    opacity: 0.5;
+}
 
 /*
     NUEVO: variante visual para las tarjetas de Odios. Reutilizan la

@@ -82,15 +82,7 @@
             </div>
         </header>
 
-        <!--
-    STATE BAR: ahora muestra, además del bloque activo, las demás
-    actividades disponibles en el día (chips) y un menú desplegable
-    con sugerencias concretas al hacer clic en cualquiera de ellas.
-    Toda esta estructura interna la genera renderStateBar() en main.js.
--->
-        <div id="state-bar-container"></div>
-
-
+        <!-- Avance de la semana: ahora va primero -->
         <div class="weekly-progress-container">
             <div class="progress-header">
                 <!-- Ahora muestra la semana del AÑO (no la semana del mes) -->
@@ -115,16 +107,34 @@
 
         <!--
             ==========================================
-            NUEVO: FRASE MOTIVACIONAL DEL DÍA
+            TARJETA "HOY": STATE BAR + FRASE MOTIVACIONAL
             ==========================================
-            Muestra una frase seleccionada al azar del listado JSON
-            definido en main.js (MOTIVATIONAL_QUOTES). La frase se
-            mantiene fija durante todo el día (se guarda en
-            localStorage) y cambia automáticamente al día siguiente.
+            Encapsula visualmente ambos bloques en una sola tarjeta
+            (mismo borde/fondo), aunque cada uno mantiene su propia
+            lógica por separado: renderStateBar() sigue escribiendo
+            en #state-bar-container y loadDailyQuote() sigue
+            escribiendo en #motivational-text, sin cambios de JS.
         -->
-        <div class="motivational-container" id="motivational-container">
-            <span class="motivational-icon">✨</span>
-            <p class="motivational-text" id="motivational-text">Cargando frase del día...</p>
+        <div class="today-info-card" id="today-info-card">
+            <!--
+                STATE BAR: muestra, además del bloque activo, las demás
+                actividades disponibles en el día (chips) y un menú
+                desplegable con sugerencias concretas al hacer clic en
+                cualquiera de ellas. Toda esta estructura interna la
+                genera renderStateBar() en main.js.
+            -->
+            <div id="state-bar-container"></div>
+
+            <!--
+                FRASE MOTIVACIONAL DEL DÍA: seleccionada al azar del
+                listado JSON definido en main.js (MOTIVATIONAL_QUOTES).
+                Se mantiene fija durante todo el día (localStorage) y
+                cambia automáticamente al día siguiente.
+            -->
+            <div class="motivational-container" id="motivational-container">
+                <span class="motivational-icon">✨</span>
+                <p class="motivational-text" id="motivational-text">Cargando frase del día...</p>
+            </div>
         </div>
 
         <!-- Menú de secciones (antes era la barra de tabs fija) -->
@@ -310,18 +320,15 @@
                                 </div>
                                 <!--
                                     ==========================================
-                                    TARJETA DE AHORRO / CAPITAL (AHORA CLICKEABLE)
+                                    TARJETA DE AHORRO / CAPITAL (SOLO INFORMATIVA)
                                     ==========================================
-                                    Sigue calculándose automáticamente como
-                                    Ingresos - Gastos (esa lógica no cambia),
-                                    pero ahora también puedes entrar a
-                                    registrar ahorros manuales (ej. una
-                                    alcancía, un fondo aparte, etc.) que se
-                                    suman al total sin afectar el cálculo
-                                    original.
+                                    Se calcula automáticamente como
+                                    Ingresos - Gastos. Ya no es clickeable:
+                                    el ahorro manual por item ahora vive en
+                                    la pestaña Compras (meta de ahorro por
+                                    artículo).
                                 -->
-                                <div class="summary-card clickable" onclick="toggleFinanceView('finance-savings')"
-                                    title="Ver y agregar ahorros">
+                                <div class="summary-card" title="Ingresos - Gastos">
                                     <div class="summary-label">Ahorro / Capital</div>
                                     <div class="summary-value text-savings" id="kpi-ahorro">$0</div>
                                 </div>
@@ -380,32 +387,6 @@
                             <ul id="list-incomes" style="list-style:none;"></ul>
                             <button class="add-habit-btn" style="width: 100%; margin-top: 8px;"
                                 onclick="addFinanceItem('income','Ingresos')">+ Nuevo Ingreso</button>
-                        </div>
-
-                        <!--
-                            ==========================================
-                            NUEVO: Detalle de Ahorro / Capital
-                            ==========================================
-                            Aquí puedes registrar tus ahorros manuales
-                            (ej. "Alcancía viaje", "Fondo de emergencia").
-                            Cada registro se suma al total y ese total se
-                            añade al cálculo automático de Ingresos -
-                            Gastos, sin modificar esa fórmula original.
-                        -->
-                        <div id="finance-savings" class="hidden">
-                            <button class="icon-btn" onclick="toggleFinanceView('finance-main')" title="Volver"
-                                style="margin-bottom: 8px;">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="15 18 9 12 15 6"></polyline>
-                                </svg>
-                                Volver
-                            </button>
-                            <div class="category-header" style="border-bottom: none; padding-left:0;">Detalle de Ahorro
-                                / Capital</div>
-                            <ul id="list-savings" style="list-style:none;"></ul>
-                            <button class="add-habit-btn" style="width: 100%; margin-top: 8px;"
-                                onclick="addFinanceItem('saving','Ahorros')">+ Nuevo Ahorro</button>
                         </div>
 
                         <!--
