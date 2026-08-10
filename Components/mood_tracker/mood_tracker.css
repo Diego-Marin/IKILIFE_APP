@@ -167,3 +167,29 @@
 .mood-card--love .mood-value {
     color: #e0479e;
 }
+
+/* --- Tabs Loves / Odios dentro de Sentimientos --- */
+.sent-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 0 16px 12px;
+}
+
+.sent-tab-btn {
+    flex: 1;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--white);
+    color: var(--text-muted);
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.sent-tab-active {
+    background: var(--text-dark);
+    color: var(--bg-light);
+    border-color: var(--text-dark);
+}

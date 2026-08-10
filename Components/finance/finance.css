@@ -322,3 +322,15 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
+
+/* --- Botón "Reiniciar Mes" --- */
+.finance-reset-btn {
+    background-color: transparent;
+    border: 1px solid #e74c3c;
+    color: #e74c3c;
+}
+
+.finance-reset-btn:hover {
+    background-color: #e74c3c;
+    color: var(--white);
+}

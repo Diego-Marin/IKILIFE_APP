@@ -92,9 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showRandomIdea();
         loadTareas();
         loadInversiones();
-        loadLoves();
-        loadOdios();
-        loadSentimientos();
+        initSentimientosTabs();
         loadPlanes();
         loadCompras();
         loadBloques();
@@ -1110,6 +1108,15 @@ async function loadTopSentimientos() {
  * ==========================================
  */
 function switchTab(tab, btn) {
+    // Compatibilidad: Loves y Odios se fusionaron como tabs internas
+    // dentro de "Sentimientos". Si algo aún llama a 'loves' u 'odios',
+    // redirige a la vista fusionada y activa la tab interna correcta.
+    let subtab = null;
+    if (tab === 'loves' || tab === 'odios') {
+        subtab = tab;
+        tab = 'sentimientos';
+    }
+
     document.querySelectorAll('.tab-btn').forEach(b => {
         b.classList.remove('tab-active');
         b.classList.add('tab-inactive');
@@ -1117,7 +1124,7 @@ function switchTab(tab, btn) {
     btn.classList.add('tab-active');
     btn.classList.remove('tab-inactive');
 
-    const views = ['view-habits', 'view-metrics', 'view-ideas', 'view-tareas', 'view-loves', 'view-odios', 'view-sentimientos', 'view-reglas', 'view-money', 'view-compras'];
+    const views = ['view-habits', 'view-metrics', 'view-ideas', 'view-tareas', 'view-sentimientos', 'view-reglas', 'view-money', 'view-compras'];
     views.forEach(v => {
         const viewEl = document.getElementById(v);
         if (viewEl) viewEl.classList.remove('active');
@@ -1128,6 +1135,10 @@ function switchTab(tab, btn) {
 
     if (tab === 'metrics') {
         loadMetrics();
+    }
+
+    if (tab === 'sentimientos' && typeof switchSentimientosTab === 'function') {
+        switchSentimientosTab(subtab || (localStorage.getItem('ikilife_sentimientos_subtab') === 'odios' ? 'odios' : 'loves'));
     }
 }
 

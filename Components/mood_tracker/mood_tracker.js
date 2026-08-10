@@ -455,3 +455,32 @@ async function migrarSentimientosALoves() {
         if (typeof loadLoves === 'function') loadLoves();
     }
 }
+
+/* ==========================================
+   TABS: LOVES / ODIOS DENTRO DE "SENTIMIENTOS"
+   ==========================================
+   Se unificaron las 3 vistas antiguas (Loves, Odios, Sentimientos)
+   en una sola pantalla con 2 tabs para liberar espacio en el menú.
+   Los items que antes vivían en "Sentimientos" ahora se gestionan
+   como Loves (ver migrarSentimientosALoves() arriba).
+   ========================================== */
+const SENTIMIENTOS_SUBTAB_KEY = 'ikilife_sentimientos_subtab';
+
+function switchSentimientosTab(sub, btn) {
+    document.querySelectorAll('.sent-tab-btn').forEach(b => b.classList.remove('sent-tab-active'));
+    const targetBtn = btn || document.querySelector(`.sent-tab-btn[data-sub="${sub}"]`);
+    if (targetBtn) targetBtn.classList.add('sent-tab-active');
+
+    const loveEl = document.getElementById('subview-loves-pasiones');
+    const odioEl = document.getElementById('subview-odios-pasiones');
+    if (loveEl) loveEl.classList.toggle('hidden', sub !== 'loves');
+    if (odioEl) odioEl.classList.toggle('hidden', sub !== 'odios');
+
+    localStorage.setItem(SENTIMIENTOS_SUBTAB_KEY, sub);
+    if (sub === 'loves') loadLoves(); else loadOdios();
+}
+
+function initSentimientosTabs() {
+    const saved = localStorage.getItem(SENTIMIENTOS_SUBTAB_KEY) === 'odios' ? 'odios' : 'loves';
+    switchSentimientosTab(saved);
+}

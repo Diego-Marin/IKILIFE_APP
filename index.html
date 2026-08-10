@@ -375,6 +375,12 @@
                                     style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-dark); white-space: nowrap;">
                                     Historial (SQL)
                                 </button>
+                                <button class="add-habit-btn finance-reset-btn" onclick="resetFinanceMonth()"
+                                    aria-label="Reiniciar mes de finanzas"
+                                    title="Guarda el resumen del mes en el historial y reinicia los montos"
+                                    style="white-space: nowrap;">
+                                    🔄 Reiniciar Mes
+                                </button>
                             </div>
                         </div>
 
@@ -471,10 +477,27 @@
                 </section>
             </div>
 
-            <!-- LOVES -->
-
-            <div id="view-loves" class="view-content">
+            <!--
+                ==========================================
+                SENTIMIENTOS = LOVES + ODIOS EN TABS
+                ==========================================
+                Se fusionaron las 3 vistas anteriores (Loves, Odios,
+                Sentimientos) en una sola para liberar espacio en el
+                menú. Los items que antes vivían en "Sentimientos"
+                ahora se gestionan como Loves — corre una vez
+                migrarSentimientosALoves() en la consola para pasar
+                los que ya tenías. Las tabs cambian entre Loves y
+                Odios dentro de la misma vista (mood_tracker.js).
+            -->
+            <div id="view-sentimientos" class="view-content">
                 <section class="category">
+                    <div class="sent-tabs">
+                        <button type="button" class="sent-tab-btn" data-sub="loves"
+                            onclick="switchSentimientosTab('loves', this)">❤️ Loves</button>
+                        <button type="button" class="sent-tab-btn" data-sub="odios"
+                            onclick="switchSentimientosTab('odios', this)">💢 Odios</button>
+                    </div>
+
                     <div id="subview-loves-pasiones">
                         <div class="item-list-header love-header" style="display: flex; gap: 10px; flex-wrap: wrap;">
                             <button class="add-habit-btn" onclick="addLove()" aria-label="Agregar nueva pasión">
@@ -485,7 +508,7 @@
                                 </svg>
                                 Add Pasión
                             </button>
-                            <!-- Nuevo botón: exportar historial completo de Loves a CSV -->
+                            <!-- Exportar historial completo de Loves a CSV -->
                             <button class="add-habit-btn" onclick="exportLovesSQL()"
                                 aria-label="Exportar histórico de Loves"
                                 style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-dark);">
@@ -501,28 +524,14 @@
                         </div>
                         <div id="list-loves"></div>
                     </div>
-                </section>
-            </div>
 
-            <!--
-                ==========================================
-                ODIOS — BARRA DE INTENSIDAD 1-10 (LO OPUESTO A LOVES)
-                ==========================================
-                Registra las cosas, situaciones o hábitos que no te
-                gustan o que te generan rechazo. Ya no se mide con un
-                contador acumulativo: cada item tiene una barra de 1 a
-                10 que indica qué tan fuerte se siente hoy, y cada
-                movimiento de la barra queda guardado con su fecha.
-                Clic en el nombre para editarlo, clic derecho para
-                eliminarlo (junto con todo su historial).
-                Requiere en Supabase "odios_logs" (id, name,
-                image_filename) + una tabla nueva "odios_registros"
-                (id, odio_id, valor 1-10, fecha, created_at, con
-                UNIQUE(odio_id, fecha)). Ver comentarios en main.js.
-            -->
-            <div id="view-odios" class="view-content">
-                <section class="category">
-                    <div id="subview-odios-pasiones">
+                    <!--
+                        ODIOS — BARRA DE INTENSIDAD 1-10 (LO OPUESTO A LOVES)
+                        Requiere en Supabase "odios_logs" (id, name,
+                        image_filename) + "odios_registros" (id, odio_id,
+                        valor 1-10, fecha, created_at, UNIQUE(odio_id, fecha)).
+                    -->
+                    <div id="subview-odios-pasiones" class="hidden">
                         <div class="item-list-header love-header" style="display: flex; gap: 10px; flex-wrap: wrap;">
                             <button class="add-habit-btn" onclick="addOdio()" aria-label="Agregar nuevo odio">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -534,32 +543,6 @@
                             </button>
                         </div>
                         <div id="list-odios"></div>
-                    </div>
-                </section>
-            </div>
-
-            <!--
-                ==========================================
-                SENTIMIENTOS — BARRA DE INTENSIDAD 1-10
-                ==========================================
-                Mismo mecanismo que Odios: barra 1-10 por item, con
-                historial diario en "sentimientos_registros".
-            -->
-            <div id="view-sentimientos" class="view-content">
-                <section class="category">
-                    <div id="subview-sentimientos-cards">
-                        <div class="item-list-header love-header" style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <button class="add-habit-btn" onclick="addSentimiento()"
-                                aria-label="Agregar nuevo sentimiento">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
-                                Add Sentimiento
-                            </button>
-                        </div>
-                        <div id="list-sentimientos"></div>
                     </div>
                 </section>
             </div>

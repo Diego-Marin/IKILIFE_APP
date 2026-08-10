@@ -16,9 +16,10 @@
     { id: 'habits', label: 'Habits', icon: '✅' },
     { id: 'ideas', label: 'Brain Dump', icon: '💡' },
     { id: 'tareas', label: 'Tareas', icon: '📝' },
-    { id: 'loves', label: 'Loves', icon: '❤️' },
-    { id: 'odios', label: 'Odios', icon: '💢' },
-    { id: 'sentimientos', label: 'Sentimientos', icon: '🌊' },
+    // Loves y Odios se fusionaron como tabs internas dentro de
+    // "Sentimientos" (ver mood_tracker.js: switchSentimientosTab).
+    // Ya no tienen botón propio en esta barra para liberar espacio.
+    { id: 'sentimientos', label: 'Sentimientos', icon: '❤️' },
     { id: 'reglas', label: 'Planes', icon: '📅' },
     { id: 'money', label: 'Finance', icon: '💰' },
     { id: 'compras', label: 'Compras', icon: '🛒' },
