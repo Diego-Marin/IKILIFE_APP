@@ -635,6 +635,15 @@ async function loadHabits() {
 
     if (err2) return console.error("Error cargando logs semanales:", err2.message);
 
+    // NUEVO: imagen por hábito, guardada aparte en "habit_images"
+    // (habit_name, image_filename) para no duplicarla en cada fila de
+    // habit_logs. Clic en la miniatura para definirla/cambiarla.
+    const { data: habitImagesData, error: err3 } = await _supabase
+        .from('habit_images')
+        .select('habit_name, image_filename');
+    if (err3) console.warn('No se pudo leer habit_images:', err3.message);
+    const habitImages = Object.fromEntries((habitImagesData || []).map(h => [h.habit_name, h.image_filename]));
+
     const listContainer = document.getElementById('list-habits');
     if (!listContainer) return;
     listContainer.innerHTML = '';
@@ -654,14 +663,19 @@ async function loadHabits() {
                 </div>`;
         });
 
+        const imageFilename = habitImages[habitName] || 'default.jpg';
+        const localImagePath = `assets/images/${imageFilename}`;
+        const habitNameEscaped = habitName.replace(/'/g, "\\'");
+
         const row = `
             <li class="habit-grid">
                 <div class="item-name" 
-                     onclick="editHabit('${habitName}')"
                      oncontextmenu="event.preventDefault(); deleteHabit('${habitName}')"
-                     style="cursor: pointer;"
                      title="Clic: Editar | Clic Derecho: Eliminar todo su historial">
-                     ${cleanHabitName(habitName)}
+                     <img src="${localImagePath}" class="habit-img" onerror="this.src='assets/images/default.jpg'"
+                          onclick="event.stopPropagation(); setHabitImage('${habitNameEscaped}')"
+                          title="Clic para cambiar la imagen">
+                     <span onclick="editHabit('${habitName}')" style="cursor: pointer;">${cleanHabitName(habitName)}</span>
                 </div>
                 ${circlesHTML}
             </li>
@@ -761,8 +775,15 @@ async function editHabit(oldName) {
         })
         .eq('habit_name', oldName);
 
-    if (error) alert("Error al editar: " + error.message);
-    else loadHabits();
+    if (error) {
+        alert("Error al editar: " + error.message);
+        return;
+    }
+
+    // Mantiene la imagen asociada al renombrar el hábito.
+    await _supabase.from('habit_images').update({ habit_name: updatedName }).eq('habit_name', oldName);
+
+    loadHabits();
 }
 
 async function deleteHabit(name) {
@@ -774,8 +795,38 @@ async function deleteHabit(name) {
         .delete()
         .eq('habit_name', name);
 
-    if (error) alert("Error al eliminar: " + error.message);
-    else loadHabits();
+    if (error) {
+        alert("Error al eliminar: " + error.message);
+        return;
+    }
+
+    await _supabase.from('habit_images').delete().eq('habit_name', name);
+
+    loadHabits();
+}
+
+/* NUEVO: define o cambia la imagen de un hábito. Guarda solo el
+   nombre del archivo (debe existir en assets/images/), igual que
+   Loves/Odios/Compras.
+   Requiere en Supabase la tabla nueva "habit_images":
+     CREATE TABLE habit_images (
+       habit_name text PRIMARY KEY,
+       image_filename text NOT NULL,
+       updated_at timestamptz DEFAULT now()
+     ); */
+async function setHabitImage(habitName) {
+    const input = prompt(`Nombre del archivo de imagen para "${cleanHabitName(habitName)}" (debe estar en assets/images/):`, 'default.jpg');
+    if (input === null || input.trim() === '') return;
+
+    const { error } = await _supabase
+        .from('habit_images')
+        .upsert({ habit_name: habitName, image_filename: input.trim(), updated_at: new Date().toISOString() }, { onConflict: 'habit_name' });
+
+    if (error) {
+        alert("Error al guardar la imagen: " + error.message);
+    } else {
+        loadHabits();
+    }
 }
 
 /**
@@ -1687,6 +1738,29 @@ async function exportLovesSQL() {
     } catch (err) {
         console.error(err);
         alert("Error exportando Loves: " + err.message);
+    }
+}
+
+async function exportOdiosSQL() {
+    try {
+        const { data, error } = await _supabase
+            .from('odios_logs')
+            .select('*')
+            .order('created_at', { ascending: true });
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            alert("No hay registros para exportar.");
+            return;
+        }
+
+        const sql = buildSQLInsert('odios_logs', data);
+        descargarArchivo(sql, 'odios_logs.sql', 'text/sql');
+
+    } catch (err) {
+        console.error(err);
+        alert("Error exportando Odios: " + err.message);
     }
 }
 

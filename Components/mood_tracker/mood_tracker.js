@@ -244,15 +244,15 @@ async function loadMoodSection(key) {
 function renderMoodToolbar(toolbar, key, config, bloqueo) {
     if (bloqueo.locked) {
         toolbar.innerHTML = `
-            <div class="mood-lock-banner">
-                🔒 Registro de hoy guardado. Disponible de nuevo en ${formatTiempoRestante(bloqueo.restanteMs)}.
+            <div class="mood-lock-banner" title="Registro de hoy guardado. Disponible de nuevo en ${formatTiempoRestante(bloqueo.restanteMs)}.">
+                🔒 Disponible en ${formatTiempoRestante(bloqueo.restanteMs)}
             </div>
         `;
         return;
     }
 
     toolbar.innerHTML = `
-        <button type="button" class="add-habit-btn mood-save-btn">💾 Guardar registro de hoy</button>
+        <button type="button" class="add-habit-btn mood-save-btn" title="Guardar registro de hoy">💾 Guardar</button>
     `;
 
     toolbar.querySelector('.mood-save-btn').addEventListener('click', () => guardarRegistroSeccion(key));

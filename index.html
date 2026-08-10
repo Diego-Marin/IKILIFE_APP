@@ -313,6 +313,31 @@
                     <div id="subview-finanzas" style="padding: 16px;">
                         <div id="finance-main">
                             <!--
+                                Acciones rápidas al INICIO del componente,
+                                en una sola fila compacta (no se rompe en
+                                mobile, mismo patrón que el botón SQL de
+                                Hábitos). "Nueva Categoría" queda abajo,
+                                junto a las categorías de gasto.
+                            -->
+                            <div class="finance-actions-row">
+                                <button class="sql-btn-compact" onclick="exportFinanceSQL()"
+                                    aria-label="Exportar histórico de Finanzas"
+                                    title="Exportar histórico completo (SQL)">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="7 10 12 15 17 10"></polyline>
+                                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                                    </svg>
+                                    Historial
+                                </button>
+                                <button class="sql-btn-compact finance-reset-btn" onclick="resetFinanceMonth()"
+                                    aria-label="Reiniciar mes de finanzas"
+                                    title="Guarda el resumen del mes en el historial y reinicia los montos">
+                                    🔄 Reiniciar Mes
+                                </button>
+                            </div>
+                            <!--
                                 Grid 2x2 armónico: las 4 tarjetas tienen
                                 exactamente el mismo tamaño (misma clase,
                                 sin "full-width" en ninguna) para que se
@@ -367,21 +392,9 @@
                                 </div>
                             </section>
                             <div id="dynamic-expense-categories"></div>
-                            <div style="display:flex; gap:8px; margin-top:8px;">
+                            <div style="margin-top:8px;">
                                 <button class="add-habit-btn" style="width: 100%;" onclick="addFinanceCategory()">+
                                     Nueva Categoría</button>
-                                <button class="add-habit-btn" onclick="exportFinanceSQL()"
-                                    aria-label="Exportar histórico de Finanzas"
-                                    title="Exportar histórico completo (SQL)"
-                                    style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-dark); white-space: nowrap;">
-                                    Historial (SQL)
-                                </button>
-                                <button class="add-habit-btn finance-reset-btn" onclick="resetFinanceMonth()"
-                                    aria-label="Reiniciar mes de finanzas"
-                                    title="Guarda el resumen del mes en el historial y reinicia los montos"
-                                    style="white-space: nowrap;">
-                                    🔄 Reiniciar Mes
-                                </button>
                             </div>
                         </div>
 
@@ -501,32 +514,32 @@
 
                     <div id="subview-loves-pasiones">
                         <!--
-                            Fila unificada: Add Pasión + Historial (SQL) +
-                            "Guardar registro de hoy" (este último lo
-                            inyecta mood_tracker.js en el slot de abajo),
-                            todo junto para que se vea organizado.
+                            Fila unificada y compacta (no se rompe en
+                            mobile): Add + Historial (SQL) + "Guardar
+                            registro de hoy" (este último lo inyecta
+                            mood_tracker.js en el slot de abajo).
                         -->
                         <div class="item-list-header love-header mood-header-row">
-                            <button class="add-habit-btn" onclick="addLove()" aria-label="Agregar nueva pasión">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            <button class="add-habit-btn" onclick="addLove()" aria-label="Agregar nueva pasión"
+                                title="Agregar nueva pasión">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                 </svg>
-                                Add Pasión
+                                Add
                             </button>
                             <!-- Exportar historial completo de Loves a CSV -->
                             <button class="add-habit-btn" onclick="exportLovesSQL()"
-                                aria-label="Exportar histórico de Loves"
+                                aria-label="Exportar histórico de Loves" title="Exportar histórico completo (SQL)"
                                 style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-dark);">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-                                    style="margin-right: 4px;">
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                                     <polyline points="7 10 12 15 17 10"></polyline>
                                     <line x1="12" y1="15" x2="12" y2="3"></line>
                                 </svg>
-                                Historial (SQL)
+                                SQL
                             </button>
                             <div class="mood-save-slot" data-save-slot="loves"></div>
                         </div>
@@ -540,14 +553,28 @@
                         valor 1-10, fecha, created_at, UNIQUE(odio_id, fecha)).
                     -->
                     <div id="subview-odios-pasiones" class="hidden">
+                        <!-- Mismos 3 botones que Loves, para que quede simétrico. -->
                         <div class="item-list-header love-header mood-header-row">
-                            <button class="add-habit-btn" onclick="addOdio()" aria-label="Agregar nuevo odio">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            <button class="add-habit-btn" onclick="addOdio()" aria-label="Agregar nuevo odio"
+                                title="Agregar nuevo odio">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                 </svg>
-                                Add Odio
+                                Add
+                            </button>
+                            <!-- Exportar historial completo de Odios a CSV -->
+                            <button class="add-habit-btn" onclick="exportOdiosSQL()"
+                                aria-label="Exportar histórico de Odios" title="Exportar histórico completo (SQL)"
+                                style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-dark);">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                SQL
                             </button>
                             <div class="mood-save-slot" data-save-slot="odios"></div>
                         </div>

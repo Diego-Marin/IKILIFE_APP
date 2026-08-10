@@ -324,6 +324,24 @@
 }
 
 /* --- Botón "Reiniciar Mes" --- */
+/* --- Fila de acciones al inicio de Finanzas: Historial + Reiniciar Mes ---
+   Compacta y en una sola fila (no se rompe en mobile), mismo patrón
+   que el botón SQL de Hábitos (.sql-btn-compact). */
+.finance-actions-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.finance-actions-row .sql-btn-compact {
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .finance-reset-btn {
     background-color: transparent;
     border: 1px solid #e74c3c;

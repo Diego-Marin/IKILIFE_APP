@@ -7,21 +7,39 @@
  * herramientas de sección (botón "Guardar" o banner de bloqueo).
  */
 
-/* --- Fila unificada: Add + Historial (SQL) + Guardar registro de hoy --- */
+/* --- Fila unificada: Add + Historial (SQL) + Guardar registro de hoy ---
+   Compacta y en una sola fila (no se rompe en mobile): los 2-3
+   botones se reparten el ancho disponible a partes iguales y el
+   texto se trunca con ellipsis si no cabe. */
 .mood-header-row {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: flex-start;
-    gap: 10px;
+    gap: 6px;
+}
+
+.mood-header-row .add-habit-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 8px 6px;
+    font-size: 0.72rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .mood-save-slot {
-    flex: 1 1 200px;
-    min-width: 160px;
+    flex: 1 1 0;
+    min-width: 0;
     display: flex;
 }
 
 .mood-save-slot .mood-save-btn {
     width: 100%;
+    padding: 8px 6px;
+    font-size: 0.72rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .mood-lock-banner {
@@ -180,7 +198,7 @@
 .sent-tabs {
     display: flex;
     gap: 8px;
-    padding: 0 16px 12px;
+    padding: 16px 16px 12px;
 }
 
 .sent-tab-btn {
