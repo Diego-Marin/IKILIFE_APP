@@ -114,7 +114,8 @@ const MOOD_CONFIGS = {
         colorVar: '#e74c3c',
         cssClass: 'mood-card--odio',
         promptNew: 'Qué situación, cosa o hábito no te gusta:',
-        afterSave: null,
+        maxValue: 5,
+        afterSave: () => { if (typeof loadEspejoDelAlma === 'function') loadEspejoDelAlma(); },
     },
     sentimientos: {
         logsTable: 'sentimientos_logs',
@@ -125,12 +126,28 @@ const MOOD_CONFIGS = {
         colorVar: 'var(--primary-green)',
         cssClass: 'mood-card--sentimiento',
         promptNew: 'Nuevo sentimiento a registrar:',
+        maxValue: 10,
         afterSave: () => { if (typeof loadTopSentimientos === 'function') loadTopSentimientos(); },
+    },
+    loves: {
+        logsTable: 'loves_logs',
+        regTable: 'loves_registros',
+        fkColumn: 'love_id',
+        containerId: 'list-loves',
+        lockKey: 'ikilife_lock_loves',
+        colorVar: '#e0479e',
+        cssClass: 'mood-card--love',
+        promptNew: 'Nueva pasión o actividad que amas:',
+        maxValue: 5,
+        afterSave: () => {
+            if (typeof loadTopLoves === 'function') loadTopLoves();
+            if (typeof loadEspejoDelAlma === 'function') loadEspejoDelAlma();
+        },
     },
 };
 
-// Estado en memoria de la selección actual (aún no guardada) por sección: { odios: {id: valor}, sentimientos: {id: valor} }
-const _moodSelection = { odios: {}, sentimientos: {} };
+// Estado en memoria de la selección actual (aún no guardada) por sección: { odios: {id: valor}, sentimientos: {id: valor}, loves: {id: valor} }
+const _moodSelection = { odios: {}, sentimientos: {}, loves: {} };
 
 async function loadMoodSection(key) {
     const config = MOOD_CONFIGS[key];
@@ -155,11 +172,12 @@ async function loadMoodSection(key) {
     const ultimos = await cargarUltimosRegistros(config.regTable, config.fkColumn);
     const bloqueo = calcularBloqueoSeccion(config.lockKey);
 
-    // Inicializa la selección en memoria con el último valor guardado (o 5 por defecto),
-    // solo si aún no hay nada seleccionado para ese item en esta sesión.
+    // Inicializa la selección en memoria con el último valor guardado (o el
+    // punto medio de la escala por defecto), solo si aún no hay nada
+    // seleccionado para ese item en esta sesión.
     items.forEach(item => {
         if (!(item.id in _moodSelection[key])) {
-            _moodSelection[key][item.id] = ultimos[item.id] ? ultimos[item.id].valor : 5;
+            _moodSelection[key][item.id] = ultimos[item.id] ? ultimos[item.id].valor : Math.ceil(config.maxValue / 2);
         }
     });
 
@@ -198,7 +216,7 @@ async function loadMoodSection(key) {
         const chipRow = card.querySelector('.mood-chip-row');
         const valueEl = card.querySelector('.mood-value');
 
-        for (let n = 1; n <= 10; n++) {
+        for (let n = 1; n <= config.maxValue; n++) {
             const chip = document.createElement('button');
             chip.type = 'button';
             chip.className = 'mood-chip' + (n === valorSeleccionado ? ' mood-chip--active' : '');
@@ -334,3 +352,106 @@ function addOdio() { return addMoodItem('odios'); }
 
 function loadSentimientos() { return loadMoodSection('sentimientos'); }
 function addSentimiento() { return addMoodItem('sentimientos'); }
+
+// Loves ahora usa el mismo motor que Odios/Sentimientos (barra de
+// intensidad 1-5 registrada por día) en vez del contador acumulativo
+// anterior. Requiere en Supabase la tabla nueva "loves_registros"
+// (id, love_id, valor 1-5, fecha, created_at, UNIQUE(love_id, fecha)).
+function loadLoves() { return loadMoodSection('loves'); }
+function addLove() { return addMoodItem('loves'); }
+
+/* ==========================================
+   EL ESPEJO DEL ALMA
+   ==========================================
+   Componente del feed (debajo de la tarjeta de Hoy: state bar +
+   frase) con dos barras: el promedio del ÚLTIMO valor registrado de
+   cada item de Loves y de Odios (escala 1-5 cada una). Da una lectura
+   rápida de cómo va el día / cómo terminó el último registro.
+*/
+function mensajeEspejoDelAlma(avgLove, avgOdio, hayDatos) {
+    if (!hayDatos) return 'Aún no hay registros de Loves ni Odios para mostrar.';
+
+    const diff = avgLove - avgOdio;
+    if (diff >= 2) return '🌞 Vas muy bien — hoy pesan más tus amores que tus odios.';
+    if (diff <= -2) return '🌧️ Día pesado — tus odios están pesando más de lo normal.';
+    return '🙂 Día equilibrado entre lo que amas y lo que te incomoda.';
+}
+
+async function loadEspejoDelAlma() {
+    const container = document.getElementById('espejo-alma-container');
+    if (!container) return;
+
+    const [ultimosLoves, ultimosOdios] = await Promise.all([
+        cargarUltimosRegistros('loves_registros', 'love_id'),
+        cargarUltimosRegistros('odios_registros', 'odio_id'),
+    ]);
+
+    const valoresLove = Object.values(ultimosLoves).map(r => r.valor);
+    const valoresOdio = Object.values(ultimosOdios).map(r => r.valor);
+
+    const avgLove = valoresLove.length ? valoresLove.reduce((a, b) => a + b, 0) / valoresLove.length : 0;
+    const avgOdio = valoresOdio.length ? valoresOdio.reduce((a, b) => a + b, 0) / valoresOdio.length : 0;
+    const hayDatos = valoresLove.length > 0 || valoresOdio.length > 0;
+
+    const maxEscala = 5;
+    const pctLove = Math.min((avgLove / maxEscala) * 100, 100);
+    const pctOdio = Math.min((avgOdio / maxEscala) * 100, 100);
+
+    container.innerHTML = `
+        <div class="espejo-alma-card">
+            <div class="espejo-alma-title">🪞 El Espejo del Alma</div>
+            <div class="espejo-alma-row">
+                <div class="espejo-alma-label">❤️ Loves</div>
+                <div class="espejo-alma-track">
+                    <div class="espejo-alma-fill espejo-alma-fill--love" style="width:${pctLove}%;"></div>
+                </div>
+                <div class="espejo-alma-value">${avgLove.toFixed(1)}/5</div>
+            </div>
+            <div class="espejo-alma-row">
+                <div class="espejo-alma-label">💢 Odios</div>
+                <div class="espejo-alma-track">
+                    <div class="espejo-alma-fill espejo-alma-fill--odio" style="width:${pctOdio}%;"></div>
+                </div>
+                <div class="espejo-alma-value">${avgOdio.toFixed(1)}/5</div>
+            </div>
+            <div class="espejo-alma-msg">${mensajeEspejoDelAlma(avgLove, avgOdio, hayDatos)}</div>
+        </div>
+    `;
+}
+
+/* ==========================================
+   MIGRACIÓN OPCIONAL: copiar items de Sentimientos como cards
+   iniciales en Loves (misma imagen/nombre, sin registros aún).
+   No se ejecuta sola — llámala una vez desde la consola del
+   navegador (migrarSentimientosALoves()) si quieres precargar Loves
+   con los items que ya tienes en Sentimientos.
+   ========================================== */
+async function migrarSentimientosALoves() {
+    const { data: sentimientos, error: errSent } = await _supabase
+        .from('sentimientos_logs')
+        .select('name, image_filename');
+    if (errSent) return console.error('Error leyendo sentimientos_logs:', errSent.message);
+
+    const { data: lovesExistentes, error: errLoves } = await _supabase
+        .from('loves_logs')
+        .select('name');
+    if (errLoves) return console.error('Error leyendo loves_logs:', errLoves.message);
+
+    const nombresExistentes = new Set((lovesExistentes || []).map(l => l.name.toLowerCase()));
+    const nuevos = (sentimientos || [])
+        .filter(s => !nombresExistentes.has(s.name.toLowerCase()))
+        .map(s => ({ name: s.name, image_filename: s.image_filename }));
+
+    if (nuevos.length === 0) {
+        console.log('Nada que migrar: Loves ya tiene todos esos nombres.');
+        return;
+    }
+
+    const { error } = await _supabase.from('loves_logs').insert(nuevos);
+    if (error) {
+        console.error('Error migrando a loves_logs:', error.message);
+    } else {
+        console.log(`Se copiaron ${nuevos.length} items de Sentimientos a Loves.`);
+        if (typeof loadLoves === 'function') loadLoves();
+    }
+}

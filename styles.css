@@ -282,6 +282,81 @@ div.day-segment.future {
 
 /**
  * ==========================================
+ * EL ESPEJO DEL ALMA
+ * ==========================================
+ * Dos barras (Loves / Odios) con el promedio del último valor
+ * registrado de cada sección (escala 1-5). Se ubica debajo de la
+ * tarjeta "Hoy" (state bar + frase).
+ */
+.espejo-alma-card {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.espejo-alma-title {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--text-dark);
+    margin-bottom: 2px;
+}
+
+.espejo-alma-row {
+    display: grid;
+    grid-template-columns: 70px 1fr 44px;
+    align-items: center;
+    gap: 10px;
+}
+
+.espejo-alma-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+.espejo-alma-track {
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    background-color: var(--border-color);
+    overflow: hidden;
+}
+
+.espejo-alma-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width var(--transition);
+}
+
+.espejo-alma-fill--love {
+    background-color: #e0479e;
+}
+
+.espejo-alma-fill--odio {
+    background-color: #e74c3c;
+}
+
+.espejo-alma-value {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    text-align: right;
+}
+
+.espejo-alma-msg {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-top: 4px;
+}
+
+/**
+ * ==========================================
  * TARJETA "HOY": STATE BAR + FRASE MOTIVACIONAL
  * ==========================================
  * Encapsula visualmente el state bar y la frase motivacional en un

@@ -159,3 +159,11 @@
 .mood-card--sentimiento {
     border-color: rgba(116, 192, 138, 0.35);
 }
+
+.mood-card--love {
+    border-color: rgba(224, 71, 158, 0.35);
+}
+
+.mood-card--love .mood-value {
+    color: #e0479e;
+}

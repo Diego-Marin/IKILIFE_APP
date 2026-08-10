@@ -101,6 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadMetrics(); // Esta ya ejecuta internamente renderYearWeeks(), renderEnglishCourseWeeks(), loadTopHabits(), loadTopLoves() y loadTopSentimientos()
         loadFinances();
         loadAgradecimientos();
+        if (typeof loadEspejoDelAlma === 'function') loadEspejoDelAlma();
     } catch (error) {
         console.error("Error durante la carga de datos:", error);
     }
@@ -993,16 +994,15 @@ async function loadTopHabits() {
  * ==========================================
  * NUEVO: MEJORES LOVES (TOP 3 RANKING)
  * ==========================================
- * Igual que el Top 3 de Hábitos, pero basado en el contador
- * ("count") de la tabla loves_logs. Se muestran las 3 pasiones con
- * más registros acumulados.
+ * Loves dejó de ser un contador acumulativo: ahora usa el mismo
+ * motor de intensidad 1-5 que Odios/Sentimientos. El Top 3 se calcula
+ * igual que loadTopSentimientos, con el ÚLTIMO valor registrado de
+ * cada item (ver cargarUltimosRegistros en mood_tracker.js).
  */
 async function loadTopLoves() {
-    const { data: allLoves, error } = await _supabase
+    const { data: loves, error } = await _supabase
         .from('loves_logs')
-        .select('name, count')
-        .order('count', { ascending: false })
-        .limit(3);
+        .select('id, name');
 
     const container = document.getElementById('top-loves-list');
     if (!container) return;
@@ -1013,21 +1013,29 @@ async function loadTopLoves() {
         return;
     }
 
+    const ultimos = await cargarUltimosRegistros('loves_registros', 'love_id');
+
+    const top3 = (loves || [])
+        .filter(l => ultimos[l.id])
+        .map(l => ({ name: l.name, valor: ultimos[l.id].valor }))
+        .sort((a, b) => b.valor - a.valor)
+        .slice(0, 3);
+
     container.innerHTML = '';
 
-    if (!allLoves || allLoves.length === 0) {
+    if (top3.length === 0) {
         container.innerHTML = `<div class="top-habit-empty">Aún no hay Loves registrados para mostrar.</div>`;
         return;
     }
 
     const medals = ['🥇', '🥈', '🥉'];
 
-    allLoves.forEach((love, index) => {
+    top3.forEach((item, index) => {
         const row = `
             <div class="top-habit-row">
                 <span class="top-habit-medal">${medals[index]}</span>
-                <span class="top-habit-name">${love.name}</span>
-                <span class="top-habit-count">${love.count}x</span>
+                <span class="top-habit-name">${item.name}</span>
+                <span class="top-habit-count">${item.valor}/5</span>
             </div>
         `;
         container.insertAdjacentHTML('beforeend', row);
@@ -1638,126 +1646,12 @@ function toggleCuota(id, cuotaIndex) {
  * ==========================================
  * GESTIÓN DE COSAS QUE AMO (LOVES)
  * ==========================================
- * NOTA: al hacer clic sobre el NOMBRE de la tarjeta se puede editar
- * (editLove). Doble clic en cualquier otra parte de la tarjeta suma
- * un registro. Clic derecho elimina la tarjeta.
+ * Loves ahora usa el mismo motor que Odios/Sentimientos (barra de
+ * intensidad 1-5 por día): loadLoves()/addLove() están definidos en
+ * Components/mood_tracker/mood_tracker.js (MOOD_CONFIGS.loves). Aquí
+ * solo queda el exportador SQL, que sigue leyendo la misma tabla
+ * "loves_logs".
  */
-async function loadLoves() {
-    const { data: loves, error } = await _supabase
-        .from('loves_logs')
-        .select('*')
-        .order('count', { ascending: false });
-
-    if (error) return console.error(error.message);
-
-    const container = document.getElementById('list-loves');
-    if (!container) return;
-    container.className = 'loves-grid';
-    container.innerHTML = '';
-
-    loves.forEach(love => {
-        const card = document.createElement('div');
-        card.className = 'passion-card';
-
-        const localImagePath = `assets/images/${love.image_filename}`;
-
-        card.innerHTML = `
-            <img src="${localImagePath}" class="passion-img" 
-                 onerror="this.src='assets/images/default.jpg'">
-            <div class="passion-info">
-                <span class="passion-name" title="Clic para editar nombre">${love.name}</span>
-                <span class="passion-count">${love.count}</span>
-            </div>
-        `;
-
-        const nameEl = card.querySelector('.passion-name');
-        if (nameEl) {
-            nameEl.addEventListener('click', (e) => {
-                e.stopPropagation();
-                editLove(love.name, love.id);
-            });
-        }
-
-        card.addEventListener('dblclick', () => {
-            card.classList.add('pop-animation');
-            incrementLove(love.id, love.count);
-
-            const countEl = card.querySelector('.passion-count');
-            countEl.textContent = parseInt(countEl.textContent) + 1;
-
-            setTimeout(() => card.classList.remove('pop-animation'), 300);
-        });
-
-        card.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            deleteLove(love.name, love.id);
-        });
-
-        container.appendChild(card);
-    });
-}
-
-async function addLove() {
-    const name = prompt("Nueva pasión o actividad que amas:");
-    if (!name || name.trim() === "") return;
-
-    const { error } = await _supabase
-        .from('loves_logs')
-        .insert([{ name: name.trim(), count: 0 }]);
-
-    if (error) {
-        alert("Error al guardar: " + error.message);
-    } else {
-        loadLoves();
-    }
-}
-
-async function incrementLove(id, currentCount) {
-    const { error } = await _supabase
-        .from('loves_logs')
-        .update({ count: currentCount + 1 })
-        .eq('id', id);
-
-    if (error) {
-        console.error("Error sumando contador:", error.message);
-    } else {
-        loadLoves();
-        if (typeof loadTopLoves === 'function') loadTopLoves();
-    }
-}
-
-async function editLove(oldName, id) {
-    const newName = prompt("Editar nombre:", oldName);
-    if (!newName || newName.trim() === "" || newName === oldName) return;
-
-    const { error } = await _supabase
-        .from('loves_logs')
-        .update({ name: newName.trim() })
-        .eq('id', id);
-
-    if (error) {
-        alert("Error al editar: " + error.message);
-    } else {
-        loadLoves();
-    }
-}
-
-async function deleteLove(name, id) {
-    const confirmDelete = confirm(`¿Deseas eliminar "${name}"?`);
-    if (!confirmDelete) return;
-
-    const { error } = await _supabase
-        .from('loves_logs')
-        .delete()
-        .eq('id', id);
-
-    if (error) {
-        alert("Error al eliminar: " + error.message);
-    } else {
-        loadLoves();
-        if (typeof loadTopLoves === 'function') loadTopLoves();
-    }
-}
 
 // ======================================================
 // EXPORTAR LOVES
