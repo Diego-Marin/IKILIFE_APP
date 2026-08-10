@@ -2343,8 +2343,11 @@ async function loadCompras() {
                     <div class="compra-progress-fill${lista ? ' compra-progress-fill--lista' : ''}" style="width:${pct}%;"></div>
                 </div>
                 <div class="compra-amounts-row">
-                    <button type="button" class="compra-amount-btn compra-amount-ahorro" title="Clic para agregar ahorro">${formatCurrency(ahorro)}</button>
+                    <button type="button" class="compra-amount-btn compra-amount-ahorro" title="Ahorro actual — clic para corregirlo manualmente">${formatCurrency(ahorro)}</button>
                     <button type="button" class="compra-amount-btn compra-amount-meta${meta > 0 ? '' : ' compra-amount-meta--vacio'}" title="Clic para definir el precio del producto">${meta > 0 ? formatCurrency(meta) : '+ Definir precio'}</button>
+                </div>
+                <div class="compra-add-row">
+                    <input type="number" class="compra-input" placeholder="+ Sumar al ahorro" title="Escribe un valor y presiona Enter">
                 </div>
             </div>
         `;
@@ -2356,7 +2359,13 @@ async function loadCompras() {
 
         card.querySelector('.compra-amount-ahorro').addEventListener('click', (e) => {
             e.stopPropagation();
-            addAhorroCompra(compra.id, ahorro);
+            editAhorroCompra(compra.id, ahorro);
+        });
+
+        card.querySelector('.compra-input').addEventListener('click', (e) => e.stopPropagation());
+        card.querySelector('.compra-input').addEventListener('change', (e) => {
+            sumarAhorroCompra(compra.id, ahorro, e.target.value);
+            e.target.value = '';
         });
 
         card.querySelector('.compra-amount-meta').addEventListener('click', (e) => {
@@ -2388,10 +2397,33 @@ async function addCompra() {
     }
 }
 
-async function addAhorroCompra(id, currentAhorro) {
-    const input = prompt("Cuánto quieres agregar al ahorro (sin puntos):");
+/* Corrige el valor EXACTO del ahorro (clic sobre el monto). Útil para
+   ajustar manualmente si te equivocaste o quieres partir de otro
+   número. Refresca Finanzas porque el ahorro asignado en Compras
+   descuenta de Ahorro/Capital y Patrimonio Neto. */
+async function editAhorroCompra(id, currentAhorro) {
+    const input = prompt("Corregir el ahorro actual (valor exacto):", currentAhorro || 0);
     if (input === null) return;
     const monto = Number(input);
+    if (isNaN(monto)) return;
+
+    const { error } = await _supabase
+        .from('compras_logs')
+        .update({ ahorro: Math.max(0, monto) })
+        .eq('id', id);
+
+    if (error) {
+        alert("Error al corregir el ahorro: " + error.message);
+    } else {
+        loadCompras();
+        if (typeof loadFinances === 'function') loadFinances();
+    }
+}
+
+/* SUMA (o resta, con número negativo) al ahorro desde el campo de
+   texto de la tarjeta — mismo patrón que "+ Sumar" en Finanzas. */
+async function sumarAhorroCompra(id, currentAhorro, valorInput) {
+    const monto = Number(valorInput);
     if (isNaN(monto) || monto === 0) return;
 
     const nuevoAhorro = Math.max(0, currentAhorro + monto);
@@ -2401,9 +2433,10 @@ async function addAhorroCompra(id, currentAhorro) {
         .eq('id', id);
 
     if (error) {
-        alert("Error al guardar el ahorro: " + error.message);
+        alert("Error al sumar al ahorro: " + error.message);
     } else {
         loadCompras();
+        if (typeof loadFinances === 'function') loadFinances();
     }
 }
 

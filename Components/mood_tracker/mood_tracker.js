@@ -162,12 +162,12 @@ async function loadMoodSection(key) {
     if (!container) return;
 
     const wrapper = container.closest('[id^="subview-"]') || container.parentElement;
-    let toolbar = wrapper.querySelector('.mood-toolbar');
-    if (!toolbar) {
-        toolbar = document.createElement('div');
-        toolbar.className = 'mood-toolbar';
-        wrapper.insertBefore(toolbar, container);
-    }
+    // El botón "Guardar registro de hoy" vive DENTRO de la misma fila
+    // que "Add Pasión/Odio" (y el Historial SQL en Loves), en un slot
+    // dedicado — ver [data-save-slot] en index.html — para que todo
+    // quede organizado en una sola fila.
+    const toolbar = wrapper.querySelector(`[data-save-slot="${key}"]`);
+    if (!toolbar) return console.warn(`No existe el slot de guardado ([data-save-slot="${key}"]) para "${key}".`);
 
     const ultimos = await cargarUltimosRegistros(config.regTable, config.fkColumn);
     const bloqueo = calcularBloqueoSeccion(config.lockKey);

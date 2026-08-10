@@ -7,12 +7,20 @@
  * herramientas de sección (botón "Guardar" o banner de bloqueo).
  */
 
-.mood-toolbar {
-    padding: 0 16px;
-    margin-top: 4px;
+/* --- Fila unificada: Add + Historial (SQL) + Guardar registro de hoy --- */
+.mood-header-row {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 10px;
 }
 
-.mood-save-btn {
+.mood-save-slot {
+    flex: 1 1 200px;
+    min-width: 160px;
+    display: flex;
+}
+
+.mood-save-slot .mood-save-btn {
     width: 100%;
 }
 
@@ -46,8 +54,8 @@
 }
 
 .mood-img {
-    width: 76px;
-    height: 76px;
+    width: 92px;
+    height: 92px;
     flex-shrink: 0;
     border-radius: 12px;
     object-fit: cover;

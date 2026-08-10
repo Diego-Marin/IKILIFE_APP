@@ -308,42 +308,44 @@ div.day-segment.future {
 
 .espejo-alma-row {
     display: grid;
-    grid-template-columns: 70px 1fr 44px;
+    grid-template-columns: 78px 1fr 52px;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
 }
 
 .espejo-alma-label {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--text-dark);
 }
 
 .espejo-alma-track {
     width: 100%;
-    height: 8px;
-    border-radius: 4px;
+    height: 16px;
+    border-radius: 8px;
     background-color: var(--border-color);
     overflow: hidden;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 .espejo-alma-fill {
     height: 100%;
-    border-radius: 4px;
+    border-radius: 8px;
     transition: width var(--transition);
+    box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.12);
 }
 
 .espejo-alma-fill--love {
-    background-color: #e0479e;
+    background: linear-gradient(to right, #f28cc0, #e0479e);
 }
 
 .espejo-alma-fill--odio {
-    background-color: #e74c3c;
+    background: linear-gradient(to right, #f0776a, #e74c3c);
 }
 
 .espejo-alma-value {
-    font-size: 0.72rem;
-    font-weight: 700;
+    font-size: 0.85rem;
+    font-weight: 800;
     color: var(--text-dark);
     text-align: right;
 }
@@ -375,14 +377,20 @@ div.day-segment.future {
 }
 
 /* Dentro de la tarjeta, la frase pierde su borde/fondo/margen propios
-   para fundirse con el state bar como un solo componente visual. */
+   para fundirse con el state bar como un solo componente visual. El
+   separador se aplica a "quien vaya segundo" (no a un elemento fijo),
+   para poder reordenarlos en el HTML sin romper el estilo. */
 .today-info-card .motivational-container {
     background: transparent;
     border: none;
-    border-top: 1px solid var(--border-color);
     border-radius: 0;
-    padding: 14px 0 0;
+    padding: 0;
     margin-bottom: 0;
+}
+
+.today-info-card > *:not(:first-child) {
+    border-top: 1px solid var(--border-color);
+    padding-top: 14px;
 }
 
 /**
@@ -1121,8 +1129,8 @@ div.day-segment.future {
 }
 
 .compra-img {
-    width: 76px;
-    height: 76px;
+    width: 92px;
+    height: 92px;
     flex-shrink: 0;
     border-radius: 12px;
     object-fit: cover;
@@ -1210,6 +1218,41 @@ div.day-segment.future {
 
 .compra-amount-meta--vacio {
     text-decoration: underline dotted;
+}
+
+/* Campo para SUMAR al ahorro (igual patrón que .finance-input en
+   Finanzas): se escribe un valor y se confirma con Enter/blur, sin
+   pisar el valor total, que se corrige aparte con clic en el monto. */
+.compra-add-row {
+    padding-top: 2px;
+}
+
+.compra-input {
+    width: 100%;
+    padding: 6px 8px;
+    text-align: center;
+    border: 1px dashed var(--text-muted);
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-family: inherit;
+    font-weight: 700;
+    background-color: transparent;
+    color: var(--text-dark);
+    transition: all var(--transition);
+}
+
+.compra-input:hover,
+.compra-input:focus {
+    outline: none;
+    border-style: solid;
+    border-color: var(--primary-green);
+    background-color: transparent;
+}
+
+.compra-input::-webkit-outer-spin-button,
+.compra-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 /*
