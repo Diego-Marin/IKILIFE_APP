@@ -581,18 +581,15 @@ async function loadHabits() {
 
     const datesOfWeek = [];
     let sunday;
+    const dayLabels = ['L','M','M','J','V','S','D'];
 
     for (let i = 0; i < 7; i++) {
         const d = new Date(monday);
         d.setDate(monday.getDate() + i);
         datesOfWeek.push(formatDateLocal(d));
-
         if (i === 6) sunday = d;
-
         const labelEl = document.getElementById(`day-label-${i + 1}`);
-        if (labelEl) {
-            labelEl.textContent = String(d.getDate()).padStart(2, '0');
-        }
+        if (labelEl) labelEl.textContent = String(d.getDate()).padStart(2, '0');
     }
 
     const monthStart = monday.toLocaleDateString('es-CO', { month: 'long' });
@@ -635,9 +632,6 @@ async function loadHabits() {
 
     if (err2) return console.error("Error cargando logs semanales:", err2.message);
 
-    // NUEVO: imagen por hábito, guardada aparte en "habit_images"
-    // (habit_name, image_filename) para no duplicarla en cada fila de
-    // habit_logs. Clic en la miniatura para definirla/cambiarla.
     const { data: habitImagesData, error: err3 } = await _supabase
         .from('habit_images')
         .select('habit_name, image_filename');
@@ -649,38 +643,46 @@ async function loadHabits() {
     listContainer.innerHTML = '';
 
     uniqueHabits.forEach(habitName => {
-        let circlesHTML = '';
+        let daysHTML = '';
+        let streakCount = 0;
 
-        datesOfWeek.forEach(dateStr => {
+        datesOfWeek.forEach((dateStr, idx) => {
             const log = weekLogs.find(l => l.habit_name === habitName && l.log_date === dateStr);
             const isDone = log ? log.is_completed : false;
+            if (isDone) streakCount++;
 
-            circlesHTML += `
-                <div class="status-circle" 
-                     style="background-color: ${isDone ? 'var(--primary-green)' : 'transparent'}; 
-                           border-color: ${isDone ? 'var(--primary-green)' : '#999'}"
-                     onclick="toggleHabit('${habitName}', '${dateStr}', ${isDone})">
-                </div>`;
+            const isToday = idx + 1 === currentDay && currentWeekOffset === 0;
+            const isFuture = currentWeekOffset === 0 && idx + 1 > currentDay;
+
+            daysHTML += `
+                <button type="button" class="habit-day-chip${isDone ? ' habit-day-chip--done' : ''}${isToday ? ' habit-day-chip--today' : ''}${isFuture ? ' habit-day-chip--future' : ''}"
+                    ${isFuture ? 'disabled' : `onclick="toggleHabit('${habitName.replace(/'/g, "\\'")}', '${dateStr}', ${isDone})"`}>
+                    ${dayLabels[idx]}
+                </button>`;
         });
 
         const imageFilename = habitImages[habitName] || 'default.jpg';
         const localImagePath = `assets/images/${imageFilename}`;
         const habitNameEscaped = habitName.replace(/'/g, "\\'");
 
-        const row = `
-            <li class="habit-grid">
-                <div class="item-name" 
-                     oncontextmenu="event.preventDefault(); deleteHabit('${habitName}')"
-                     title="Clic: Editar | Clic Derecho: Eliminar todo su historial">
-                     <img src="${localImagePath}" class="habit-img" onerror="this.src='assets/images/default.jpg'"
-                          onclick="event.stopPropagation(); setHabitImage('${habitNameEscaped}')"
-                          title="Clic para cambiar la imagen">
-                     <span onclick="editHabit('${habitName}')" style="cursor: pointer;">${cleanHabitName(habitName)}</span>
+        const card = `
+            <li class="habit-card">
+                <img src="${localImagePath}" class="habit-card-img" onerror="this.src='assets/images/default.jpg'"
+                     onclick="event.stopPropagation(); setHabitImage('${habitNameEscaped}')"
+                     title="Clic para cambiar la imagen">
+                <div class="habit-card-info">
+                    <div class="habit-card-top">
+                        <span class="habit-card-name" onclick="editHabit('${habitNameEscaped}')" title="Clic para editar">${cleanHabitName(habitName)}</span>
+                        <span class="habit-card-streak">${streakCount}/7</span>
+                    </div>
+                    <div class="habit-day-row">
+                        ${daysHTML}
+                    </div>
+                    <span class="habit-card-meta" oncontextmenu="event.preventDefault(); deleteHabit('${habitNameEscaped}')" style="cursor:pointer;" title="Clic derecho para eliminar">Semana actual · Clic derecho: eliminar</span>
                 </div>
-                ${circlesHTML}
             </li>
         `;
-        listContainer.insertAdjacentHTML('beforeend', row);
+        listContainer.insertAdjacentHTML('beforeend', card);
     });
 }
 
@@ -2413,8 +2415,8 @@ async function loadCompras() {
                     <span class="compra-name" title="Clic para editar nombre">${compra.name}</span>
                     ${lista ? '<span class="compra-ready-badge">✅ Listo</span>' : ''}
                 </div>
-                <div class="compra-progress-track">
-                    <div class="compra-progress-fill${lista ? ' compra-progress-fill--lista' : ''}" style="width:${pct}%;"></div>
+                                <div class="ik-bar-track">
+                    <div class="ik-bar-fill${lista ? ' ik-bar-fill--green' : ' ik-bar-fill--neutral'}" style="width:${pct}%;"></div>
                 </div>
                 <div class="compra-amounts-row">
                     <button type="button" class="compra-amount-btn compra-amount-ahorro" title="Ahorro actual — clic para corregirlo manualmente">${formatCurrency(ahorro)}</button>

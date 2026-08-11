@@ -267,21 +267,47 @@ async function guardarRegistroSeccion(key) {
     const nowIso = new Date().toISOString();
     const fechaHoy = getFechaHoyISO();
 
-    const rows = ids.map(id => ({
-        [config.fkColumn]: Number(id),
-        fecha: fechaHoy,
-        valor: seleccion[id],
-        created_at: nowIso,
-    }));
+    // Upsert manual fila por fila para evitar el error de ON CONFLICT
+    // cuando la tabla no tiene constraint UNIQUE exacto.
+    for (const id of ids) {
+        const fkValue = Number(id);
+        const valor = seleccion[id];
 
-    const { error } = await _supabase
-        .from(config.regTable)
-        .upsert(rows, { onConflict: `${config.fkColumn},fecha` });
+        // 1. Intentar encontrar registro existente
+        const { data: existente } = await _supabase
+            .from(config.regTable)
+            .select('id')
+            .eq(config.fkColumn, fkValue)
+            .eq('fecha', fechaHoy)
+            .maybeSingle();
 
-    if (error) {
-        console.error(`Error guardando ${config.regTable}:`, error.message);
-        alert('Error al guardar el registro: ' + error.message);
-        return;
+        if (existente) {
+            // UPDATE
+            const { error } = await _supabase
+                .from(config.regTable)
+                .update({ valor: valor, created_at: nowIso })
+                .eq('id', existente.id);
+            if (error) {
+                console.error(`Error actualizando ${config.regTable}:`, error.message);
+                alert('Error al guardar el registro: ' + error.message);
+                return;
+            }
+        } else {
+            // INSERT
+            const { error } = await _supabase
+                .from(config.regTable)
+                .insert([{
+                    [config.fkColumn]: fkValue,
+                    fecha: fechaHoy,
+                    valor: valor,
+                    created_at: nowIso,
+                }]);
+            if (error) {
+                console.error(`Error insertando en ${config.regTable}:`, error.message);
+                alert('Error al guardar el registro: ' + error.message);
+                return;
+            }
+        }
     }
 
     localStorage.setItem(config.lockKey, nowIso);
@@ -397,22 +423,21 @@ async function loadEspejoDelAlma() {
     const pctLove = Math.min((avgLove / maxEscala) * 100, 100);
     const pctOdio = Math.min((avgOdio / maxEscala) * 100, 100);
 
-    container.innerHTML = `
+          container.innerHTML = `
         <div class="espejo-alma-card">
-            <div class="espejo-alma-title">🪞 El Espejo del Alma</div>
             <div class="espejo-alma-row">
                 <div class="espejo-alma-label">❤️ Loves</div>
-                <div class="espejo-alma-track">
-                    <div class="espejo-alma-fill espejo-alma-fill--love" style="width:${pctLove}%;"></div>
+                <div class="ik-bar-track">
+                    <div class="ik-bar-fill ik-bar-fill--love" style="width:${pctLove}%;"></div>
                 </div>
-                <div class="espejo-alma-value">${avgLove.toFixed(1)}/5</div>
+                <div class="espejo-alma-value">${avgLove.toFixed(1)}</div>
             </div>
             <div class="espejo-alma-row">
                 <div class="espejo-alma-label">💢 Odios</div>
-                <div class="espejo-alma-track">
-                    <div class="espejo-alma-fill espejo-alma-fill--odio" style="width:${pctOdio}%;"></div>
+                <div class="ik-bar-track">
+                    <div class="ik-bar-fill ik-bar-fill--odio" style="width:${pctOdio}%;"></div>
                 </div>
-                <div class="espejo-alma-value">${avgOdio.toFixed(1)}/5</div>
+                <div class="espejo-alma-value">${avgOdio.toFixed(1)}</div>
             </div>
             <div class="espejo-alma-msg">${mensajeEspejoDelAlma(avgLove, avgOdio, hayDatos)}</div>
         </div>

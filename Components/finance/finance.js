@@ -201,10 +201,10 @@ function renderBudgetBar(category, spent, budget) {
     const pct = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0;
     const exceeded = spent > budget;
 
-    return `
+        return `
         <div class="finance-budget-bar-wrap" title="${formatCurrency(spent)} de ${formatCurrency(budget)}">
-            <div class="finance-budget-bar-track">
-                <div class="finance-budget-bar-fill${exceeded ? ' finance-budget-bar-fill--over' : ''}" style="width:${pct}%;"></div>
+            <div class="ik-bar-track">
+                <div class="ik-bar-fill${exceeded ? ' ik-bar-fill--over' : ' ik-bar-fill--green'}" style="width:${pct}%;"></div>
             </div>
             <div class="finance-budget-bar-label${exceeded ? ' text-debt' : ''}">
                 ${formatCurrency(spent)} / ${formatCurrency(budget)}${exceeded ? ' ⚠️ Excedido' : ''}
@@ -396,7 +396,7 @@ async function resetFinanceMonth() {
     }
 
     alert(`Mes ${mesActual} guardado en el historial. Finanzas reiniciadas para el nuevo mes.`);
-    loadFinances();
+    loadFinances(); loadFinanceHistory();
 }
 
 
@@ -484,5 +484,57 @@ function renderPatrimonioWidget(patrimonio, gastosMensuales) {
         container.insertBefore(widget, summaryGrid.nextSibling);
     } else {
         container.appendChild(widget);
+    }
+}
+
+/* ==========================================
+   HISTORIAL DE MESES GUARDADOS
+   ========================================== */
+async function loadFinanceHistory() {
+    const { data: historial, error } = await _supabase
+        .from('finance_month_history')
+        .select('*')
+        .order('mes', { ascending: false });
+
+    if (error) {
+        alert('No se pudo cargar el historial (¿existe la tabla "finance_month_history"?): ' + error.message);
+        return;
+    }
+
+    const container = document.getElementById('finance-history-list');
+    const section = document.getElementById('finance-history-section');
+    if (!container || !section) return;
+
+    section.classList.remove('hidden');
+    container.innerHTML = '';
+
+    if (!historial || historial.length === 0) {
+        container.innerHTML = '<div style="padding:12px; color:var(--text-muted); font-size:0.85rem;">Aún no hay meses guardados. Presiona "Reiniciar Mes" para guardar el primero.</div>';
+        return;
+    }
+
+    historial.forEach(h => {
+        const row = document.createElement('div');
+        row.className = 'finance-history-row';
+        row.innerHTML = `
+            <div class="finance-history-mes">${h.mes}</div>
+            <div class="finance-history-grid">
+                <div><span class="finance-history-label">Ingresos</span><span class="text-income">${formatCurrency(h.total_ingresos)}</span></div>
+                <div><span class="finance-history-label">Gastos</span><span class="text-expense">${formatCurrency(h.total_gastos)}</span></div>
+                <div><span class="finance-history-label">Ahorro</span><span class="text-savings">${formatCurrency(h.total_ahorro)}</span></div>
+                <div><span class="finance-history-label">Deudas</span><span class="text-debt">${formatCurrency(h.total_deudas)}</span></div>
+                <div style="grid-column:1/-1;"><span class="finance-history-label">Patrimonio Neto</span><span class="${h.patrimonio_neto >= 0 ? 'text-savings' : 'text-debt'}" style="font-weight:800;">${formatCurrency(h.patrimonio_neto)}</span></div>
+            </div>
+        `;
+        container.appendChild(row);
+    });
+}
+
+function toggleFinanceHistory() {
+    const section = document.getElementById('finance-history-section');
+    if (section.classList.contains('hidden')) {
+        loadFinanceHistory();
+    } else {
+        section.classList.add('hidden');
     }
 }

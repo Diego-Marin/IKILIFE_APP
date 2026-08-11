@@ -352,3 +352,38 @@
     background-color: #e74c3c;
     color: var(--white);
 }
+
+.finance-history-row {
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 12px;
+    background: var(--white);
+}
+
+.finance-history-mes {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--text-dark);
+    margin-bottom: 8px;
+    letter-spacing: 0.3px;
+}
+
+.finance-history-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 12px;
+}
+
+.finance-history-grid > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.finance-history-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}

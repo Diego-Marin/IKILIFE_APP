@@ -282,11 +282,50 @@ div.day-segment.future {
 
 /**
  * ==========================================
+ * BARRAS DE PROGRESO UNIFICADAS (IK-BAR)
+ * ==========================================
+ * Sistema unico de barras usado por Finanzas,
+ * Espejo del Alma y Compras.
+ */
+.ik-bar-track {
+    width: 100%;
+    height: 10px;
+    border-radius: 5px;
+    background-color: var(--border-color);
+    overflow: hidden;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.08);
+}
+
+.ik-bar-fill {
+    height: 100%;
+    border-radius: 5px;
+    transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ik-bar-fill--green {
+    background: linear-gradient(to right, #74C08A, #16a34a);
+}
+
+.ik-bar-fill--love {
+    background: linear-gradient(to right, #f28cc0, #e0479e);
+}
+
+.ik-bar-fill--odio {
+    background: linear-gradient(to right, #f0776a, #e74c3c);
+}
+
+.ik-bar-fill--over {
+    background: linear-gradient(to right, #e74c3c, #c0392b);
+}
+
+.ik-bar-fill--neutral {
+    background: linear-gradient(to right, #74C08A, #2ecc71);
+}
+
+/**
+ * ==========================================
  * EL ESPEJO DEL ALMA
  * ==========================================
- * Dos barras (Loves / Odios) con el promedio del último valor
- * registrado de cada sección (escala 1-5). Se ubica debajo de la
- * tarjeta "Hoy" (state bar + frase).
  */
 .espejo-alma-card {
     background-color: transparent;
@@ -296,51 +335,20 @@ div.day-segment.future {
     margin-bottom: 24px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-}
-
-.espejo-alma-title {
-    font-size: 0.9rem;
-    font-weight: 800;
-    color: var(--text-dark);
-    margin-bottom: 2px;
+    gap: 12px;
 }
 
 .espejo-alma-row {
     display: grid;
-    grid-template-columns: 78px 1fr 52px;
+    grid-template-columns: 70px 1fr 42px;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 }
 
 .espejo-alma-label {
-    font-size: 0.8rem;
-    font-weight: 800;
-    color: var(--text-dark);
-}
-
-.espejo-alma-track {
-    width: 100%;
-    height: 16px;
-    border-radius: 8px;
-    background-color: var(--border-color);
-    overflow: hidden;
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15);
-}
-
-.espejo-alma-fill {
-    height: 100%;
-    border-radius: 8px;
-    transition: width var(--transition);
-    box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.12);
-}
-
-.espejo-alma-fill--love {
-    background: linear-gradient(to right, #f28cc0, #e0479e);
-}
-
-.espejo-alma-fill--odio {
-    background: linear-gradient(to right, #f0776a, #e74c3c);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
 }
 
 .espejo-alma-value {
@@ -354,7 +362,9 @@ div.day-segment.future {
     font-size: 0.78rem;
     color: var(--text-muted);
     font-style: italic;
-    margin-top: 4px;
+    margin-top: 2px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-color);
 }
 
 /**
@@ -1183,22 +1193,15 @@ div.day-segment.future {
 }
 
 .compra-progress-track {
-    width: 100%;
-    height: 6px;
-    border-radius: 3px;
-    background-color: var(--border-color);
-    overflow: hidden;
+    composes: ik-bar-track;
 }
 
 .compra-progress-fill {
-    height: 100%;
-    background-color: var(--primary-green);
-    border-radius: 3px;
-    transition: width var(--transition);
+    composes: ik-bar-fill;
 }
 
 .compra-progress-fill--lista {
-    background-color: #16a34a;
+    composes: ik-bar-fill--green;
 }
 
 /* Fila debajo de la barra: ahorro actual (izq) y precio objetivo (der),
@@ -1923,4 +1926,117 @@ div.day-segment.future {
     font-size: 0.8rem;
     color: var(--text-muted);
     padding: 8px 10px;
+}
+
+/**
+ * ==========================================
+ * HABITOS - CARDS ESTILO MOOD
+ * ==========================================
+ * Cada habito es una card con imagen a la izquierda,
+ * nombre arriba y chips de dias debajo.
+ */
+.habit-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px;
+    border-radius: 12px;
+    border: 2px solid var(--border-color);
+    background-color: var(--white);
+    transition: opacity var(--transition);
+    margin-bottom: 12px;
+}
+
+.habit-card-img {
+    width: 92px;
+    height: 92px;
+    flex-shrink: 0;
+    border-radius: 12px;
+    object-fit: cover;
+}
+
+.habit-card-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.habit-card-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.habit-card-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.habit-card-streak {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--primary-green);
+    flex-shrink: 0;
+}
+
+.habit-day-row {
+    display: flex;
+    gap: 4px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+}
+
+.habit-day-chip {
+    flex: 1 0 auto;
+    min-width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-light);
+    color: var(--text-muted);
+    font-size: 0.65rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.habit-day-chip:hover {
+    border-color: var(--primary-green);
+}
+
+.habit-day-chip--done {
+    background-color: var(--primary-green);
+    border-color: var(--primary-green);
+    color: var(--white);
+}
+
+.habit-day-chip--today {
+    border-color: var(--text-dark);
+    border-width: 2px;
+}
+
+.habit-day-chip--future {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.habit-card-meta {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
 }
