@@ -29,7 +29,7 @@
  * fecha/hora ISO del último "Guardar registro de hoy".
  */
 
-const HORAS_BLOQUEO_REGISTRO = 12;
+const HORAS_BLOQUEO_REGISTRO = 5;
 
 /* ==========================================
    UTILIDADES DE FECHA (usadas también por loadTopSentimientos en main.js)
