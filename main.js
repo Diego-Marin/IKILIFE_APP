@@ -642,6 +642,16 @@ async function loadHabits() {
     if (!listContainer) return;
     listContainer.innerHTML = '';
 
+    function getHabitMotivationalMsg(streakCount, daysElapsed) {
+    if (daysElapsed === 0) return "Nueva semana, ¡vamos! 🚀";
+    if (streakCount === 7) return "¡Semana perfecta! 🔥";
+    const ratio = streakCount / daysElapsed;
+    if (ratio >= 0.8) return "¡Vas increíble esta semana! 💪";
+    if (ratio >= 0.5) return "Vas bien, sigue así ✨";
+    if (streakCount > 0) return "Puedes mejorar, ¡tú puedes! 🙌";
+    return "Aún no has empezado esta semana";
+}
+
     uniqueHabits.forEach(habitName => {
         let daysHTML = '';
         let streakCount = 0;
@@ -678,8 +688,7 @@ async function loadHabits() {
                     <div class="habit-day-row">
                         ${daysHTML}
                     </div>
-                    <span class="habit-card-meta" oncontextmenu="event.preventDefault(); deleteHabit('${habitNameEscaped}')" style="cursor:pointer;" title="Clic derecho para eliminar">Semana actual · Clic derecho: eliminar</span>
-                </div>
+<span class="habit-card-meta" oncontextmenu="event.preventDefault(); deleteHabit('${habitNameEscaped}')" style="cursor:pointer;" title="Clic derecho para eliminar">${getHabitMotivationalMsg(streakCount, currentWeekOffset === 0 ? currentDay : 7)} · Clic derecho: eliminar</span>                </div>
             </li>
         `;
         listContainer.insertAdjacentHTML('beforeend', card);
