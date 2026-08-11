@@ -438,23 +438,21 @@ async function loadBloques() {
         });
 
         const card = `
-            <div class="bloque-card">
-                <div class="bloque-card-top">
-                    <div class="bloque-card-title" 
-                         onclick="editBloque(${bloque.id})" 
-                         oncontextmenu="event.preventDefault(); deleteBloque(${bloque.id}, '${bloque.name}')" 
-                         title="Clic: Editar Nombre | Clic Derecho: Eliminar Bloque">
-                        ${bloque.name}
-                    </div>
-                    <button class="bloque-add-task" onclick="addBloqueTask(${bloque.id})">
-                        + Tarea
-                    </button>
-                </div>
-                <ul class="bloque-task-list">
-                    ${tasksHTML}
-                </ul>
+    <li class="habit-card" oncontextmenu="event.preventDefault(); deleteHabit('${habitNameEscaped}')" title="Clic derecho para eliminar">
+        <img src="${localImagePath}" class="habit-card-img" onerror="this.src='assets/images/default.jpg'"
+             onclick="event.stopPropagation(); setHabitImage('${habitNameEscaped}')"
+             title="Clic para cambiar la imagen">
+        <div class="habit-card-info">
+            <div class="habit-card-top">
+                <span class="habit-card-name" onclick="editHabit('${habitNameEscaped}')" title="Clic para editar">${cleanHabitName(habitName)}</span>
+                <span class="habit-card-streak">${streakCount}/7</span>
             </div>
-        `;
+            <div class="habit-day-row">
+                ${daysHTML}
+            </div>
+        </div>
+    </li>
+`;
         container.insertAdjacentHTML('beforeend', card);
     });
 }
@@ -581,7 +579,7 @@ async function loadHabits() {
 
     const datesOfWeek = [];
     let sunday;
-    const dayLabels = ['L','M','M','J','V','S','D'];
+    const dayLabels = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
     for (let i = 0; i < 7; i++) {
         const d = new Date(monday);
@@ -643,14 +641,14 @@ async function loadHabits() {
     listContainer.innerHTML = '';
 
     function getHabitMotivationalMsg(streakCount, daysElapsed) {
-    if (daysElapsed === 0) return "Nueva semana, ¡vamos! 🚀";
-    if (streakCount === 7) return "¡Semana perfecta! 🔥";
-    const ratio = streakCount / daysElapsed;
-    if (ratio >= 0.8) return "¡Vas increíble esta semana! 💪";
-    if (ratio >= 0.5) return "Vas bien, sigue así ✨";
-    if (streakCount > 0) return "Puedes mejorar, ¡tú puedes! 🙌";
-    return "Aún no has empezado esta semana";
-}
+        if (daysElapsed === 0) return "Nueva semana, ¡vamos! 🚀";
+        if (streakCount === 7) return "¡Semana perfecta! 🔥";
+        const ratio = streakCount / daysElapsed;
+        if (ratio >= 0.8) return "¡Vas increíble! 💪";
+        if (ratio >= 0.5) return "Vas bien, sigue así ✨";
+        if (streakCount > 0) return "Puedes mejorar, ¡tú puedes! 🙌";
+        return "Aún no has empezado esta semana";
+    }
 
     uniqueHabits.forEach(habitName => {
         let daysHTML = '';
@@ -676,21 +674,22 @@ async function loadHabits() {
         const habitNameEscaped = habitName.replace(/'/g, "\\'");
 
         const card = `
-            <li class="habit-card">
-                <img src="${localImagePath}" class="habit-card-img" onerror="this.src='assets/images/default.jpg'"
-                     onclick="event.stopPropagation(); setHabitImage('${habitNameEscaped}')"
-                     title="Clic para cambiar la imagen">
-                <div class="habit-card-info">
-                    <div class="habit-card-top">
-                        <span class="habit-card-name" onclick="editHabit('${habitNameEscaped}')" title="Clic para editar">${cleanHabitName(habitName)}</span>
-                        <span class="habit-card-streak">${streakCount}/7</span>
-                    </div>
-                    <div class="habit-day-row">
-                        ${daysHTML}
-                    </div>
-<span class="habit-card-meta" oncontextmenu="event.preventDefault(); deleteHabit('${habitNameEscaped}')" style="cursor:pointer;" title="Clic derecho para eliminar">${getHabitMotivationalMsg(streakCount, currentWeekOffset === 0 ? currentDay : 7)} · Clic derecho: eliminar</span>                </div>
-            </li>
-        `;
+    <li class="habit-card" oncontextmenu="event.preventDefault(); deleteHabit('${habitNameEscaped}')" title="Clic derecho para eliminar">
+        <img src="${localImagePath}" class="habit-card-img" onerror="this.src='assets/images/default.jpg'"
+             onclick="event.stopPropagation(); setHabitImage('${habitNameEscaped}')"
+             title="Clic para cambiar la imagen">
+        <div class="habit-card-info">
+            <div class="habit-card-top">
+                <span class="habit-card-name" onclick="editHabit('${habitNameEscaped}')" title="Clic para editar">${cleanHabitName(habitName)}</span>
+                <span class="habit-card-streak">${streakCount}/7</span>
+            </div>
+            <div class="habit-day-row">
+                ${daysHTML}
+            </div>
+            <span class="habit-card-meta">${getHabitMotivationalMsg(streakCount, currentWeekOffset === 0 ? currentDay : 7)}</span>
+        </div>
+    </li>
+`;
         listContainer.insertAdjacentHTML('beforeend', card);
     });
 }
@@ -2417,25 +2416,25 @@ async function loadCompras() {
         const localImagePath = `assets/images/${compra.image_filename}`;
 
         card.innerHTML = `
-            <img src="${localImagePath}" class="compra-img"
-                 onerror="this.src='assets/images/default.jpg'">
-            <div class="compra-info">
-                <div class="compra-top-row">
-                    <span class="compra-name" title="Clic para editar nombre">${compra.name}</span>
-                    ${lista ? '<span class="compra-ready-badge">✅ Listo</span>' : ''}
-                </div>
-                                <div class="ik-bar-track">
-                    <div class="ik-bar-fill${lista ? ' ik-bar-fill--green' : ' ik-bar-fill--neutral'}" style="width:${pct}%;"></div>
-                </div>
-                <div class="compra-amounts-row">
-                    <button type="button" class="compra-amount-btn compra-amount-ahorro" title="Ahorro actual — clic para corregirlo manualmente">${formatCurrency(ahorro)}</button>
-                    <button type="button" class="compra-amount-btn compra-amount-meta${meta > 0 ? '' : ' compra-amount-meta--vacio'}" title="Clic para definir el precio del producto">${meta > 0 ? formatCurrency(meta) : '+ Definir precio'}</button>
-                </div>
-                <div class="compra-add-row">
-                    <input type="number" class="compra-input" placeholder="+ Sumar al ahorro" title="Escribe un valor y presiona Enter">
-                </div>
+    <img src="${localImagePath}" class="compra-img"
+         onerror="this.src='assets/images/default.jpg'">
+    <div class="compra-info">
+        <div class="compra-top-row">
+            <span class="compra-name" title="Clic para editar nombre">${compra.name}</span>
+            ${lista ? '<span class="compra-ready-badge">✅ Listo</span>' : ''}
+        </div>
+        <div class="compra-progress-row">
+            <div class="ik-bar-track">
+                <div class="ik-bar-fill${lista ? ' ik-bar-fill--green' : ' ik-bar-fill--neutral'}" style="width:${pct}%;"></div>
             </div>
-        `;
+            <button type="button" class="compra-amount-btn compra-amount-ahorro" title="Ahorro actual — clic para corregirlo manualmente">${formatCurrency(ahorro)}</button>
+        </div>
+        <div class="compra-amounts-row">
+            <input type="number" class="compra-input" placeholder="+ Sumar" title="Escribe un valor y presiona Enter">
+            <button type="button" class="compra-amount-btn compra-amount-meta${meta > 0 ? '' : ' compra-amount-meta--vacio'}" title="Clic para definir el precio del producto">${meta > 0 ? formatCurrency(meta) : '+ Definir precio'}</button>
+        </div>
+    </div>
+`;
 
         card.querySelector('.compra-name').addEventListener('click', (e) => {
             e.stopPropagation();
@@ -2657,7 +2656,7 @@ function renderStateBar(containerId) {
             },
             {
                 start: 1080, end: 1260, label: "Comida", icon: "🍽️", class: "state-free",
-                options: ["Preparar algo saludable", "Comer con calma, sin pantallas","Preparar coca"]
+                options: ["Preparar algo saludable", "Comer con calma, sin pantallas", "Preparar coca"]
             },
             {
                 start: 1200, end: 1260, label: "Lectura & Meditación", icon: "🌙", class: "state-free",
@@ -2679,7 +2678,7 @@ function renderStateBar(containerId) {
             },
             {
                 start: 1080, end: 1260, label: "Comida", icon: "🍽️", class: "state-free",
-                options: ["Preparar algo saludable", "Comer con calma, sin pantallas","Preparar coca"]
+                options: ["Preparar algo saludable", "Comer con calma, sin pantallas", "Preparar coca"]
             },
             {
                 start: 1260, end: 1440, label: "Descanso", icon: "🌙", class: "state-sleep",

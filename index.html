@@ -115,28 +115,14 @@
             en #state-bar-container y loadDailyQuote() sigue
             escribiendo en #motivational-text, sin cambios de JS.
         -->
-        <div class="today-info-card" id="today-info-card">
-            <!--
-                FRASE MOTIVACIONAL DEL DÍA: seleccionada al azar del
-                listado JSON definido en main.js (MOTIVATIONAL_QUOTES).
-                Se mantiene fija durante todo el día (localStorage) y
-                cambia automáticamente al día siguiente.
-                (Orden cambiado: ahora va primero, antes del state bar.)
-            -->
-            <div class="motivational-container" id="motivational-container">
-                <span class="motivational-icon">✨</span>
-                <p class="motivational-text" id="motivational-text">Cargando frase del día...</p>
-            </div>
-
-            <!--
-                STATE BAR: muestra, además del bloque activo, las demás
-                actividades disponibles en el día (chips) y un menú
-                desplegable con sugerencias concretas al hacer clic en
-                cualquiera de ellas. Toda esta estructura interna la
-                genera renderStateBar() en main.js.
-            -->
-            <div id="state-bar-container"></div>
-        </div>
+        <!--
+            STATE BAR: muestra, además del bloque activo, las demás
+            actividades disponibles en el día (chips) y un menú
+            desplegable con sugerencias concretas al hacer clic en
+            cualquiera de ellas. Toda esta estructura interna la
+            genera renderStateBar() en main.js.
+        -->
+        <div id="state-bar-container"></div>
 
         <!--
             ==========================================
@@ -401,10 +387,14 @@
                                     Nueva Categoría</button>
                             </div>
 
-                            <div id="finance-history-section" class="hidden" style="margin-top:16px; border-top:1px solid var(--border-color); padding-top:16px;">
-    <div class="category-header" style="border-bottom:none; padding-left:0; padding-right:0;">Historial de Meses</div>
-    <div id="finance-history-list" style="display:flex; flex-direction:column; gap:10px; margin-top:8px;"></div>
-</div>
+                            <div id="finance-history-section" class="hidden"
+                                style="margin-top:16px; border-top:1px solid var(--border-color); padding-top:16px;">
+                                <div class="category-header"
+                                    style="border-bottom:none; padding-left:0; padding-right:0;">Historial de Meses
+                                </div>
+                                <div id="finance-history-list"
+                                    style="display:flex; flex-direction:column; gap:10px; margin-top:8px;"></div>
+                            </div>
                         </div>
 
                         <!--

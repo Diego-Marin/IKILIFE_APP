@@ -386,53 +386,8 @@ div.day-segment.future {
     gap: 14px;
 }
 
-/* Dentro de la tarjeta, la frase pierde su borde/fondo/margen propios
-   para fundirse con el state bar como un solo componente visual. El
-   separador se aplica a "quien vaya segundo" (no a un elemento fijo),
-   para poder reordenarlos en el HTML sin romper el estilo. */
-.today-info-card .motivational-container {
-    background: transparent;
-    border: none;
-    border-radius: 0;
-    padding: 0;
-    margin-bottom: 0;
-}
 
-.today-info-card > *:not(:first-child) {
-    border-top: 1px solid var(--border-color);
-    padding-top: 14px;
-}
 
-/**
- * ==========================================
- * NUEVO: FRASE MOTIVACIONAL DEL DÍA
- * ==========================================
- */
-.motivational-container {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: linear-gradient(to right, var(--bg-header), var(--white));
-    border: 1px solid var(--border-color);
-    border-left: 4px solid var(--primary-green);
-    border-radius: 8px;
-    padding: 14px 16px;
-    margin-bottom: 24px;
-}
-
-.motivational-icon {
-    font-size: 1.3rem;
-    line-height: 1;
-    flex-shrink: 0;
-}
-
-.motivational-text {
-    font-size: 0.85rem;
-    font-weight: 600;
-    font-style: italic;
-    color: var(--text-dark);
-    line-height: 1.4;
-}
 
 /**
  * ==========================================
@@ -1204,13 +1159,21 @@ div.day-segment.future {
     composes: ik-bar-fill--green;
 }
 
+
 /* Fila debajo de la barra: ahorro actual (izq) y precio objetivo (der),
    cada uno es su propio botón para que quede claro que se puede editar. */
-.compra-amounts-row {
+
+.compra-progress-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 8px;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.compra-progress-row .ik-bar-track {
+    flex: 1;
+    min-width: 0;
+    width: auto;
 }
 
 .compra-amount-btn {
@@ -1220,7 +1183,8 @@ div.day-segment.future {
     background: none;
     padding: 0;
     cursor: pointer;
-    text-align: left;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .compra-amount-ahorro {
@@ -1235,20 +1199,22 @@ div.day-segment.future {
     text-decoration: underline dotted;
 }
 
-/* Campo para SUMAR al ahorro (igual patrón que .finance-input en
-   Finanzas): se escribe un valor y se confirma con Enter/blur, sin
-   pisar el valor total, que se corrige aparte con clic en el monto. */
-.compra-add-row {
-    padding-top: 2px;
+.compra-amounts-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
 }
 
 .compra-input {
-    width: 100%;
-    padding: 6px 8px;
+    flex: 1;
+    min-width: 0;
+    max-width: 110px;
+    padding: 5px 6px;
     text-align: center;
     border: 1px dashed var(--text-muted);
     border-radius: 6px;
-    font-size: 0.8rem;
+    font-size: 0.72rem;
     font-family: inherit;
     font-weight: 700;
     background-color: transparent;
@@ -1854,7 +1820,7 @@ div.day-segment.future {
     display: grid;
     grid-template-columns: 1fr;
     gap: 10px;
-    margin-bottom: 12px;
+    margin-bottom: 24px;
 }
 
 .state-bar-grid .ikilife-state-card {
@@ -2037,6 +2003,4 @@ div.day-segment.future {
     font-size: 0.7rem;
     font-weight: 600;
     color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
 }
