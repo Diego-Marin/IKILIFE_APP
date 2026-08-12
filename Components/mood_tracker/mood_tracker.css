@@ -89,7 +89,7 @@
 
 .mood-top-row {
     display: flex;
-    align-items: baseline;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 8px;
 }
@@ -99,9 +99,11 @@
     font-weight: 700;
     color: var(--text-dark);
     cursor: pointer;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    line-height: 1.25;
 }
 
 .mood-value {

@@ -407,9 +407,10 @@ async function loadEspejoDelAlma() {
     const container = document.getElementById('espejo-alma-container');
     if (!container) return;
 
-    const [ultimosLoves, ultimosOdios] = await Promise.all([
+    const [ultimosLoves, ultimosOdios, habitosHoy] = await Promise.all([
         cargarUltimosRegistros('loves_registros', 'love_id'),
         cargarUltimosRegistros('odios_registros', 'odio_id'),
+        calcularPromedioHabitosHoy(),
     ]);
 
     const valoresLove = Object.values(ultimosLoves).map(r => r.valor);
@@ -423,7 +424,7 @@ async function loadEspejoDelAlma() {
     const pctLove = Math.min((avgLove / maxEscala) * 100, 100);
     const pctOdio = Math.min((avgOdio / maxEscala) * 100, 100);
 
-          container.innerHTML = `
+    container.innerHTML = `
         <div class="espejo-alma-card">
             <div class="espejo-alma-row">
                 <div class="espejo-alma-label">❤️ Loves</div>
@@ -439,9 +440,34 @@ async function loadEspejoDelAlma() {
                 </div>
                 <div class="espejo-alma-value">${avgOdio.toFixed(1)}</div>
             </div>
+            <div class="espejo-alma-row">
+                <div class="espejo-alma-label">✅ Hábitos</div>
+                <div class="ik-bar-track">
+                    <div class="ik-bar-fill ik-bar-fill--green" style="width:${habitosHoy.pct}%;"></div>
+                </div>
+                <div class="espejo-alma-value">${habitosHoy.hechos}/${habitosHoy.total}</div>
+            </div>
             <div class="espejo-alma-msg">${mensajeEspejoDelAlma(avgLove, avgOdio, hayDatos)}</div>
         </div>
     `;
+}
+async function calcularPromedioHabitosHoy() {
+    const hoy = new Date().toISOString().slice(0, 10);
+
+    const { data: allHabitsData, error: err1 } = await _supabase.from('habit_logs').select('habit_name');
+    if (err1 || !allHabitsData) return { pct: 0, hechos: 0, total: 0 };
+    const totalHabitos = new Set(allHabitsData.map(h => h.habit_name)).size;
+    if (totalHabitos === 0) return { pct: 0, hechos: 0, total: 0 };
+
+    const { data: hoyLogs } = await _supabase
+        .from('habit_logs')
+        .select('habit_name')
+        .eq('log_date', hoy)
+        .eq('is_completed', true);
+
+    const hechos = (hoyLogs || []).length;
+    const pct = Math.min((hechos / totalHabitos) * 100, 100);
+    return { pct, hechos, total: totalHabitos };
 }
 
 /* ==========================================

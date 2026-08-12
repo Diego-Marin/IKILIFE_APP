@@ -651,47 +651,50 @@ async function loadHabits() {
     }
 
     uniqueHabits.forEach(habitName => {
-        let daysHTML = '';
-        let streakCount = 0;
+    let daysHTML = '';
+    let streakCount = 0;
+    let isDoneToday = true; // por defecto true en semanas pasadas (no se marca en rojo)
 
-        datesOfWeek.forEach((dateStr, idx) => {
-            const log = weekLogs.find(l => l.habit_name === habitName && l.log_date === dateStr);
-            const isDone = log ? log.is_completed : false;
-            if (isDone) streakCount++;
+    datesOfWeek.forEach((dateStr, idx) => {
+        const log = weekLogs.find(l => l.habit_name === habitName && l.log_date === dateStr);
+        const isDone = log ? log.is_completed : false;
+        if (isDone) streakCount++;
 
-            const isToday = idx + 1 === currentDay && currentWeekOffset === 0;
-            const isFuture = currentWeekOffset === 0 && idx + 1 > currentDay;
+        const isToday = idx + 1 === currentDay && currentWeekOffset === 0;
+        const isFuture = currentWeekOffset === 0 && idx + 1 > currentDay;
 
-            daysHTML += `
-                <button type="button" class="habit-day-chip${isDone ? ' habit-day-chip--done' : ''}${isToday ? ' habit-day-chip--today' : ''}${isFuture ? ' habit-day-chip--future' : ''}"
-                    ${isFuture ? 'disabled' : `onclick="toggleHabit('${habitName.replace(/'/g, "\\'")}', '${dateStr}', ${isDone})"`}>
-                    ${dayLabels[idx]}
-                </button>`;
-        });
+        if (isToday) isDoneToday = isDone;
 
-        const imageFilename = habitImages[habitName] || 'default.jpg';
-        const localImagePath = `assets/images/${imageFilename}`;
-        const habitNameEscaped = habitName.replace(/'/g, "\\'");
-
-        const card = `
-    <li class="habit-card" oncontextmenu="event.preventDefault(); deleteHabit('${habitNameEscaped}')" title="Clic derecho para eliminar">
-        <img src="${localImagePath}" class="habit-card-img" onerror="this.src='assets/images/default.jpg'"
-             onclick="event.stopPropagation(); setHabitImage('${habitNameEscaped}')"
-             title="Clic para cambiar la imagen">
-        <div class="habit-card-info">
-            <div class="habit-card-top">
-                <span class="habit-card-name" onclick="editHabit('${habitNameEscaped}')" title="Clic para editar">${cleanHabitName(habitName)}</span>
-                <span class="habit-card-streak">${streakCount}/7</span>
-            </div>
-            <div class="habit-day-row">
-                ${daysHTML}
-            </div>
-            <span class="habit-card-meta">${getHabitMotivationalMsg(streakCount, currentWeekOffset === 0 ? currentDay : 7)}</span>
-        </div>
-    </li>
-`;
-        listContainer.insertAdjacentHTML('beforeend', card);
+        daysHTML += `
+            <button type="button" class="habit-day-chip${isDone ? ' habit-day-chip--done' : ''}${isToday ? ' habit-day-chip--today' : ''}${isFuture ? ' habit-day-chip--future' : ''}"
+                ${isFuture ? 'disabled' : `onclick="toggleHabit('${habitName.replace(/'/g, "\\'")}', '${dateStr}', ${isDone})"`}>
+                ${dayLabels[idx]}
+            </button>`;
     });
+
+    const imageFilename = habitImages[habitName] || 'default.jpg';
+    const localImagePath = `assets/images/${imageFilename}`;
+    const habitNameEscaped = habitName.replace(/'/g, "\\'");
+    const pendienteClass = (currentWeekOffset === 0 && !isDoneToday) ? ' habit-card--pendiente' : '';
+
+    const card = `
+        <li class="habit-card${pendienteClass}" oncontextmenu="event.preventDefault(); deleteHabit('${habitNameEscaped}')" title="Clic derecho para eliminar">
+            <img src="${localImagePath}" class="habit-card-img" onerror="this.src='assets/images/default.jpg'"
+                 onclick="event.stopPropagation(); setHabitImage('${habitNameEscaped}')"
+                 title="Clic para cambiar la imagen">
+            <div class="habit-card-info">
+                <div class="habit-card-top">
+                    <span class="habit-card-name" onclick="editHabit('${habitNameEscaped}')" title="Clic para editar">${cleanHabitName(habitName)}</span>
+                    <span class="habit-card-streak">${streakCount}/7</span>
+                </div>
+                <div class="habit-day-row">
+                    ${daysHTML}
+                </div>
+            </div>
+        </li>
+    `;
+    listContainer.insertAdjacentHTML('beforeend', card);
+});
 }
 
 // Función auxiliar para extraer el proyecto del nombre del hábito
@@ -737,12 +740,12 @@ async function toggleHabit(habitName, dateStr, currentState) {
         .select('id')
         .eq('habit_name', habitName)
         .eq('log_date', dateStr)
-        .single();
+        .maybeSingle();
 
-    if (fetchError && fetchError.code !== 'PGRST116') {
-        console.error("Error buscando registro:", fetchError.message);
-        return;
-    }
+    if (fetchError) {
+    console.error("Error buscando registro:", fetchError.message);
+    return;
+}
 
     if (data) {
         const { error: updateError } = await _supabase

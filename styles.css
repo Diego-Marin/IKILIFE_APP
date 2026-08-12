@@ -1554,6 +1554,15 @@ div.day-segment.future {
  * TOP 3 MEJORES HÁBITOS / LOVES (MÉTRICAS)
  * ==========================================
  */
+
+ #list-habits {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    margin: 0;
+}
+
 .top-habits-wrapper {
     border-top: 1px solid var(--border-color);
     margin-top: 16px;
@@ -1910,7 +1919,10 @@ div.day-segment.future {
     border: 2px solid var(--border-color);
     background-color: var(--white);
     transition: opacity var(--transition);
-    margin-bottom: 12px;
+}
+
+.habit-card--pendiente {
+    border-color: rgba(231, 76, 60, 0.35);
 }
 
 .habit-card-img {
