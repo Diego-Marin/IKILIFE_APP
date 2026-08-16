@@ -258,6 +258,22 @@ function renderMoodToolbar(toolbar, key, config, bloqueo) {
     toolbar.querySelector('.mood-save-btn').addEventListener('click', () => guardarRegistroSeccion(key));
 }
 
+/**
+ * Guarda el registro de hoy para TODOS los items de la sección.
+ *
+ * OPTIMIZADO (2026-08-16): la versión anterior hacía, por cada item,
+ * un SELECT y luego un UPDATE o INSERT, uno detrás de otro (await
+ * dentro de un for). Con N items eso son hasta 2N round-trips
+ * SECUENCIALES a Supabase — con 15-20 items en Odios/Loves, varios
+ * segundos de espera.
+ *
+ * Ahora se hace UN solo SELECT para traer de una vez los registros de
+ * HOY de todos los items (en vez de uno por item), y luego todos los
+ * UPDATE/INSERT que hagan falta se disparan EN PARALELO con
+ * Promise.all en vez de esperarlos uno por uno. El tiempo total pasa
+ * de "suma de todas las latencias" a, aproximadamente, "la latencia
+ * de la petición más lenta".
+ */
 async function guardarRegistroSeccion(key) {
     const config = MOOD_CONFIGS[key];
     const seleccion = _moodSelection[key];
@@ -267,47 +283,51 @@ async function guardarRegistroSeccion(key) {
     const nowIso = new Date().toISOString();
     const fechaHoy = getFechaHoyISO();
 
-    // Upsert manual fila por fila para evitar el error de ON CONFLICT
-    // cuando la tabla no tiene constraint UNIQUE exacto.
-    for (const id of ids) {
+    // 1. Un solo SELECT: qué items ya tienen registro guardado hoy.
+    const { data: existentesHoy, error: errSelect } = await _supabase
+        .from(config.regTable)
+        .select(`id, ${config.fkColumn}`)
+        .eq('fecha', fechaHoy);
+
+    if (errSelect) {
+        console.error(`Error consultando ${config.regTable}:`, errSelect.message);
+        alert('Error al guardar el registro: ' + errSelect.message);
+        return;
+    }
+
+    const idExistentePorFk = {};
+    (existentesHoy || []).forEach(row => {
+        idExistentePorFk[row[config.fkColumn]] = row.id;
+    });
+
+    // 2. Todas las escrituras (update o insert) se lanzan a la vez.
+    const escrituras = ids.map(id => {
         const fkValue = Number(id);
         const valor = seleccion[id];
+        const idExistente = idExistentePorFk[fkValue];
 
-        // 1. Intentar encontrar registro existente
-        const { data: existente } = await _supabase
-            .from(config.regTable)
-            .select('id')
-            .eq(config.fkColumn, fkValue)
-            .eq('fecha', fechaHoy)
-            .maybeSingle();
-
-        if (existente) {
-            // UPDATE
-            const { error } = await _supabase
+        if (idExistente) {
+            return _supabase
                 .from(config.regTable)
                 .update({ valor: valor, created_at: nowIso })
-                .eq('id', existente.id);
-            if (error) {
-                console.error(`Error actualizando ${config.regTable}:`, error.message);
-                alert('Error al guardar el registro: ' + error.message);
-                return;
-            }
-        } else {
-            // INSERT
-            const { error } = await _supabase
-                .from(config.regTable)
-                .insert([{
-                    [config.fkColumn]: fkValue,
-                    fecha: fechaHoy,
-                    valor: valor,
-                    created_at: nowIso,
-                }]);
-            if (error) {
-                console.error(`Error insertando en ${config.regTable}:`, error.message);
-                alert('Error al guardar el registro: ' + error.message);
-                return;
-            }
+                .eq('id', idExistente);
         }
+        return _supabase
+            .from(config.regTable)
+            .insert([{
+                [config.fkColumn]: fkValue,
+                fecha: fechaHoy,
+                valor: valor,
+                created_at: nowIso,
+            }]);
+    });
+
+    const resultados = await Promise.all(escrituras);
+    const conError = resultados.find(r => r && r.error);
+    if (conError) {
+        console.error(`Error guardando en ${config.regTable}:`, conError.error.message);
+        alert('Error al guardar el registro: ' + conError.error.message);
+        return;
     }
 
     localStorage.setItem(config.lockKey, nowIso);
@@ -390,84 +410,262 @@ function addLove() { return addMoodItem('loves'); }
    EL ESPEJO DEL ALMA
    ==========================================
    Componente del feed (debajo de la tarjeta de Hoy: state bar +
-   frase) con dos barras: el promedio del ÚLTIMO valor registrado de
-   cada item de Loves y de Odios (escala 1-5 cada una). Da una lectura
-   rápida de cómo va el día / cómo terminó el último registro.
+   frase) con tres barras, todas basadas en HISTÓRICO COMPLETO (no
+   solo el último registro ni solo el día de hoy):
+   
+   - Loves:   promedio de TODOS los valores registrados alguna vez
+              (loves_registros.valor), escala 1-5.
+   - Odios:   promedio de TODOS los valores registrados alguna vez
+              (odios_registros.valor), escala 1-5.
+   - Hábitos: balance histórico REAL de cada hábito — para cada
+              hábito se reconstruye su calendario completo (desde su
+              primer registro hasta hoy) y un día cuenta como
+              CUMPLIDO solo si hay fila is_completed = true para esa
+              fecha exacta; cualquier otro caso (sin fila, o fila en
+              false) cuenta como NO cumplido. Es una sola barra "de
+              balance" con un segmento verde (% cumplido) y uno rojo
+              (% no cumplido) uno al lado del otro.
+   
+   (Antes Loves/Odios usaban solo el ÚLTIMO valor de cada item, y
+   Hábitos solo miraba el día de hoy. Cambiado el 2026-08-16 a
+   petición explícita: leer la tendencia histórica completa da una
+   foto más real que un solo día. El cálculo de Hábitos se corrigió
+   una segunda vez el mismo día porque la primera versión solo
+   contaba filas EXISTENTES en habit_logs, y como una fila solo se
+   crea al tocar el checkbox, los días simplemente ignorados no
+   sumaban en contra e inflaban el % a favor. Una TERCERA vez el mismo
+   día se agregó, arriba de las 3 barras, una frase de "Foco de
+   atención" que dice directamente cuál de las dos dimensiones
+   [balance emocional / hábitos] necesita más atención ahora mismo —
+   ver calcularFocoAtencion() más abajo — porque leer y comparar 3
+   barras sin más contexto no era suficientemente claro de un vistazo.)
 */
-function mensajeEspejoDelAlma(avgLove, avgOdio, hayDatos) {
-    if (!hayDatos) return 'Aún no hay registros de Loves ni Odios para mostrar.';
 
-    const diff = avgLove - avgOdio;
-    if (diff >= 2) return '🌞 Vas muy bien — hoy pesan más tus amores que tus odios.';
-    if (diff <= -2) return '🌧️ Día pesado — tus odios están pesando más de lo normal.';
-    return '🙂 Día equilibrado entre lo que amas y lo que te incomoda.';
+/**
+ * Promedio histórico de TODOS los registros de una tabla tipo
+ * "*_registros" (loves_registros, odios_registros, etc.), sin
+ * importar el item ni la fecha. Reutilizable para cualquier tracker
+ * de intensidad 1-N que se agregue en el futuro.
+ */
+async function calcularPromedioHistorico(tableName) {
+    const { data, error } = await _supabase.from(tableName).select('valor');
+    if (error) {
+        console.error(`Error calculando promedio histórico de ${tableName}:`, error.message);
+        return { avg: 0, total: 0 };
+    }
+    if (!data || data.length === 0) return { avg: 0, total: 0 };
+
+    const suma = data.reduce((acc, r) => acc + (r.valor || 0), 0);
+    return { avg: suma / data.length, total: data.length };
+}
+
+/**
+ * Balance histórico REAL de hábitos (corregido 2026-08-16).
+ *
+ * La versión anterior solo contaba las filas que existen en
+ * habit_logs, pero una fila SOLO se crea cuando tocas el checkbox de
+ * ese día (ver toggleHabit en main.js) — un día que simplemente
+ * ignoraste un hábito no generaba fila y no sumaba en contra. Eso
+ * inflaba el % de cumplimiento a tu favor, igual que si no hubieras
+ * jugado esos días.
+ *
+ * Ahora se reconstruye el calendario real de cada hábito:
+ *   1. Para cada hábito, su "fecha de inicio" es la fecha del primer
+ *      registro que tiene en habit_logs (mejor aproximación posible:
+ *      no existe una tabla "habits" separada con created_at, un
+ *      hábito solo existe porque alguna vez se tocó su checkbox).
+ *   2. Los "días posibles" de ese hábito son todos los días desde su
+ *      fecha de inicio hasta hoy (inclusive) — igual criterio que ya
+ *      usa la grilla semanal de Hábitos: un día sin fila = no hecho.
+ *   3. Un día cuenta como CUMPLIDO solo si existe una fila con
+ *      is_completed = true para esa fecha exacta. Todo lo demás (sin
+ *      fila, o fila con is_completed = false) cuenta como NO
+ *      cumplido.
+ *   4. El % final es la suma de cumplidos de TODOS los hábitos sobre
+ *      la suma de días posibles de TODOS los hábitos.
+ */
+async function calcularBalanceHabitosHistorico() {
+    const { data, error } = await _supabase.from('habit_logs').select('habit_name, log_date, is_completed');
+    if (error) {
+        console.error('Error calculando balance histórico de hábitos:', error.message);
+        return { pctCumplido: 0, pctNoCumplido: 0, total: 0, cumplidos: 0 };
+    }
+    if (!data || data.length === 0) return { pctCumplido: 0, pctNoCumplido: 0, total: 0, cumplidos: 0 };
+
+    // Fecha de inicio (primer registro) de cada hábito.
+    const inicioPorHabito = {};
+    // Set de "habito|fecha" que quedaron marcados como cumplidos.
+    const cumplidosSet = new Set();
+
+    data.forEach(log => {
+        const nombre = log.habit_name;
+        if (!inicioPorHabito[nombre] || log.log_date < inicioPorHabito[nombre]) {
+            inicioPorHabito[nombre] = log.log_date;
+        }
+        if (log.is_completed) {
+            cumplidosSet.add(`${nombre}|${log.log_date}`);
+        }
+    });
+
+    const hoyISO = getFechaHoyISO();
+    let totalDiasPosibles = 0;
+    Object.values(inicioPorHabito).forEach(fechaInicio => {
+        totalDiasPosibles += diasEntreFechasISO(fechaInicio, hoyISO) + 1;
+    });
+
+    const totalCumplidos = cumplidosSet.size;
+    if (totalDiasPosibles === 0) return { pctCumplido: 0, pctNoCumplido: 0, total: 0, cumplidos: 0 };
+
+    const pctCumplido = Math.round((totalCumplidos / totalDiasPosibles) * 100);
+    return {
+        pctCumplido,
+        pctNoCumplido: 100 - pctCumplido,
+        total: totalDiasPosibles,
+        cumplidos: totalCumplidos,
+    };
+}
+
+/** Cantidad de días completos entre dos fechas "YYYY-MM-DD" (fin - inicio). */
+function diasEntreFechasISO(fechaInicioISO, fechaFinISO) {
+    const [y1, m1, d1] = fechaInicioISO.split('-').map(Number);
+    const [y2, m2, d2] = fechaFinISO.split('-').map(Number);
+    const inicio = new Date(y1, m1 - 1, d1);
+    const fin = new Date(y2, m2 - 1, d2);
+    const msPorDia = 24 * 60 * 60 * 1000;
+    return Math.round((fin - inicio) / msPorDia);
+}
+
+/**
+ * ==========================================
+ * FOCO DE ATENCIÓN (rediseño 2026-08-16)
+ * ==========================================
+ * La versión anterior mostraba 3 barras + una frase genérica de un
+ * banco de mensajes, y requería que TÚ hicieras la comparación
+ * mental ("¿esta barra es más larga que la otra? ¿eso es bueno o
+ * malo?"). A petición explícita, ahora el componente hace esa
+ * comparación por ti y lo dice directo: UNA sola frase arriba de
+ * todo, con semáforo de color, que nombra el área donde más te
+ * conviene poner atención hoy — sin tener que leer ni comparar barras.
+ *
+ * Cómo se decide el foco:
+ *   1. "Balance emocional" (Loves vs Odios) se normaliza a un score
+ *      0-100 donde 100 = tus loves dominan por completo y 0 = tus
+ *      odios dominan por completo (50 = empate).
+ *   2. "Hábitos" ya viene como % cumplido histórico (0-100, ver
+ *      calcularBalanceHabitosHistorico).
+ *   3. Se compara qué score es MÁS BAJO (peor) entre las dos
+ *      dimensiones disponibles, y esa es el área que se anuncia como
+ *      foco, con una frase que ya incluye el dato concreto (ej. "tus
+ *      odios (3.4) superan tus loves (2.1)" o "solo cumples el 38%
+ *      de tus hábitos").
+ *   4. Si ambas dimensiones están razonablemente bien (score >= 65),
+ *      no se fuerza un foco — se felicita en su lugar.
+ *   5. Las barras siguen abajo como respaldo visual/detalle, pero ya
+ *      no son lo primero que hay que interpretar. La barra que
+ *      corresponde al foco se resalta (borde de color) para que sea
+ *      obvio dónde mirar si quieres más detalle.
+ */
+function calcularFocoAtencion({ avgLove, avgOdio, hayDatosEmocionales, habitos }) {
+    const dimensiones = [];
+
+    if (hayDatosEmocionales) {
+        const balanceRaw = avgLove - avgOdio; // rango aprox -5..5
+        const balanceScore = Math.max(0, Math.min(100, Math.round(50 + (balanceRaw / 5) * 50)));
+        dimensiones.push({
+            area: 'emocional',
+            score: balanceScore,
+            detalle: avgOdio > avgLove
+                ? `tus odios (${avgOdio.toFixed(1)}) están superando tus loves (${avgLove.toFixed(1)})`
+                : `tus loves (${avgLove.toFixed(1)}) van por delante de tus odios (${avgOdio.toFixed(1)}), pero por poco`,
+        });
+    }
+
+    if (habitos.total > 0) {
+        dimensiones.push({
+            area: 'habitos',
+            score: habitos.pctCumplido,
+            detalle: `solo estás cumpliendo el ${habitos.pctCumplido}% de tus hábitos`,
+        });
+    }
+
+    if (dimensiones.length === 0) {
+        return { nivel: 'sinDatos', area: null, icon: '📭', texto: 'Aún no hay suficientes registros de Loves, Odios o Hábitos para calcular tu foco de atención.' };
+    }
+
+    dimensiones.sort((a, b) => a.score - b.score);
+    const peor = dimensiones[0];
+
+    // Ambas dimensiones van razonablemente bien: felicitar en vez de forzar un foco.
+    if (peor.score >= 65) {
+        return { nivel: 'bien', area: null, icon: '✅', texto: 'Vas bien en todos los frentes que estamos midiendo — sigue así.' };
+    }
+
+    const nombreArea = peor.area === 'habitos' ? 'Hábitos' : 'Balance emocional';
+    const nivel = peor.score < 35 ? 'urgente' : 'moderado';
+    const icon = nivel === 'urgente' ? '🔴' : '🟡';
+    const detalle = peor.detalle.charAt(0).toUpperCase() + peor.detalle.slice(1);
+
+    return {
+        nivel,
+        area: peor.area,
+        icon,
+        texto: `Foco de hoy: ${nombreArea}. ${detalle}.`,
+    };
 }
 
 async function loadEspejoDelAlma() {
     const container = document.getElementById('espejo-alma-container');
     if (!container) return;
 
-    const [ultimosLoves, ultimosOdios, habitosHoy] = await Promise.all([
-        cargarUltimosRegistros('loves_registros', 'love_id'),
-        cargarUltimosRegistros('odios_registros', 'odio_id'),
-        calcularPromedioHabitosHoy(),
+    const [loveHist, odioHist, habitos] = await Promise.all([
+        calcularPromedioHistorico('loves_registros'),
+        calcularPromedioHistorico('odios_registros'),
+        calcularBalanceHabitosHistorico(),
     ]);
 
-    const valoresLove = Object.values(ultimosLoves).map(r => r.valor);
-    const valoresOdio = Object.values(ultimosOdios).map(r => r.valor);
-
-    const avgLove = valoresLove.length ? valoresLove.reduce((a, b) => a + b, 0) / valoresLove.length : 0;
-    const avgOdio = valoresOdio.length ? valoresOdio.reduce((a, b) => a + b, 0) / valoresOdio.length : 0;
-    const hayDatos = valoresLove.length > 0 || valoresOdio.length > 0;
+    const avgLove = loveHist.avg;
+    const avgOdio = odioHist.avg;
+    const hayDatosEmocionales = loveHist.total > 0 || odioHist.total > 0;
 
     const maxEscala = 5;
     const pctLove = Math.min((avgLove / maxEscala) * 100, 100);
     const pctOdio = Math.min((avgOdio / maxEscala) * 100, 100);
 
+    const foco = calcularFocoAtencion({ avgLove, avgOdio, hayDatosEmocionales, habitos });
+    const filaEmocionalResaltada = foco.area === 'emocional' ? ' espejo-alma-row--foco' : '';
+    const filaHabitosResaltada = foco.area === 'habitos' ? ' espejo-alma-row--foco' : '';
+
     container.innerHTML = `
         <div class="espejo-alma-card">
-            <div class="espejo-alma-row">
+            <div class="espejo-alma-foco espejo-alma-foco--${foco.nivel}">
+                <span class="espejo-alma-foco-icon">${foco.icon}</span>
+                <span class="espejo-alma-foco-texto">${foco.texto}</span>
+            </div>
+            <div class="espejo-alma-row${filaEmocionalResaltada}">
                 <div class="espejo-alma-label">❤️ Loves</div>
                 <div class="ik-bar-track">
                     <div class="ik-bar-fill ik-bar-fill--love" style="width:${pctLove}%;"></div>
                 </div>
                 <div class="espejo-alma-value">${avgLove.toFixed(1)}</div>
             </div>
-            <div class="espejo-alma-row">
+            <div class="espejo-alma-row${filaEmocionalResaltada}">
                 <div class="espejo-alma-label">💢 Odios</div>
                 <div class="ik-bar-track">
                     <div class="ik-bar-fill ik-bar-fill--odio" style="width:${pctOdio}%;"></div>
                 </div>
                 <div class="espejo-alma-value">${avgOdio.toFixed(1)}</div>
             </div>
-            <div class="espejo-alma-row">
+            <div class="espejo-alma-row${filaHabitosResaltada}">
                 <div class="espejo-alma-label">✅ Hábitos</div>
-                <div class="ik-bar-track">
-                    <div class="ik-bar-fill ik-bar-fill--green" style="width:${habitosHoy.pct}%;"></div>
+                <div class="ik-bar-track ik-bar-track--split">
+                    <div class="ik-bar-fill ik-bar-fill--green" style="width:${habitos.pctCumplido}%;"></div>
+                    <div class="ik-bar-fill ik-bar-fill--over" style="width:${habitos.pctNoCumplido}%;"></div>
                 </div>
-                <div class="espejo-alma-value">${habitosHoy.hechos}/${habitosHoy.total}</div>
+                <div class="espejo-alma-value">${habitos.pctCumplido}%</div>
             </div>
-            <div class="espejo-alma-msg">${mensajeEspejoDelAlma(avgLove, avgOdio, hayDatos)}</div>
+            <div class="espejo-alma-subtext">${habitos.total > 0 ? `${habitos.pctCumplido}% cumplidos · ${habitos.pctNoCumplido}% no cumplidos (histórico, ${habitos.cumplidos}/${habitos.total} días)` : 'Aún no hay historial de hábitos para calcular el balance.'}</div>
         </div>
     `;
-}
-async function calcularPromedioHabitosHoy() {
-    const hoy = new Date().toISOString().slice(0, 10);
-
-    const { data: allHabitsData, error: err1 } = await _supabase.from('habit_logs').select('habit_name');
-    if (err1 || !allHabitsData) return { pct: 0, hechos: 0, total: 0 };
-    const totalHabitos = new Set(allHabitsData.map(h => h.habit_name)).size;
-    if (totalHabitos === 0) return { pct: 0, hechos: 0, total: 0 };
-
-    const { data: hoyLogs } = await _supabase
-        .from('habit_logs')
-        .select('habit_name')
-        .eq('log_date', hoy)
-        .eq('is_completed', true);
-
-    const hechos = (hoyLogs || []).length;
-    const pct = Math.min((hechos / totalHabitos) * 100, 100);
-    return { pct, hechos, total: totalHabitos };
 }
 
 /* ==========================================

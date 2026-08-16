@@ -322,6 +322,31 @@ div.day-segment.future {
     background: linear-gradient(to right, #74C08A, #2ecc71);
 }
 
+/*
+    NUEVO (2026-08-16): variante "split" de la barra, para mostrar un
+    balance de dos valores que suman 100% uno al lado del otro (ej.
+    % de hábitos cumplidos vs no cumplidos), en vez de un solo
+    progreso. Se usa en Espejo del Alma para el balance histórico de
+    Hábitos: .ik-bar-fill--green a la izquierda (cumplidos) y
+    .ik-bar-fill--over a la derecha (no cumplidos).
+*/
+.ik-bar-track--split {
+    display: flex;
+}
+
+.ik-bar-track--split .ik-bar-fill {
+    border-radius: 0;
+    flex-shrink: 0;
+}
+
+.ik-bar-track--split .ik-bar-fill:first-child {
+    border-radius: 5px 0 0 5px;
+}
+
+.ik-bar-track--split .ik-bar-fill:last-child {
+    border-radius: 0 5px 5px 0;
+}
+
 /**
  * ==========================================
  * EL ESPEJO DEL ALMA
@@ -365,6 +390,89 @@ div.day-segment.future {
     margin-top: 2px;
     padding-top: 8px;
     border-top: 1px solid var(--border-color);
+}
+
+/*
+    NUEVO (2026-08-16): texto pequeño bajo la barra de balance de
+    Hábitos, con el detalle exacto del % cumplido/no cumplido y
+    cuántos registros históricos lo respaldan.
+*/
+.espejo-alma-subtext {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    margin-top: -4px;
+    text-align: right;
+}
+
+/*
+    NUEVO (2026-08-16): banner "Foco de atención" — la frase única y
+    directa que se muestra ARRIBA de las 3 barras del Espejo del
+    Alma, diciendo sin rodeos cuál dimensión (balance emocional o
+    hábitos) necesita más atención ahora mismo. Reemplaza al mensaje
+    genérico anterior, que requería comparar barras mentalmente.
+    3 variantes de color según nivel de urgencia (ver
+    calcularFocoAtencion() en mood_tracker.js):
+      --bien     → todo va razonablemente bien (verde)
+      --moderado → hay una dimensión floja, sin ser grave (amarillo)
+      --urgente  → una dimensión está claramente mal (rojo)
+      --sinDatos → aún no hay suficientes registros (gris neutro)
+*/
+.espejo-alma-foco {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.espejo-alma-foco-icon {
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+
+.espejo-alma-foco-texto {
+    color: var(--text-dark);
+}
+
+.espejo-alma-foco--bien {
+    background-color: rgba(22, 163, 74, 0.12);
+    border: 1px solid rgba(22, 163, 74, 0.35);
+}
+
+.espejo-alma-foco--moderado {
+    background-color: rgba(241, 196, 15, 0.14);
+    border: 1px solid rgba(241, 196, 15, 0.4);
+}
+
+.espejo-alma-foco--urgente {
+    background-color: rgba(231, 76, 60, 0.12);
+    border: 1px solid rgba(231, 76, 60, 0.4);
+}
+
+.espejo-alma-foco--sinDatos {
+    background-color: var(--bg-header);
+    border: 1px solid var(--border-color);
+}
+
+.espejo-alma-foco--sinDatos .espejo-alma-foco-texto {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+/*
+    Resalta (borde izquierdo de color + leve fondo) la fila de
+    barra que corresponde al foco de atención actual, para que sea
+    obvio dónde mirar si quieres el detalle numérico exacto.
+*/
+.espejo-alma-row--foco {
+    border-left: 3px solid #e74c3c;
+    padding-left: 8px;
+    margin-left: -11px;
+    background-color: rgba(231, 76, 60, 0.05);
+    border-radius: 0 6px 6px 0;
 }
 
 /**
@@ -524,8 +632,7 @@ div.day-segment.future {
 .escuela-header,
 .idea-header,
 .tarea-header,
-.love-header,
-.bloque-header {
+.love-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -781,162 +888,11 @@ div.day-segment.future {
     border-bottom-color: var(--primary-green);
 }
 
-/**
- * ==========================================
- * SECCIÓN BLOQUES Y SUBTAREAS
- * ==========================================
- */
-.bloques-wrapper {
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-}
-
-.bloque-card {
-    background-color: transparent;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.bloque-card-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 16px;
-    background-color: transparent;
-    border-bottom: 1px solid var(--border-color);
-    color: var(--text-dark);
-}
-
-.bloque-card-title {
-    font-size: 0.85rem;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.bloque-add-task {
-    background: transparent;
-    border: none;
-    color: var(--text-dark);
-    font-size: 0.75rem;
-    font-weight: 700;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.bloque-add-task:hover {
-    opacity: 0.7;
-}
-
-.bloque-task-list {
-    list-style: none;
-    padding: 0 16px;
-    background-color: transparent;
-}
-
-.bloque-task-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.bloque-task-item:last-child {
-    border-bottom: none;
-}
-
-.bloque-task-text {
-    flex-grow: 1;
-    font-size: 0.85rem;
-    color: var(--text-dark);
-    cursor: pointer;
-    line-height: 1.4;
-}
-
-.task-checkbox {
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-    accent-color: var(--primary-green);
-}
-
-.task-done {
-    text-decoration: line-through;
-    opacity: 0.5;
-}
-
-/**
- * ==========================================
- * SECCIÓN INVERSIONES Y CUOTAS
- * ==========================================
- */
-.inversion-card {
-    background-color: transparent;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 0;
-    margin-bottom: 16px;
-    overflow: hidden;
-}
-.inversion-card-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 16px;
-    border-bottom: 1px solid var(--border-color);
-    background-color: transparent;
-}
-.inversion-card-title {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--text-dark);
-    cursor: pointer;
-}
-.inversion-add-cuota {
-    background: none;
-    border: none;
-    color: var(--text-dark);
-    font-size: 0.75rem;
-    font-weight: 700;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-.inversion-add-cuota:hover {
-    opacity: 0.7;
-}
-.cuota-list {
-    list-style: none;
-    padding: 0 16px;
-    margin: 0;
-}
-.cuota-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border-color);
-}
-.cuota-item:last-child {
-    border-bottom: none;
-}
-.cuota-text {
-    flex-grow: 1;
-    font-size: 0.85rem;
-    color: var(--text-dark);
-    cursor: pointer;
-    line-height: 1.4;
-}
-.cuota-done {
-    text-decoration: line-through;
-    opacity: 0.5;
-}
+/* NOTA: las secciones CSS "Bloques y Subtareas" e "Inversiones y
+   Cuotas" (.bloque-*, .inversion-*, .cuota-*, .task-checkbox,
+   .task-done) se eliminaron el 2026-08-16 por ser código muerto: sus
+   componentes JS correspondientes ya no existen (ver main.js) y
+   ningún elemento del HTML actual usa estas clases. */
 
 
 
@@ -2015,4 +1971,73 @@ div.day-segment.future {
     font-size: 0.7rem;
     font-weight: 600;
     color: var(--text-muted);
+}
+
+/**
+ * ==========================================
+ * LEYENDA DE HÁBITOS DEL DÍA ANTERIOR
+ * ==========================================
+ */
+.habit-legend-box {
+    background: linear-gradient(to right, var(--bg-header), var(--white));
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: fadeInDown 0.3s ease;
+}
+
+.habit-legend--pending {
+    border-left: 4px solid #e67e22;
+}
+
+.habit-legend-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.habit-legend-icon {
+    font-size: 1.3rem;
+    line-height: 1;
+}
+
+.habit-legend-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+.habit-legend-text {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+    margin: 0;
+}
+
+.habit-legend-text strong {
+    color: var(--text-dark);
+    font-weight: 700;
+}
+
+.habit-legend-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.habit-legend-tag {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background-color: var(--bg-header);
+    border: 1px solid var(--border-color);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-dark);
 }

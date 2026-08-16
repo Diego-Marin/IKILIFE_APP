@@ -31,7 +31,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
  *  3. "UTILIDAD: NÚMERO DE SEMANA DEL AÑO"       → helpers de fecha/semana compartidos
  *  4. "CÁLCULO DE PROGRESO SEMANAL Y FECHAS"     → barra de progreso semanal de hábitos
  *  5. "NUEVO: FRASE MOTIVACIONAL DEL DÍA"        → frase del día
- *  6. "GESTIÓN DE BLOQUES DE RUTINA"             → bloques de rutina diaria (JSONB)
+ *  6. (eliminada 2026-08-16: "Gestión de Bloques de Rutina" era código muerto, sin vista en el HTML)
  *  7. "GESTIÓN DE HÁBITOS"                       → hábitos semanales (grid histórico)
  *  8. "UTILIDADES DE EXPORTACIÓN (SQL)"          → sqlValue/buildSQLInsert/descargarArchivo (usados por TODOS los exportadores)
  *  9. "EXPORTAR TODO (JSON PARA IA / NOTEBOOKLM)"→ exportAllDataJSON + TABLAS_EXPORTABLES
@@ -44,7 +44,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
  * 16. "GESTIÓN DE IDEAS (BRAIN DUMP)"            → Brain Dump: CRUD de ideas
  * 17. "PENSAMIENTO ALEATORIO (BRAIN DUMP)"       → showRandomIdea + exportIdeasSQL
  * 18. "GESTIÓN DE TAREAS"                        → lista única de tareas del día
- * 19. "GESTIÓN DE INVERSIONES Y DEUDAS"          → inversiones con cuotas (JSONB)
+ * 19. (eliminada 2026-08-16: "Gestión de Inversiones y Deudas" era código muerto, sin vista en el HTML)
  * 20. "GESTIÓN DE COSAS QUE AMO (LOVES)"         → Loves: CRUD + contador acumulativo (dblclick)
  * 21. "GESTIÓN DE COSAS QUE ODIO (ODIOS)"        → Odios: CRUD + barra de intensidad 1-10
  * 22. "UTILIDADES COMPARTIDAS: TRACKERS DE BARRA 1-10" → helpers usados por Odios Y Sentimientos (fechas, guardado, relleno visual)
@@ -91,11 +91,9 @@ document.addEventListener('DOMContentLoaded', () => {
         loadIdeas();
         showRandomIdea();
         loadTareas();
-        loadInversiones();
         initSentimientosTabs();
         loadPlanes();
         loadCompras();
-        loadBloques();
         loadMetrics(); // Esta ya ejecuta internamente renderYearWeeks(), renderEnglishCourseWeeks(), loadTopHabits(), loadTopLoves() y loadTopSentimientos()
         loadFinances();
         loadAgradecimientos();
@@ -389,166 +387,11 @@ function loadDailyQuote() {
 
 
 /**
- * ==========================================
- * GESTIÓN DE BLOQUES DE RUTINA (JSONB)
- * ==========================================
+ * NOTA: el componente "Gestión de Bloques de Rutina" (bloques_logs)
+ * fue eliminado el 2026-08-16 por ser código muerto: no tenía vista
+ * en index.html (#bloques-container no existe) y solo generaba una
+ * consulta innecesaria a Supabase en cada carga de la app.
  */
-let bloquesState = {};
-
-async function loadBloques() {
-    const { data: bloques, error } = await _supabase
-        .from('bloques_logs')
-        .select('*')
-        .order('id', { ascending: true });
-
-    if (error) {
-        console.error("Error cargando bloques:", error.message);
-        return;
-    }
-
-    const container = document.getElementById('bloques-container');
-    if (!container) return;
-
-    container.innerHTML = '';
-    bloquesState = {};
-
-    bloques.forEach(bloque => {
-        bloquesState[bloque.id] = bloque;
-        const tasks = bloque.tasks || [];
-
-        let tasksHTML = '';
-        tasks.forEach((task, index) => {
-            const isDoneClass = task.done ? 'task-done' : '';
-            const isChecked = task.done ? 'checked' : '';
-
-            tasksHTML += `
-                <li class="bloque-task-item">
-                    <input type="checkbox" class="task-checkbox" ${isChecked} onchange="toggleBloqueTask(${bloque.id}, ${index})">
-                    <div class="bloque-task-text ${isDoneClass}" 
-                         onclick="editBloqueTask(${bloque.id}, ${index})" 
-                         title="Clic para editar tarea">${task.text}</div>
-                    <button class="delete-btn" onclick="deleteBloqueTask(${bloque.id}, ${index})" title="Eliminar tarea">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                    </button>
-                </li>
-            `;
-        });
-
-        const card = `
-    <li class="habit-card" oncontextmenu="event.preventDefault(); deleteHabit('${habitNameEscaped}')" title="Clic derecho para eliminar">
-        <img src="${localImagePath}" class="habit-card-img" onerror="this.src='assets/images/default.jpg'"
-             onclick="event.stopPropagation(); setHabitImage('${habitNameEscaped}')"
-             title="Clic para cambiar la imagen">
-        <div class="habit-card-info">
-            <div class="habit-card-top">
-                <span class="habit-card-name" onclick="editHabit('${habitNameEscaped}')" title="Clic para editar">${cleanHabitName(habitName)}</span>
-                <span class="habit-card-streak">${streakCount}/7</span>
-            </div>
-            <div class="habit-day-row">
-                ${daysHTML}
-            </div>
-        </div>
-    </li>
-`;
-        container.insertAdjacentHTML('beforeend', card);
-    });
-}
-
-async function addBloque() {
-    const name = prompt("Nombre del nuevo bloque (Ej: Mañana):");
-    if (!name || name.trim() === "") return;
-
-    const { error } = await _supabase
-        .from('bloques_logs')
-        .insert([{ name: name.trim(), tasks: [] }]);
-
-    if (error) alert("Error: " + error.message);
-    else loadBloques();
-}
-
-async function editBloque(id) {
-    const currentName = bloquesState[id].name;
-    const newName = prompt("Editar nombre del bloque:", currentName);
-    if (!newName || newName.trim() === "" || newName === currentName) return;
-
-    const { error } = await _supabase
-        .from('bloques_logs')
-        .update({ name: newName.trim() })
-        .eq('id', id);
-
-    if (error) alert("Error: " + error.message);
-    else loadBloques();
-}
-
-async function deleteBloque(id, name) {
-    if (!confirm(`¿Eliminar todo el bloque "${name}" y sus tareas?`)) return;
-
-    const { error } = await _supabase
-        .from('bloques_logs')
-        .delete()
-        .eq('id', id);
-
-    if (error) alert("Error: " + error.message);
-    else loadBloques();
-}
-
-async function updateTasksDB(id, newTasksArray) {
-    const { error } = await _supabase
-        .from('bloques_logs')
-        .update({ tasks: newTasksArray })
-        .eq('id', id);
-
-    if (error) {
-        console.error("Error actualizando tareas:", error.message);
-    } else {
-        loadBloques();
-    }
-}
-
-function addBloqueTask(id) {
-    const text = prompt("Nueva actividad para este bloque:");
-    if (!text || text.trim() === "") return;
-
-    const tasks = bloquesState[id].tasks || [];
-    tasks.push({ text: text.trim(), done: false });
-
-    updateTasksDB(id, tasks);
-}
-
-function editBloqueTask(id, taskIndex) {
-    const tasks = bloquesState[id].tasks;
-    const newText = prompt("Editar tarea:", tasks[taskIndex].text);
-
-    if (!newText || newText.trim() === "" || newText === tasks[taskIndex].text) return;
-
-    tasks[taskIndex].text = newText.trim();
-    updateTasksDB(id, tasks);
-}
-
-function deleteBloqueTask(id, taskIndex) {
-    const tasks = bloquesState[id].tasks;
-    tasks.splice(taskIndex, 1);
-    updateTasksDB(id, tasks);
-}
-
-function toggleBloqueTask(id, taskIndex) {
-    const tasks = bloquesState[id].tasks;
-    tasks[taskIndex].done = !tasks[taskIndex].done;
-    updateTasksDB(id, tasks);
-}
-
-
-
-
-
-
-
-
-
-
 /**
  * ==========================================
  * GESTIÓN DE HÁBITOS (HISTÓRICO Y DINÁMICO)
@@ -1547,176 +1390,11 @@ async function completeTarea(id) {
 
 
 /**
- * ==========================================
- * GESTIÓN DE INVERSIONES Y DEUDAS (JSONB - CUOTAS)
- * ==========================================
+ * NOTA: el componente "Gestión de Inversiones y Deudas" (inversiones_logs)
+ * fue eliminado el 2026-08-16 por ser código muerto: no tenía vista
+ * en index.html (#inversiones-container no existe) y solo generaba
+ * una consulta innecesaria a Supabase en cada carga de la app.
  */
-let inversionesState = {};
-
-async function loadInversiones() {
-    const { data: inversiones, error } = await _supabase
-        .from('inversiones_logs')
-        .select('*')
-        .order('id', { ascending: true });
-
-    if (error) {
-        console.error("Error cargando inversiones:", error.message);
-        return;
-    }
-
-    const container = document.getElementById('inversiones-container');
-    if (!container) return;
-
-    container.innerHTML = '';
-    inversionesState = {};
-
-    inversiones.forEach(inv => {
-        inversionesState[inv.id] = inv;
-        const cuotas = inv.cuotas || [];
-
-        let cuotasHTML = '';
-        cuotas.forEach((cuota, index) => {
-            const isDoneClass = cuota.done ? 'cuota-done' : '';
-            const isChecked = cuota.done ? 'checked' : '';
-
-            cuotasHTML += `
-                <li class="cuota-item">
-                    <input type="checkbox" class="task-checkbox" ${isChecked} onchange="toggleCuota(${inv.id}, ${index})">
-                    <div class="cuota-text ${isDoneClass}" 
-                         onclick="editCuota(${inv.id}, ${index})" 
-                         title="Clic para editar cuota">${cuota.text}</div>
-                    <button class="delete-btn" onclick="deleteCuota(${inv.id}, ${index})" title="Eliminar cuota">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                    </button>
-                </li>
-            `;
-        });
-
-        const card = `
-            <div class="inversion-card">
-                <div class="inversion-card-top">
-                    <div class="inversion-card-title" 
-                         onclick="editInversionName(${inv.id})" 
-                         oncontextmenu="event.preventDefault(); deleteInversionFull(${inv.id}, '${inv.name}')" 
-                         title="Clic: Editar Nombre | Clic Derecho: Eliminar Deuda Completa">
-                        ${inv.name}
-                    </div>
-                    <button class="inversion-add-cuota" onclick="addCuota(${inv.id})">
-                        + Cuota
-                    </button>
-                </div>
-                <ul class="cuota-list">
-                    ${cuotasHTML}
-                </ul>
-            </div>
-        `;
-        container.insertAdjacentHTML('beforeend', card);
-    });
-}
-
-async function addInversion() {
-    const name = prompt("Nombre de la Deuda/Inversión (Ej: Bolso Totto):");
-    if (!name || name.trim() === "") return;
-
-    const numCuotasStr = prompt("¿Cuántas cuotas iniciales tiene? (Escribe un número, 0 si no sabes):", "1");
-    const numCuotas = parseInt(numCuotasStr) || 0;
-
-    let cuotasIniciales = [];
-    for (let i = 1; i <= numCuotas; i++) {
-        cuotasIniciales.push({ text: `Cuota ${i}`, done: false });
-    }
-
-    const { error } = await _supabase
-        .from('inversiones_logs')
-        .insert([{ name: name.trim(), cuotas: cuotasIniciales }]);
-
-    if (error) alert("Error: " + error.message);
-    else loadInversiones();
-}
-
-async function editInversionName(id) {
-    const currentName = inversionesState[id].name;
-    const newName = prompt("Editar nombre de la deuda:", currentName);
-    if (!newName || newName.trim() === "" || newName === currentName) return;
-
-    const { error } = await _supabase
-        .from('inversiones_logs')
-        .update({ name: newName.trim() })
-        .eq('id', id);
-
-    if (error) alert("Error: " + error.message);
-    else loadInversiones();
-}
-
-async function deleteInversionFull(id, name) {
-    if (!confirm(`¿Eliminar la deuda "${name}" y todo su historial de cuotas?`)) return;
-
-    const { error } = await _supabase
-        .from('inversiones_logs')
-        .delete()
-        .eq('id', id);
-
-    if (error) alert("Error: " + error.message);
-    else loadInversiones();
-}
-
-async function updateCuotasDB(id, newCuotasArray) {
-    const { error } = await _supabase
-        .from('inversiones_logs')
-        .update({ cuotas: newCuotasArray })
-        .eq('id', id);
-
-    if (error) {
-        console.error("Error actualizando cuotas:", error.message);
-    } else {
-        loadInversiones();
-    }
-}
-
-function addCuota(id) {
-    const text = prompt("Detalle de la cuota (Ej: Cuota 2 - $50.000):");
-    if (!text || text.trim() === "") return;
-
-    const cuotas = inversionesState[id].cuotas || [];
-    cuotas.push({ text: text.trim(), done: false });
-
-    updateCuotasDB(id, cuotas);
-}
-
-function editCuota(id, cuotaIndex) {
-    const cuotas = inversionesState[id].cuotas;
-    const newText = prompt("Editar cuota:", cuotas[cuotaIndex].text);
-
-    if (!newText || newText.trim() === "" || newText === cuotas[cuotaIndex].text) return;
-
-    cuotas[cuotaIndex].text = newText.trim();
-    updateCuotasDB(id, cuotas);
-}
-
-function deleteCuota(id, cuotaIndex) {
-    if (!confirm("¿Eliminar esta cuota?")) return;
-    const cuotas = inversionesState[id].cuotas;
-    cuotas.splice(cuotaIndex, 1);
-    updateCuotasDB(id, cuotas);
-}
-
-function toggleCuota(id, cuotaIndex) {
-    const cuotas = inversionesState[id].cuotas;
-    cuotas[cuotaIndex].done = !cuotas[cuotaIndex].done;
-    updateCuotasDB(id, cuotas);
-}
-
-
-
-
-
-
-
-
-
 /**
  * ==========================================
  * GESTIÓN DE COSAS QUE AMO (LOVES)
