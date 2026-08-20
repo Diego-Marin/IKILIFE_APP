@@ -1,34 +1,23 @@
 /**
  * ==========================================
- * COMPONENTE: NAV MENU (Barra de tabs fija en el header)
+ * COMPONENTE: NAV MENU
  * ==========================================
- * Genera la barra de tabs original (todas visibles, con emoji),
- * usando las clases .tabs / .tab-btn / .tab-active / .tab-inactive
- * ya definidas en styles.css. Reutiliza tal cual la función global
- * switchTab(tab, btn) de main.js.
- *
- * Requiere en el HTML un contenedor vacío, por ejemplo:
- *   <div id="nav-menu-container"></div>
- * colocado donde antes estaba el <nav class="tabs">.
  */
 (function () {
-   const TABS = [
-    { id: 'habits', label: 'Habits', icon: '✅' },
-    { id: 'ideas', label: 'Brain Dump', icon: '💡' },
-    { id: 'tareas', label: 'Tareas', icon: '📝' },
-    // Loves y Odios se fusionaron como tabs internas dentro de
-    // "Sentimientos" (ver mood_tracker.js: switchSentimientosTab).
-    // Ya no tienen botón propio en esta barra para liberar espacio.
-    { id: 'sentimientos', label: 'Sentimientos', icon: '❤️' },
-    { id: 'reglas', label: 'Planes', icon: '📅' },
-    { id: 'money', label: 'Finance', icon: '💰' },
-    { id: 'compras', label: 'Compras', icon: '🛒' },
-];
+    const TABS = [
+        { id: 'habits', label: 'Habits', icon: '✅' },
+        { id: 'ideas', label: 'Brain Dump', icon: '💡' },
+        { id: 'tareas', label: 'Tareas', icon: '📝' },
+        { id: 'sentimientos', label: 'Sentimientos', icon: '❤️' },
+        { id: 'reglas', label: 'Planes', icon: '📅' },
+        { id: 'money', label: 'Finance', icon: '💰' },
+        { id: 'compras', label: 'Compras', icon: '🛒' },
+        { id: 'english', label: 'Inglés', icon: '🇬🇧' },
+    ];
 
     function buildTabsBar() {
         const nav = document.createElement('nav');
         nav.className = 'tabs';
-
         TABS.forEach((tab, index) => {
             const btn = document.createElement('button');
             btn.type = 'button';
@@ -38,7 +27,6 @@
             btn.addEventListener('click', () => switchTab(tab.id, btn));
             nav.appendChild(btn);
         });
-
         return nav;
     }
 

@@ -97,6 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadMetrics(); // Esta ya ejecuta internamente renderYearWeeks(), renderEnglishCourseWeeks(), loadTopHabits(), loadTopLoves() y loadTopSentimientos()
         loadFinances();
         loadAgradecimientos();
+        loadEnglish(); 
         if (typeof loadEspejoDelAlma === 'function') loadEspejoDelAlma();
     } catch (error) {
         console.error("Error durante la carga de datos:", error);
@@ -771,7 +772,7 @@ const TABLAS_EXPORTABLES = [
     'habit_logs', 'tareas_logs', 'loves_logs', 'odios_logs',
     'odios_registros', 'sentimientos_logs', 'sentimientos_registros',
     'ideas_logs', 'compras_logs', 'finance_logs',
-    'inversiones_logs', 'journal_logs', 'bloques_logs', 'planes_logs'
+    'inversiones_logs', 'journal_logs', 'bloques_logs', 'planes_logs','english_classes'
 ];
 
 async function exportAllDataJSON() {
@@ -1031,7 +1032,7 @@ function switchTab(tab, btn) {
     btn.classList.add('tab-active');
     btn.classList.remove('tab-inactive');
 
-    const views = ['view-habits', 'view-metrics', 'view-ideas', 'view-tareas', 'view-sentimientos', 'view-reglas', 'view-money', 'view-compras'];
+    const views = ['view-habits','view-english', 'view-metrics', 'view-ideas', 'view-tareas', 'view-sentimientos', 'view-reglas', 'view-money', 'view-compras'];
     views.forEach(v => {
         const viewEl = document.getElementById(v);
         if (viewEl) viewEl.classList.remove('active');

@@ -1,0 +1,282 @@
+/**
+ * ==========================================
+ * COMPONENTE: ENGLISH COURSE — ESTILOS
+ * ==========================================
+ */
+
+.english-kpi-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 16px;
+    margin-bottom: 8px;
+}
+
+.english-kpi-card {
+    background: var(--bg-header);
+    border-radius: 12px;
+    padding: 16px 12px;
+    text-align: center;
+}
+
+.english-kpi-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 6px;
+}
+
+.english-kpi-value {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--text-dark);
+    line-height: 1;
+}
+
+/* ---------- Plan sugerido ---------- */
+.english-plan-card {
+    background: linear-gradient(to right, var(--bg-header), var(--white));
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    margin: 0 16px 20px;
+    overflow: hidden;
+}
+
+.english-plan-header {
+    padding: 12px 14px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border-color);
+    background: transparent;
+}
+
+.english-plan-body {
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.english-plan-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    color: var(--text-dark);
+}
+
+.english-plan-row strong {
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+.english-plan-msg {
+    margin-top: 6px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.english-plan--ok {
+    background: rgba(22, 163, 74, 0.12);
+    border: 1px solid rgba(22, 163, 74, 0.35);
+    color: #16a34a;
+}
+
+.english-plan--warn {
+    background: rgba(231, 76, 60, 0.12);
+    border: 1px solid rgba(231, 76, 60, 0.35);
+    color: #e74c3c;
+}
+
+/* ---------- Tabs por nivel ---------- */
+.english-level-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.english-tab-btn {
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    background: var(--white);
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.english-tab-btn:hover {
+    border-color: var(--text-dark);
+    color: var(--text-dark);
+}
+
+.english-tab-active {
+    background: var(--text-dark);
+    color: var(--bg-light);
+    border-color: var(--text-dark);
+}
+
+/* ---------- Lista de clases ---------- */
+.english-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 0 16px 16px;
+}
+
+.english-level-group {
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.english-level-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--bg-header);
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.english-level-bar-track {
+    flex: 1;
+    height: 4px;
+    background: var(--border-color);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.english-level-bar-fill {
+    height: 100%;
+    background: var(--primary-green);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+}
+
+.english-level-pct {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--primary-green);
+    min-width: 36px;
+    text-align: right;
+}
+
+/* ---------- Fila de clase ---------- */
+.english-row {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-color);
+    transition: background-color 0.15s ease;
+}
+
+.english-row:last-child {
+    border-bottom: none;
+}
+
+.english-row--taken {
+    background: rgba(22, 163, 74, 0.06);
+}
+
+.english-row-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    min-width: 0;
+}
+
+.english-row-num {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    min-width: 28px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.english-row-name {
+    flex: 1;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    word-break: break-word;
+    line-height: 1.3;
+}
+
+.english-row-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.english-badge--taken {
+    background: rgba(22, 163, 74, 0.15);
+    color: #16a34a;
+}
+
+.english-badge--pending {
+    background: var(--bg-header);
+    color: var(--text-muted);
+}
+
+.english-row-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 6px;
+    margin-left: 38px;
+    flex-wrap: wrap;
+}
+
+.english-row-grade {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #e67e22;
+    cursor: pointer;
+    padding: 2px 6px;
+    background: rgba(230, 126, 34, 0.1);
+    border-radius: 4px;
+}
+
+.english-row-date {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.english-row-note {
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.english-row-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 2px;
+    color: var(--text-muted);
+    line-height: 1;
+}
+
+.english-row-btn:hover {
+    color: var(--text-dark);
+}
