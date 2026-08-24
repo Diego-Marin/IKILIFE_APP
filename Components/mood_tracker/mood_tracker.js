@@ -443,9 +443,7 @@ function addLove() { return addMoodItem('loves'); }
 
 /**
  * Promedio histórico de TODOS los registros de una tabla tipo
- * "*_registros" (loves_registros, odios_registros, etc.), sin
- * importar el item ni la fecha. Reutilizable para cualquier tracker
- * de intensidad 1-N que se agregue en el futuro.
+ * "*_registros". Reutilizable para cualquier tracker de intensidad.
  */
 async function calcularPromedioHistorico(tableName) {
     const { data, error } = await _supabase.from(tableName).select('valor');
@@ -460,29 +458,79 @@ async function calcularPromedioHistorico(tableName) {
 }
 
 /**
- * Balance histórico REAL de hábitos (corregido 2026-08-16).
- *
- * La versión anterior solo contaba las filas que existen en
- * habit_logs, pero una fila SOLO se crea cuando tocas el checkbox de
- * ese día (ver toggleHabit en main.js) — un día que simplemente
- * ignoraste un hábito no generaba fila y no sumaba en contra. Eso
- * inflaba el % de cumplimiento a tu favor, igual que si no hubieras
- * jugado esos días.
- *
- * Ahora se reconstruye el calendario real de cada hábito:
- *   1. Para cada hábito, su "fecha de inicio" es la fecha del primer
- *      registro que tiene en habit_logs (mejor aproximación posible:
- *      no existe una tabla "habits" separada con created_at, un
- *      hábito solo existe porque alguna vez se tocó su checkbox).
- *   2. Los "días posibles" de ese hábito son todos los días desde su
- *      fecha de inicio hasta hoy (inclusive) — igual criterio que ya
- *      usa la grilla semanal de Hábitos: un día sin fila = no hecho.
- *   3. Un día cuenta como CUMPLIDO solo si existe una fila con
- *      is_completed = true para esa fecha exacta. Todo lo demás (sin
- *      fila, o fila con is_completed = false) cuenta como NO
- *      cumplido.
- *   4. El % final es la suma de cumplidos de TODOS los hábitos sobre
- *      la suma de días posibles de TODOS los hábitos.
+ * Balance MENSUAL de Loves vs Odios (reinicia cada mes).
+ * Suma los valores de loves_registros y odios_registros del mes
+ * vigente y devuelve el % que representa cada uno del total.
+ */
+async function calcularBalanceMensualLovesOdios() {
+    const hoy = new Date();
+    const yyyy = hoy.getFullYear();
+    const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+    const inicioMes = `${yyyy}-${mm}-01`;
+    const finMes = `${yyyy}-${mm}-31`;
+
+    const [{ data: loves }, { data: odios }] = await Promise.all([
+        _supabase.from('loves_registros').select('valor').gte('fecha', inicioMes).lte('fecha', finMes),
+        _supabase.from('odios_registros').select('valor').gte('fecha', inicioMes).lte('fecha', finMes)
+    ]);
+
+    const sumLoves = (loves || []).reduce((a, r) => a + (Number(r.valor) || 0), 0);
+    const sumOdios = (odios || []).reduce((a, r) => a + (Number(r.valor) || 0), 0);
+    const totalRegistros = (loves || []).length + (odios || []).length;
+    const totalPuntos = sumLoves + sumOdios;
+
+    if (totalPuntos === 0) {
+        return { lovesPct: 0, odiosPct: 0, sumLoves: 0, sumOdios: 0, total: 0 };
+    }
+
+    const lovesPct = Math.round((sumLoves / totalPuntos) * 100);
+    return { lovesPct, odiosPct: 100 - lovesPct, sumLoves, sumOdios, total: totalRegistros };
+}
+
+/**
+ * Progreso de HÁBITOS del DÍA DE HOY.
+ * Consulta TODOS los hábitos únicos de la app y verifica cuántos
+ * están marcados como completados hoy (independientemente de si
+ * tienen fila creada o no: sin fila = pendiente).
+ */
+async function calcularHabitosHoy() {
+    const { data: allHabits, error: err1 } = await _supabase
+        .from('habit_logs')
+        .select('habit_name');
+
+    if (err1) {
+        console.error('Error cargando hábitos:', err1.message);
+        return { pct: 0, total: 0, done: 0, pending: 0 };
+    }
+
+    const uniqueHabits = [...new Set((allHabits || []).map(h => h.habit_name))];
+    const total = uniqueHabits.length;
+    if (total === 0) return { pct: 0, total: 0, done: 0, pending: 0 };
+
+    const hoy = getFechaHoyISO();
+    const { data: todayLogs, error: err2 } = await _supabase
+        .from('habit_logs')
+        .select('habit_name, is_completed')
+        .eq('log_date', hoy);
+
+    if (err2) {
+        console.error('Error cargando hábitos de hoy:', err2.message);
+        return { pct: 0, total, done: 0, pending: total };
+    }
+
+    const doneMap = {};
+    (todayLogs || []).forEach(l => { doneMap[l.habit_name] = l.is_completed; });
+
+    let done = 0;
+    uniqueHabits.forEach(name => { if (doneMap[name] === true) done++; });
+    const pending = total - done;
+    const pct = Math.round((done / total) * 100);
+
+    return { pct, total, done, pending };
+}
+
+/**
+ * Balance histórico REAL de hábitos (mantiene por si se usa en otro lado).
  */
 async function calcularBalanceHabitosHistorico() {
     const { data, error } = await _supabase.from('habit_logs').select('habit_name, log_date, is_completed');
@@ -492,9 +540,7 @@ async function calcularBalanceHabitosHistorico() {
     }
     if (!data || data.length === 0) return { pctCumplido: 0, pctNoCumplido: 0, total: 0, cumplidos: 0 };
 
-    // Fecha de inicio (primer registro) de cada hábito.
     const inicioPorHabito = {};
-    // Set de "habito|fecha" que quedaron marcados como cumplidos.
     const cumplidosSet = new Set();
 
     data.forEach(log => {
@@ -502,9 +548,7 @@ async function calcularBalanceHabitosHistorico() {
         if (!inicioPorHabito[nombre] || log.log_date < inicioPorHabito[nombre]) {
             inicioPorHabito[nombre] = log.log_date;
         }
-        if (log.is_completed) {
-            cumplidosSet.add(`${nombre}|${log.log_date}`);
-        }
+        if (log.is_completed) cumplidosSet.add(`${nombre}|${log.log_date}`);
     });
 
     const hoyISO = getFechaHoyISO();
@@ -517,15 +561,10 @@ async function calcularBalanceHabitosHistorico() {
     if (totalDiasPosibles === 0) return { pctCumplido: 0, pctNoCumplido: 0, total: 0, cumplidos: 0 };
 
     const pctCumplido = Math.round((totalCumplidos / totalDiasPosibles) * 100);
-    return {
-        pctCumplido,
-        pctNoCumplido: 100 - pctCumplido,
-        total: totalDiasPosibles,
-        cumplidos: totalCumplidos,
-    };
+    return { pctCumplido, pctNoCumplido: 100 - pctCumplido, total: totalDiasPosibles, cumplidos: totalCumplidos };
 }
 
-/** Cantidad de días completos entre dos fechas "YYYY-MM-DD" (fin - inicio). */
+/** Cantidad de días completos entre dos fechas "YYYY-MM-DD". */
 function diasEntreFechasISO(fechaInicioISO, fechaFinISO) {
     const [y1, m1, d1] = fechaInicioISO.split('-').map(Number);
     const [y2, m2, d2] = fechaFinISO.split('-').map(Number);
@@ -536,55 +575,26 @@ function diasEntreFechasISO(fechaInicioISO, fechaFinISO) {
 }
 
 /**
- * ==========================================
- * FOCO DE ATENCIÓN (rediseño 2026-08-16)
- * ==========================================
- * La versión anterior mostraba 3 barras + una frase genérica de un
- * banco de mensajes, y requería que TÚ hicieras la comparación
- * mental ("¿esta barra es más larga que la otra? ¿eso es bueno o
- * malo?"). A petición explícita, ahora el componente hace esa
- * comparación por ti y lo dice directo: UNA sola frase arriba de
- * todo, con semáforo de color, que nombra el área donde más te
- * conviene poner atención hoy — sin tener que leer ni comparar barras.
- *
- * Cómo se decide el foco:
- *   1. "Balance emocional" (Loves vs Odios) se normaliza a un score
- *      0-100 donde 100 = tus loves dominan por completo y 0 = tus
- *      odios dominan por completo (50 = empate).
- *   2. "Hábitos" ya viene como % cumplido histórico (0-100, ver
- *      calcularBalanceHabitosHistorico).
- *   3. Se compara qué score es MÁS BAJO (peor) entre las dos
- *      dimensiones disponibles, y esa es el área que se anuncia como
- *      foco, con una frase que ya incluye el dato concreto (ej. "tus
- *      odios (3.4) superan tus loves (2.1)" o "solo cumples el 38%
- *      de tus hábitos").
- *   4. Si ambas dimensiones están razonablemente bien (score >= 65),
- *      no se fuerza un foco — se felicita en su lugar.
- *   5. Las barras siguen abajo como respaldo visual/detalle, pero ya
- *      no son lo primero que hay que interpretar. La barra que
- *      corresponde al foco se resalta (borde de color) para que sea
- *      obvio dónde mirar si quieres más detalle.
+ * FOCO DE ATENCIÓN: compara Balance Emocional del mes vs Hábitos de hoy.
  */
-function calcularFocoAtencion({ avgLove, avgOdio, hayDatosEmocionales, habitos }) {
+function calcularFocoAtencion({ lovesPct, odiosPct, hayDatosEmocionales, habitos }) {
     const dimensiones = [];
 
     if (hayDatosEmocionales) {
-        const balanceRaw = avgLove - avgOdio; // rango aprox -5..5
-        const balanceScore = Math.max(0, Math.min(100, Math.round(50 + (balanceRaw / 5) * 50)));
         dimensiones.push({
             area: 'emocional',
-            score: balanceScore,
-            detalle: avgOdio > avgLove
-                ? `tus odios (${avgOdio.toFixed(1)}) están superando tus loves (${avgLove.toFixed(1)})`
-                : `tus loves (${avgLove.toFixed(1)}) van por delante de tus odios (${avgOdio.toFixed(1)}), pero por poco`,
+            score: lovesPct,
+            detalle: odiosPct > lovesPct
+                ? `tus odios (${odiosPct}%) dominan el balance emocional de este mes`
+                : `tus loves (${lovesPct}%) lideran el balance emocional de este mes`,
         });
     }
 
     if (habitos.total > 0) {
         dimensiones.push({
             area: 'habitos',
-            score: habitos.pctCumplido,
-            detalle: `solo estás cumpliendo el ${habitos.pctCumplido}% de tus hábitos`,
+            score: habitos.pct,
+            detalle: `completaste el ${habitos.pct}% de tus hábitos hoy`,
         });
     }
 
@@ -595,7 +605,6 @@ function calcularFocoAtencion({ avgLove, avgOdio, hayDatosEmocionales, habitos }
     dimensiones.sort((a, b) => a.score - b.score);
     const peor = dimensiones[0];
 
-    // Ambas dimensiones van razonablemente bien: felicitar en vez de forzar un foco.
     if (peor.score >= 65) {
         return { nivel: 'bien', area: null, icon: '✅', texto: 'Vas bien en todos los frentes que estamos midiendo — sigue así.' };
     }
@@ -605,33 +614,36 @@ function calcularFocoAtencion({ avgLove, avgOdio, hayDatosEmocionales, habitos }
     const icon = nivel === 'urgente' ? '🔴' : '🟡';
     const detalle = peor.detalle.charAt(0).toUpperCase() + peor.detalle.slice(1);
 
-    return {
-        nivel,
-        area: peor.area,
-        icon,
-        texto: `Foco de hoy: ${nombreArea}. ${detalle}.`,
-    };
+    return { nivel, area: peor.area, icon, texto: `Foco de hoy: ${nombreArea}. ${detalle}.` };
 }
 
+/**
+ * ==========================================
+ * EL ESPEJO DEL ALMA — RENDER
+ * ==========================================
+ * · Balance Mes: barra split ❤️ Loves (rosa) vs 💢 Odios (rojo)
+ * · Hábitos Hoy: barra split ✅ Hechos (verde) vs ⬜ Pendientes (rojo)
+ */
 async function loadEspejoDelAlma() {
     const container = document.getElementById('espejo-alma-container');
     if (!container) return;
 
-    const [loveHist, odioHist, habitos] = await Promise.all([
-        calcularPromedioHistorico('loves_registros'),
-        calcularPromedioHistorico('odios_registros'),
-        calcularBalanceHabitosHistorico(),
+    const [balanceMes, habitosHoy] = await Promise.all([
+        calcularBalanceMensualLovesOdios(),
+        calcularHabitosHoy(),
     ]);
 
-    const avgLove = loveHist.avg;
-    const avgOdio = odioHist.avg;
-    const hayDatosEmocionales = loveHist.total > 0 || odioHist.total > 0;
+    const hayDatosEmocionales = balanceMes.total > 0;
+    const hPctDone = habitosHoy.pct;
+    const hPctPending = 100 - habitosHoy.pct;
 
-    const maxEscala = 5;
-    const pctLove = Math.min((avgLove / maxEscala) * 100, 100);
-    const pctOdio = Math.min((avgOdio / maxEscala) * 100, 100);
+    const foco = calcularFocoAtencion({
+        lovesPct: balanceMes.lovesPct,
+        odiosPct: balanceMes.odiosPct,
+        hayDatosEmocionales,
+        habitos: { pct: hPctDone, total: habitosHoy.total },
+    });
 
-    const foco = calcularFocoAtencion({ avgLove, avgOdio, hayDatosEmocionales, habitos });
     const filaEmocionalResaltada = foco.area === 'emocional' ? ' espejo-alma-row--foco' : '';
     const filaHabitosResaltada = foco.area === 'habitos' ? ' espejo-alma-row--foco' : '';
 
@@ -641,29 +653,54 @@ async function loadEspejoDelAlma() {
                 <span class="espejo-alma-foco-icon">${foco.icon}</span>
                 <span class="espejo-alma-foco-texto">${foco.texto}</span>
             </div>
-            <div class="espejo-alma-row${filaEmocionalResaltada}">
-                <div class="espejo-alma-label">❤️ Loves</div>
-                <div class="ik-bar-track">
-                    <div class="ik-bar-fill ik-bar-fill--love" style="width:${pctLove}%;"></div>
+
+            <!-- BALANCE MES -->
+            <div class="espejo-alma-row${filaEmocionalResaltada}" style="display:block; padding:10px 12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                    <span style="font-size:0.8rem; font-weight:800; color:#e0479e;">❤️ Loves</span>
+                    <span style="font-size:0.8rem; font-weight:800; color:#e74c3c;">💢 Odios</span>
                 </div>
-                <div class="espejo-alma-value">${avgLove.toFixed(1)}</div>
-            </div>
-            <div class="espejo-alma-row${filaEmocionalResaltada}">
-                <div class="espejo-alma-label">💢 Odios</div>
-                <div class="ik-bar-track">
-                    <div class="ik-bar-fill ik-bar-fill--odio" style="width:${pctOdio}%;"></div>
+
+                <div style="width:100%; height:14px; border-radius:7px; overflow:hidden; background:var(--border-color); box-shadow:inset 0 1px 2px rgba(0,0,0,0.08); display:flex;">
+                    <div style="width:${balanceMes.lovesPct}%; height:100%; background:linear-gradient(90deg, #f28cc0, #e0479e); flex-shrink:0; transition:width 0.5s ease;"></div>
+                    <div style="width:${balanceMes.odiosPct}%; height:100%; background:linear-gradient(90deg, #f0776a, #e74c3c); flex-shrink:0; transition:width 0.5s ease;"></div>
                 </div>
-                <div class="espejo-alma-value">${avgOdio.toFixed(1)}</div>
-            </div>
-            <div class="espejo-alma-row${filaHabitosResaltada}">
-                <div class="espejo-alma-label">✅ Hábitos</div>
-                <div class="ik-bar-track ik-bar-track--split">
-                    <div class="ik-bar-fill ik-bar-fill--green" style="width:${habitos.pctCumplido}%;"></div>
-                    <div class="ik-bar-fill ik-bar-fill--over" style="width:${habitos.pctNoCumplido}%;"></div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                    <span style="font-size:0.78rem; font-weight:800; color:#e0479e;">${balanceMes.lovesPct}%</span>
+                    <span style="font-size:0.78rem; font-weight:800; color:#e74c3c;">${balanceMes.odiosPct}%</span>
                 </div>
-                <div class="espejo-alma-value">${habitos.pctCumplido}%</div>
+
+                <div class="espejo-alma-subtext" style="text-align:center;">
+                    ${balanceMes.total > 0 
+                        ? `❤️ ${balanceMes.sumLoves} pts · 💢 ${balanceMes.sumOdios} pts · ${balanceMes.total} registros este mes` 
+                        : 'Sin registros de Loves/Odios este mes'}
+                </div>
             </div>
-            <div class="espejo-alma-subtext">${habitos.total > 0 ? `${habitos.pctCumplido}% cumplidos · ${habitos.pctNoCumplido}% no cumplidos (histórico, ${habitos.cumplidos}/${habitos.total} días)` : 'Aún no hay historial de hábitos para calcular el balance.'}</div>
+
+            <!-- HÁBITOS HOY -->
+            <div class="espejo-alma-row${filaHabitosResaltada}" style="display:block; padding:10px 12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                    <span style="font-size:0.8rem; font-weight:800; color:#16a34a;">✅ Hechos</span>
+                    <span style="font-size:0.8rem; font-weight:800; color:#e74c3c;">⬜ Pendientes</span>
+                </div>
+
+                <div style="width:100%; height:14px; border-radius:7px; overflow:hidden; background:var(--border-color); box-shadow:inset 0 1px 2px rgba(0,0,0,0.08); display:flex;">
+                    <div style="width:${hPctDone}%; height:100%; background:linear-gradient(90deg, #74C08A, #16a34a); flex-shrink:0; transition:width 0.5s ease;"></div>
+                    <div style="width:${hPctPending}%; height:100%; background:linear-gradient(90deg, #f0776a, #e74c3c); flex-shrink:0; transition:width 0.5s ease;"></div>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                    <span style="font-size:0.78rem; font-weight:800; color:#16a34a;">${hPctDone}%</span>
+                    <span style="font-size:0.78rem; font-weight:800; color:#e74c3c;">${hPctPending}%</span>
+                </div>
+
+                <div class="espejo-alma-subtext" style="text-align:center;">
+                    ${habitosHoy.total > 0 
+                        ? `${habitosHoy.done} hechos · ${habitosHoy.pending} pendientes · ${habitosHoy.total} total` 
+                        : 'Sin hábitos registrados hoy'}
+                </div>
+            </div>
         </div>
     `;
 }

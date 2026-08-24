@@ -462,8 +462,9 @@ async function loadHabits() {
         }
     }
 
-    const { data: allHabitsData, error: err1 } = await _supabase.from('habit_logs').select('habit_name');
+    const { data: allHabitsData, error: err1 } = await _supabase.from('habit_logs').select('habit_name, project_tag');
     if (err1) return console.error("Error obteniendo nombres:", err1.message);
+
     const uniqueHabits = [...new Set(allHabitsData.map(h => h.habit_name))].sort();
 
     const { data: weekLogs, error: err2 } = await _supabase
@@ -484,61 +485,99 @@ async function loadHabits() {
     if (!listContainer) return;
     listContainer.innerHTML = '';
 
-    function getHabitMotivationalMsg(streakCount, daysElapsed) {
-        if (daysElapsed === 0) return "Nueva semana, ¡vamos! 🚀";
-        if (streakCount === 7) return "¡Semana perfecta! 🔥";
-        const ratio = streakCount / daysElapsed;
-        if (ratio >= 0.8) return "¡Vas increíble! 💪";
-        if (ratio >= 0.5) return "Vas bien, sigue así ✨";
-        if (streakCount > 0) return "Puedes mejorar, ¡tú puedes! 🙌";
-        return "Aún no has empezado esta semana";
-    }
-
+    /* ---------- Agrupar por proyecto ---------- */
+    const projectMap = {};
+    const tagOrder = ['ME', 'WORK', 'INGLES & SOFTWARE', 'LOVES & LIFESTYLE', 'OPPORTUNITIES'];
+    
     uniqueHabits.forEach(habitName => {
-    let daysHTML = '';
-    let streakCount = 0;
-    let isDoneToday = true; // por defecto true en semanas pasadas (no se marca en rojo)
-
-    datesOfWeek.forEach((dateStr, idx) => {
-        const log = weekLogs.find(l => l.habit_name === habitName && l.log_date === dateStr);
-        const isDone = log ? log.is_completed : false;
-        if (isDone) streakCount++;
-
-        const isToday = idx + 1 === currentDay && currentWeekOffset === 0;
-        const isFuture = currentWeekOffset === 0 && idx + 1 > currentDay;
-
-        if (isToday) isDoneToday = isDone;
-
-        daysHTML += `
-            <button type="button" class="habit-day-chip${isDone ? ' habit-day-chip--done' : ''}${isToday ? ' habit-day-chip--today' : ''}${isFuture ? ' habit-day-chip--future' : ''}"
-                ${isFuture ? 'disabled' : `onclick="toggleHabit('${habitName.replace(/'/g, "\\'")}', '${dateStr}', ${isDone})"`}>
-                ${dayLabels[idx]}
-            </button>`;
+        const tag = getProjectFromHabitName(habitName) || 'General';
+        if (!projectMap[tag]) projectMap[tag] = [];
+        projectMap[tag].push(habitName);
     });
 
-    const imageFilename = habitImages[habitName] || 'default.jpg';
-    const localImagePath = `assets/images/${imageFilename}`;
-    const habitNameEscaped = habitName.replace(/'/g, "\\'");
-    const pendienteClass = (currentWeekOffset === 0 && !isDoneToday) ? ' habit-card--pendiente' : '';
+    // Ordenar tags: primero los conocidos, luego el resto alfabéticamente
+    const sortedTags = Object.keys(projectMap).sort((a, b) => {
+        const idxA = tagOrder.indexOf(a);
+        const idxB = tagOrder.indexOf(b);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return a.localeCompare(b);
+    });
 
-    const card = `
-        <li class="habit-card${pendienteClass}" oncontextmenu="event.preventDefault(); deleteHabit('${habitNameEscaped}')" title="Clic derecho para eliminar">
-            <img src="${localImagePath}" class="habit-card-img" onerror="this.src='assets/images/default.jpg'"
-                 onclick="event.stopPropagation(); setHabitImage('${habitNameEscaped}')"
-                 title="Clic para cambiar la imagen">
-            <div class="habit-card-info">
-                <div class="habit-card-top">
-                    <span class="habit-card-name" onclick="editHabit('${habitNameEscaped}')" title="Clic para editar">${cleanHabitName(habitName)}</span>
-                    <span class="habit-card-streak">${streakCount}/7</span>
-                </div>
-                <div class="habit-day-row">
-                    ${daysHTML}
-                </div>
-            </div>
-        </li>
-    `;
-    listContainer.insertAdjacentHTML('beforeend', card);
-});
+    /* ---------- Render por grupo ---------- */
+    sortedTags.forEach(tag => {
+        const habitsInGroup = projectMap[tag];
+
+        // Header del grupo
+        const groupHeader = document.createElement('div');
+        groupHeader.style.cssText = `
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            margin-top: 4px;
+            background: var(--bg-header);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        `;
+        groupHeader.innerHTML = `
+            <span style="width:6px; height:6px; border-radius:50%; background:var(--primary-green); display:inline-block;"></span>
+            ${tag}
+        `;
+        listContainer.appendChild(groupHeader);
+
+        // Hábitos del grupo
+        habitsInGroup.forEach(habitName => {
+            let daysHTML = '';
+            let streakCount = 0;
+            let isDoneToday = true;
+
+            datesOfWeek.forEach((dateStr, idx) => {
+                const log = weekLogs.find(l => l.habit_name === habitName && l.log_date === dateStr);
+                const isDone = log ? log.is_completed : false;
+                if (isDone) streakCount++;
+
+                const isToday = idx + 1 === currentDay && currentWeekOffset === 0;
+                const isFuture = currentWeekOffset === 0 && idx + 1 > currentDay;
+
+                if (isToday) isDoneToday = isDone;
+
+                daysHTML += `
+                    <button type="button" class="habit-day-chip${isDone ? ' habit-day-chip--done' : ''}${isToday ? ' habit-day-chip--today' : ''}${isFuture ? ' habit-day-chip--future' : ''}"
+                        ${isFuture ? 'disabled' : `onclick="toggleHabit('${habitName.replace(/'/g, "\\'")}', '${dateStr}', ${isDone})"`}>
+                        ${dayLabels[idx]}
+                    </button>`;
+            });
+
+            const imageFilename = habitImages[habitName] || 'default.jpg';
+            const localImagePath = `assets/images/${imageFilename}`;
+            const habitNameEscaped = habitName.replace(/'/g, "\\'");
+            const pendienteClass = (currentWeekOffset === 0 && !isDoneToday) ? ' habit-card--pendiente' : '';
+
+            const card = `
+                <li class="habit-card${pendienteClass}" oncontextmenu="event.preventDefault(); deleteHabit('${habitNameEscaped}')" title="Clic derecho para eliminar">
+                    <img src="${localImagePath}" class="habit-card-img" onerror="this.src='assets/images/default.jpg'"
+                         onclick="event.stopPropagation(); setHabitImage('${habitNameEscaped}')"
+                         title="Clic para cambiar la imagen">
+                    <div class="habit-card-info">
+                        <div class="habit-card-top">
+                            <span class="habit-card-name" onclick="editHabit('${habitNameEscaped}')" title="Clic para editar">${cleanHabitName(habitName)}</span>
+                            <span class="habit-card-streak">${streakCount}/7</span>
+                        </div>
+                        <div class="habit-day-row">
+                            ${daysHTML}
+                        </div>
+                    </div>
+                </li>
+            `;
+            listContainer.insertAdjacentHTML('beforeend', card);
+        });
+    });
 }
 
 // Función auxiliar para extraer el proyecto del nombre del hábito

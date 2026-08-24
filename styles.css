@@ -356,11 +356,11 @@ div.day-segment.future {
     background-color: transparent;
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    padding: 16px;
-    margin-bottom: 24px;
+    padding: 12px;
+    margin-bottom: 20px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
 }
 
 .espejo-alma-row {
@@ -400,9 +400,10 @@ div.day-segment.future {
 .espejo-alma-subtext {
     font-size: 0.68rem;
     color: var(--text-muted);
-    margin-top: -4px;
+    margin-top: 6px;
     text-align: right;
 }
+
 
 /*
     NUEVO (2026-08-16): banner "Foco de atención" — la frase única y
@@ -421,7 +422,7 @@ div.day-segment.future {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 12px 14px;
+    padding: 10px 12px;
     border-radius: 10px;
     font-size: 0.85rem;
     font-weight: 700;
