@@ -485,9 +485,8 @@ async function loadHabits() {
     if (!listContainer) return;
     listContainer.innerHTML = '';
 
-    /* ---------- Agrupar por proyecto ---------- */
+    /* ---------- Agrupar DINÁMICAMENTE por hashtag ---------- */
     const projectMap = {};
-    const tagOrder = ['ME', 'WORK', 'INGLES & SOFTWARE', 'LOVES & LIFESTYLE', 'OPPORTUNITIES'];
     
     uniqueHabits.forEach(habitName => {
         const tag = getProjectFromHabitName(habitName) || 'General';
@@ -495,10 +494,11 @@ async function loadHabits() {
         projectMap[tag].push(habitName);
     });
 
-    // Ordenar tags: primero los conocidos, luego el resto alfabéticamente
+    // Orden preferido para tags conocidos. Los demás van alfabéticamente al final.
+    const knownOrder = ['ME', 'WORK', 'INGLES', 'LOVES', 'OPPORTUNITIES', 'SALUD', 'FAMILIA', 'ESTUDIO'];
     const sortedTags = Object.keys(projectMap).sort((a, b) => {
-        const idxA = tagOrder.indexOf(a);
-        const idxB = tagOrder.indexOf(b);
+        const idxA = knownOrder.indexOf(a);
+        const idxB = knownOrder.indexOf(b);
         if (idxA !== -1 && idxB !== -1) return idxA - idxB;
         if (idxA !== -1) return -1;
         if (idxB !== -1) return 1;
@@ -509,14 +509,14 @@ async function loadHabits() {
     sortedTags.forEach(tag => {
         const habitsInGroup = projectMap[tag];
 
-        // Header del grupo
+        // Header del grupo (solo si hay hábitos — nunca aparece vacío)
         const groupHeader = document.createElement('div');
         groupHeader.style.cssText = `
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 10px 16px;
-            margin-top: 4px;
+            padding: 8px 16px;
+            margin-top: 2px;
             background: var(--bg-header);
             border-bottom: 1px solid var(--border-color);
             font-size: 0.7rem;
@@ -583,12 +583,12 @@ async function loadHabits() {
 // Función auxiliar para extraer el proyecto del nombre del hábito
 function getProjectFromHabitName(name) {
     if (!name) return null;
-    const nameUpper = name.toUpperCase();
-    if (nameUpper.includes('#ME')) return 'ME';
-    if (nameUpper.includes('#WORK')) return 'WORK';
-    if (nameUpper.includes('#INGLES')) return 'INGLES & SOFTWARE';
-    if (nameUpper.includes('#LOVES')) return 'LOVES & LIFESTYLE';
-    if (nameUpper.includes('#OPPORTUNITIES')) return 'OPPORTUNITIES';
+    // Extrae el hashtag: todo lo que va después de # hasta el primer espacio
+    const match = name.match(/#([A-Za-z0-9_ÁÉÍÓÚáéíóúÑñ]+)/);
+    if (match) {
+        // Devuelve el tag tal cual (ej: #FAMILIA → FAMILIA)
+        return match[1].toUpperCase();
+    }
     return null;
 }
 
