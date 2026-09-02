@@ -880,6 +880,35 @@ async function exportAllHistorySQL() {
         alert("Ocurrió un error inesperado generando el archivo:\n" + err.message);
     }
 }
+/**
+ * Exportar Hábitos a JSON en archivo .txt
+ */
+async function exportHabitsJSON() {
+    try {
+        const { data, error } = await _supabase
+            .from('habit_logs')
+            .select('*')
+            .order('log_date', { ascending: true });
+
+        if (error) throw error;
+        if (!data || !data.length) { alert('No hay hábitos para exportar.'); return; }
+
+        const payload = {
+            app: 'IKILIFE',
+            tabla: 'habit_logs',
+            exportado_el: new Date().toISOString(),
+            registros: data
+        };
+
+        const json = JSON.stringify(payload, null, 2);
+        const fecha = new Date().toISOString().slice(0, 10);
+        descargarArchivo(json, `IKILIFE_Habitos_${fecha}.txt`, 'text/plain;charset=utf-8;');
+
+    } catch (err) {
+        console.error('Error exportando hábitos:', err);
+        alert('Error: ' + err.message);
+    }
+}
 
 /**
  * ==========================================

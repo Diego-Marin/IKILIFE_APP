@@ -633,72 +633,57 @@ async function loadEspejoDelAlma() {
         calcularHabitosHoy(),
     ]);
 
-    const hayDatosEmocionales = balanceMes.total > 0;
     const hPctDone = habitosHoy.pct;
     const hPctPending = 100 - habitosHoy.pct;
 
-    const foco = calcularFocoAtencion({
-        lovesPct: balanceMes.lovesPct,
-        odiosPct: balanceMes.odiosPct,
-        hayDatosEmocionales,
-        habitos: { pct: hPctDone, total: habitosHoy.total },
-    });
-
-    const filaEmocionalResaltada = foco.area === 'emocional' ? ' espejo-alma-row--foco' : '';
-    const filaHabitosResaltada = foco.area === 'habitos' ? ' espejo-alma-row--foco' : '';
-
     container.innerHTML = `
         <div class="espejo-alma-card">
-            <div class="espejo-alma-foco espejo-alma-foco--${foco.nivel}">
-                <span class="espejo-alma-foco-icon">${foco.icon}</span>
-                <span class="espejo-alma-foco-texto">${foco.texto}</span>
-            </div>
 
             <!-- BALANCE MES -->
-            <div class="espejo-alma-row${filaEmocionalResaltada}" style="display:block; padding:10px 12px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                    <span style="font-size:0.8rem; font-weight:800; color:#e0479e;">❤️ Loves</span>
-                    <span style="font-size:0.8rem; font-weight:800; color:#e74c3c;">💢 Odios</span>
+            <div class="espejo-alma-row" style="display:block; padding:8px 10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
+                    <span style="font-size:0.75rem; font-weight:700; color:#e0479e;">❤️ Loves</span>
+                    <span style="font-size:0.75rem; font-weight:700; color:#e74c3c;">💢 Odios</span>
                 </div>
 
-                <div style="width:100%; height:14px; border-radius:7px; overflow:hidden; background:var(--border-color); box-shadow:inset 0 1px 2px rgba(0,0,0,0.08); display:flex;">
-                    <div style="width:${balanceMes.lovesPct}%; height:100%; background:linear-gradient(90deg, #f28cc0, #e0479e); flex-shrink:0; transition:width 0.5s ease;"></div>
-                    <div style="width:${balanceMes.odiosPct}%; height:100%; background:linear-gradient(90deg, #f0776a, #e74c3c); flex-shrink:0; transition:width 0.5s ease;"></div>
+                <div style="width:100%; height:10px; border-radius:5px; overflow:hidden; background:var(--border-color); display:flex;">
+                    <div style="width:${balanceMes.lovesPct}%; height:100%; background:linear-gradient(90deg, #f28cc0, #e0479e); flex-shrink:0; transition:width 0.4s ease;"></div>
+                    <div style="width:${balanceMes.odiosPct}%; height:100%; background:linear-gradient(90deg, #f0776a, #e74c3c); flex-shrink:0; transition:width 0.4s ease;"></div>
                 </div>
 
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-                    <span style="font-size:0.78rem; font-weight:800; color:#e0479e;">${balanceMes.lovesPct}%</span>
-                    <span style="font-size:0.78rem; font-weight:800; color:#e74c3c;">${balanceMes.odiosPct}%</span>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:3px;">
+                    <span style="font-size:0.72rem; font-weight:700; color:#e0479e;">${balanceMes.lovesPct}%</span>
+                    <span style="font-size:0.72rem; font-weight:700; color:#e74c3c;">${balanceMes.odiosPct}%</span>
                 </div>
 
-                <div class="espejo-alma-subtext" style="text-align:center;">
+                <div class="espejo-alma-subtext" style="text-align:center; margin-top:2px;">
                     ${balanceMes.total > 0 
-                        ? `❤️ ${balanceMes.sumLoves} pts · 💢 ${balanceMes.sumOdios} pts · ${balanceMes.total} registros este mes` 
-                        : 'Sin registros de Loves/Odios este mes'}
+                        ? `❤️ ${balanceMes.sumLoves} pts · 💢 ${balanceMes.sumOdios} pts · ${balanceMes.total} registros` 
+                        : 'Sin registros este mes'}
                 </div>
             </div>
 
             <!-- HÁBITOS HOY -->
-            <div class="espejo-alma-row${filaHabitosResaltada}" style="display:block; padding:10px 12px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                    <span style="font-size:0.8rem; font-weight:800; color:#16a34a;">✅ Hechos</span>
-                    <span style="font-size:0.8rem; font-weight:800; color:#e74c3c;">⬜ Pendientes</span>
+            <div class="espejo-alma-row" style="display:block; padding:8px 10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
+                    <span style="font-size:0.75rem; font-weight:700; color:#16a34a;">✅ Hechos</span>
+                    <span style="font-size:0.75rem; font-weight:700; color:#e74c3c;">⬜ Pendientes</span>
                 </div>
 
-                <div style="width:100%; height:14px; border-radius:7px; overflow:hidden; background:var(--border-color); box-shadow:inset 0 1px 2px rgba(0,0,0,0.08); display:flex;">
-                    <div style="width:${hPctDone}%; height:100%; background:linear-gradient(90deg, #74C08A, #16a34a); flex-shrink:0; transition:width 0.5s ease;"></div>
-                    <div style="width:${hPctPending}%; height:100%; background:linear-gradient(90deg, #f0776a, #e74c3c); flex-shrink:0; transition:width 0.5s ease;"></div>
+                <div style="width:100%; height:10px; border-radius:5px; overflow:hidden; background:var(--border-color); display:flex;">
+                    <div style="width:${hPctDone}%; height:100%; background:linear-gradient(90deg, #74C08A, #16a34a); flex-shrink:0; transition:width 0.4s ease;"></div>
+                    <div style="width:${hPctPending}%; height:100%; background:linear-gradient(90deg, #f0776a, #e74c3c); flex-shrink:0; transition:width 0.4s ease;"></div>
                 </div>
 
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-                    <span style="font-size:0.78rem; font-weight:800; color:#16a34a;">${hPctDone}%</span>
-                    <span style="font-size:0.78rem; font-weight:800; color:#e74c3c;">${hPctPending}%</span>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:3px;">
+                    <span style="font-size:0.72rem; font-weight:700; color:#16a34a;">${hPctDone}%</span>
+                    <span style="font-size:0.72rem; font-weight:700; color:#e74c3c;">${hPctPending}%</span>
                 </div>
 
-                <div class="espejo-alma-subtext" style="text-align:center;">
+                <div class="espejo-alma-subtext" style="text-align:center; margin-top:2px;">
                     ${habitosHoy.total > 0 
                         ? `${habitosHoy.done} hechos · ${habitosHoy.pending} pendientes · ${habitosHoy.total} total` 
-                        : 'Sin hábitos registrados hoy'}
+                        : 'Sin hábitos hoy'}
                 </div>
             </div>
         </div>

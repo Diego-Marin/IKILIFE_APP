@@ -356,11 +356,11 @@ div.day-segment.future {
     background-color: transparent;
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    padding: 12px;
-    margin-bottom: 20px;
+    padding: 6px;
+    margin-bottom: 16px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 0;
 }
 
 .espejo-alma-row {
@@ -369,6 +369,7 @@ div.day-segment.future {
     align-items: center;
     gap: 10px;
 }
+
 
 .espejo-alma-label {
     font-size: 0.75rem;
@@ -398,83 +399,12 @@ div.day-segment.future {
     cuántos registros históricos lo respaldan.
 */
 .espejo-alma-subtext {
-    font-size: 0.68rem;
+    font-size: 0.65rem;
     color: var(--text-muted);
-    margin-top: 6px;
+    margin-top: 2px;
     text-align: right;
 }
 
-
-/*
-    NUEVO (2026-08-16): banner "Foco de atención" — la frase única y
-    directa que se muestra ARRIBA de las 3 barras del Espejo del
-    Alma, diciendo sin rodeos cuál dimensión (balance emocional o
-    hábitos) necesita más atención ahora mismo. Reemplaza al mensaje
-    genérico anterior, que requería comparar barras mentalmente.
-    3 variantes de color según nivel de urgencia (ver
-    calcularFocoAtencion() en mood_tracker.js):
-      --bien     → todo va razonablemente bien (verde)
-      --moderado → hay una dimensión floja, sin ser grave (amarillo)
-      --urgente  → una dimensión está claramente mal (rojo)
-      --sinDatos → aún no hay suficientes registros (gris neutro)
-*/
-.espejo-alma-foco {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-    border-radius: 10px;
-    font-size: 0.85rem;
-    font-weight: 700;
-    line-height: 1.35;
-}
-
-.espejo-alma-foco-icon {
-    font-size: 1.15rem;
-    flex-shrink: 0;
-}
-
-.espejo-alma-foco-texto {
-    color: var(--text-dark);
-}
-
-.espejo-alma-foco--bien {
-    background-color: rgba(22, 163, 74, 0.12);
-    border: 1px solid rgba(22, 163, 74, 0.35);
-}
-
-.espejo-alma-foco--moderado {
-    background-color: rgba(241, 196, 15, 0.14);
-    border: 1px solid rgba(241, 196, 15, 0.4);
-}
-
-.espejo-alma-foco--urgente {
-    background-color: rgba(231, 76, 60, 0.12);
-    border: 1px solid rgba(231, 76, 60, 0.4);
-}
-
-.espejo-alma-foco--sinDatos {
-    background-color: var(--bg-header);
-    border: 1px solid var(--border-color);
-}
-
-.espejo-alma-foco--sinDatos .espejo-alma-foco-texto {
-    color: var(--text-muted);
-    font-weight: 600;
-}
-
-/*
-    Resalta (borde izquierdo de color + leve fondo) la fila de
-    barra que corresponde al foco de atención actual, para que sea
-    obvio dónde mirar si quieres el detalle numérico exacto.
-*/
-.espejo-alma-row--foco {
-    border-left: 3px solid #e74c3c;
-    padding-left: 8px;
-    margin-left: -11px;
-    background-color: rgba(231, 76, 60, 0.05);
-    border-radius: 0 6px 6px 0;
-}
 
 /**
  * ==========================================

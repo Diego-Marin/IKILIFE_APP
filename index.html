@@ -165,44 +165,32 @@
                         <span id="habit-week-label"
                             style="font-size: 0.85rem; font-weight: 700; color: var(--text-dark); justify-self: center;">Semana
                             Actual</span>
-                        <div style="display: flex; align-items: center; gap: 4px; justify-self: end;">
-                            <button class="icon-btn" id="btn-next-week" onclick="changeWeek(1)" title="Semana siguiente"
-                                disabled style="opacity: 0.3; cursor: default;">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="9 18 15 12 9 6"></polyline>
-                                </svg>
-                            </button>
-                            <button class="sql-btn-compact" onclick="exportAllHistorySQL()"
-                                aria-label="Exportar histórico de Hábitos" title="Exportar histórico completo (SQL)">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="7 10 12 15 17 10"></polyline>
-                                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                                </svg>
-                                SQL
-                            </button>
-                        </div>
+                       <div style="display: flex; align-items: center; gap: 4px; justify-self: end;">
+    <button class="icon-btn" id="btn-next-week" onclick="changeWeek(1)" title="Semana siguiente" disabled style="opacity: 0.3; cursor: default;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+    </button>
+</div>
                     </div>
 
-                    <div class="item-list-header habit-grid">
-                        <button class="add-habit-btn" onclick="addHabit()" aria-label="Agregar nuevo hábito">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
-                            Add Habit
-                        </button>
-                        <div class="day-label" id="day-label-1">--</div>
-                        <div class="day-label" id="day-label-2">--</div>
-                        <div class="day-label" id="day-label-3">--</div>
-                        <div class="day-label" id="day-label-4">--</div>
-                        <div class="day-label" id="day-label-5">--</div>
-                        <div class="day-label" id="day-label-6">--</div>
-                        <div class="day-label" id="day-label-7">--</div>
-                    </div>
+                    <div class="item-list-header habit-grid" style="grid-template-columns: 1fr auto; padding: 10px 16px;">
+    <button class="add-habit-btn" onclick="addHabit()" aria-label="Agregar nuevo hábito">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Add Habit
+    </button>
+    <button class="sql-btn-compact" onclick="exportHabitsJSON()" aria-label="Exportar Hábitos (JSON)" title="Exportar Hábitos como JSON .txt">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        JSON
+    </button>
+</div>
 
                     <ul id="list-habits" style="list-style:none;"></ul>
                 </section>
