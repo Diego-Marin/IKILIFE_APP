@@ -2235,6 +2235,7 @@ div.day-segment.future {
     display: grid;
     grid-template-columns: 1fr;
     padding: 12px 16px 12px;
+    gap: 10px;
 }
 
 .home-plan-item {
