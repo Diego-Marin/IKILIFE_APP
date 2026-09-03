@@ -108,8 +108,18 @@
 
                 <div id="habit-legend-yesterday"></div>
                 <div id="state-bar-container"></div>
-                <div id="motivational-text" style="padding: 0 16px 16px; font-style: italic; color: var(--text-muted);"></div>
+                <div id="motivational-text" style="padding: 0 16px 16px; font-style: italic; color: var(--text-muted);">
+                </div>
                 <div id="espejo-alma-container"></div>
+                <div class="year-progress-card"
+                    style="margin: 16px 0; padding: 16px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--white);">
+                    <div class="category-header year-progress-title" id="year-progress-title"
+                        style="border-bottom: none; padding: 0; margin-bottom: 8px;">
+                        Progreso del Año · Semana -- de 52
+                        <span class="year-progress-subtitle">Calculando días restantes...</span>
+                    </div>
+                    <div id="year-weeks-grid" class="weeks-grid"></div>
+                </div>
             </div>
 
             <!-- 📊 SEGUIMIENTO -->
@@ -258,11 +268,6 @@
             <div id="view-perfil" class="bottom-view">
                 <section class="category">
                     <div style="padding: 16px 16px 0;">
-                        <div class="category-header year-progress-title" id="year-progress-title"
-                            style="border-bottom: none; padding-left: 0; padding-right: 0;">
-                            Progreso del Año · Semana -- de 52
-                            <span class="year-progress-subtitle">Calculando días restantes...</span>
-                        </div>
                         <div id="year-weeks-grid" class="weeks-grid"></div>
                         <div class="category-header year-progress-title" id="english-progress-title"
                             style="border-bottom: none; padding-left: 0; padding-right: 0; margin-top: 20px;">
