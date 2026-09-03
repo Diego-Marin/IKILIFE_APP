@@ -2440,7 +2440,7 @@ function renderStateBar(containerId) {
                 options: ["Revisar tickets pendientes", "LLenar ordenes", "Adelantar minuta", "Cumplir con la tarea del dia"]
             },
             {
-                start: 1080, end: 1260, label: "Code & Ingles", icon: "🌱 &#128218;", class: "state-grow",
+                start: 1080, end: 1260, label: "Learning", icon: "🌱", class: "state-grow",
                 options: ["Practicar inglés (Duolingo/Anki)", "Curso de programación", "Proyecto personal de código"]
             },
             {
@@ -2448,7 +2448,7 @@ function renderStateBar(containerId) {
                 options: ["Preparar algo saludable", "Comer con calma, sin pantallas", "Preparar coca"]
             },
             {
-                start: 1200, end: 1260, label: "Lectura & Meditación", icon: "🌙", class: "state-free",
+                start: 1200, end: 1260, label: "Noche", icon: "🌙", class: "state-free",
                 options: ["Continuar libro Pideme lo que quieras"]
             },
             {
