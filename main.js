@@ -57,7 +57,9 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
  * 29. "COMPONENTE STATE BAR"                     → tarjetas de "qué hacer ahora" según la hora del día
  */
 
-
+function loadAgradecimientos() {
+    // Placeholder: si no usas agradecimientos, déjalo vacío.
+}
 /**
  * ==========================================
  * INICIALIZACIÓN
@@ -1073,6 +1075,29 @@ async function loadTopSentimientos() {
 
 
 
+function loadAgradecimientos() {
+    // Placeholder: evita que el DOMContentLoaded se rompa.
+    // Si en el futuro agregas un diario de gratitud, implementa aquí.
+}
+
+function switchTrackingTab(subtab, btn) {
+    document.querySelectorAll('#view-tracking .tab-btn').forEach(b => {
+        b.classList.remove('tab-active');
+        b.classList.add('tab-inactive');
+    });
+    if (btn) {
+        btn.classList.add('tab-active');
+        btn.classList.remove('tab-inactive');
+    }
+    document.querySelectorAll('.tracking-subview').forEach(v => v.classList.add('hidden'));
+    const target = document.getElementById('tracking-' + subtab);
+    if (target) target.classList.remove('hidden');
+}
+
+
+
+
+
 
 
 
@@ -1116,6 +1141,20 @@ function switchTab(tab, btn) {
     if (tab === 'sentimientos' && typeof switchSentimientosTab === 'function') {
         switchSentimientosTab(subtab || (localStorage.getItem('ikilife_sentimientos_subtab') === 'odios' ? 'odios' : 'loves'));
     }
+}
+
+function switchTrackingTab(subtab, btn) {
+    document.querySelectorAll('#view-tracking .tab-btn').forEach(b => {
+        b.classList.remove('tab-active');
+        b.classList.add('tab-inactive');
+    });
+    if (btn) {
+        btn.classList.add('tab-active');
+        btn.classList.remove('tab-inactive');
+    }
+    document.querySelectorAll('.tracking-subview').forEach(v => v.classList.add('hidden'));
+    const target = document.getElementById('tracking-' + subtab);
+    if (target) target.classList.remove('hidden');
 }
 
 async function saveLearning() {

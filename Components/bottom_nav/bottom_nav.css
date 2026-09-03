@@ -1,0 +1,79 @@
+/**
+ * ==========================================
+ * BOTTOM NAVIGATION BAR
+ * ==========================================
+ */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: var(--white);
+    border-top: 1px solid var(--border-color);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.bottom-nav-inner {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    max-width: 600px;
+    margin: 0 auto;
+    height: 56px;
+}
+
+.bottom-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.65rem;
+    font-weight: 600;
+    cursor: pointer;
+    height: 100%;
+    padding: 4px 0;
+    transition: color 0.2s ease;
+    position: relative;
+}
+
+.bottom-nav-item svg {
+    width: 22px;
+    height: 22px;
+    stroke-width: 2;
+}
+
+.bottom-nav-item.active {
+    color: var(--primary-green);
+}
+
+.bottom-nav-item.active::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 3px;
+    background: var(--primary-green);
+    border-radius: 0 0 2px 2px;
+}
+
+/* Padding para que el contenido no quede tapado por la nav */
+.container {
+    padding-bottom: 72px !important;
+}
+
+/* Vistas controladas por bottom nav */
+.bottom-view {
+    display: none;
+}
+
+.bottom-view.active {
+    display: block;
+}

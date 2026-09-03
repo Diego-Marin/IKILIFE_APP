@@ -14,17 +14,12 @@
     <link rel="stylesheet" href="./Components/mood_tracker/mood_tracker.css">
     <link rel="stylesheet" href="./Components/finance/finance.css">
     <link rel="stylesheet" href="./Components/english/english.css">
+    <link rel="stylesheet" href="./Components/bottom_nav/bottom_nav.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <base target="_blank">
 </head>
 
 <body>
-    <!--
-        BLOQUEO DE LA APP (código o patrón)
-        Overlay vacío controlado enteramente por
-        Components/auth_lock/auth_lock.js. Debe ser el primer
-        elemento del body para quedar siempre por encima del resto.
-    -->
     <div id="auth-lock-overlay"></div>
 
     <div class="container">
@@ -35,8 +30,7 @@
             </div>
 
             <div class="header-actions">
-
-                <button id="metrics-btn" class="icon-btn" onclick="switchTab('metrics', this)" aria-label="Ver métricas"
+                <button id="metrics-btn" class="icon-btn" onclick="switchBottomTab('perfil')" aria-label="Ver métricas"
                     title="Métricas">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                         stroke-linecap="round" stroke-linejoin="round">
@@ -83,525 +77,166 @@
             </div>
         </header>
 
-        <!-- Avance de la semana: ahora va primero -->
-        <div class="weekly-progress-container">
-            <div class="progress-header">
-                <!-- Ahora muestra la semana del AÑO (no la semana del mes) -->
-                <span id="current-week-text" class="week-title">Avance Semana -- de 52</span>
-                <span id="current-month-text" class="month-title">--</span>
-            </div>
-
-            <div class="progress-bar-segmented">
-                <div class="day-segment"></div>
-                <div class="day-segment"></div>
-                <div class="day-segment"></div>
-                <div class="day-segment"></div>
-                <div class="day-segment"></div>
-                <div class="day-segment"></div>
-                <div class="day-segment"></div>
-            </div>
-
-            <div class="progress-labels">
-                <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
-            </div>
-        </div>
-
-        <!--
-            ==========================================
-            LEYENDA DE HÁBITOS DEL DÍA ANTERIOR
-            ==========================================
-            Muestra qué hábitos no se completaron ayer para que hoy
-            el usuario los priorice. Si ayer fue 100%, celebra.
-        -->
-        <div id="habit-legend-yesterday"></div>
-
-        <!--
-            ==========================================
-            TARJETA "HOY": STATE BAR + FRASE MOTIVACIONAL
-            ==========================================
-            Encapsula visualmente ambos bloques en una sola tarjeta
-            (mismo borde/fondo), aunque cada uno mantiene su propia
-            lógica por separado: renderStateBar() sigue escribiendo
-            en #state-bar-container y loadDailyQuote() sigue
-            escribiendo en #motivational-text, sin cambios de JS.
-        -->
-        <!--
-            STATE BAR: muestra, además del bloque activo, las demás
-            actividades disponibles en el día (chips) y un menú
-            desplegable con sugerencias concretas al hacer clic en
-            cualquiera de ellas. Toda esta estructura interna la
-            genera renderStateBar() en main.js.
-        -->
-        <div id="state-bar-container"></div>
-
-        <!--
-            ==========================================
-            EL ESPEJO DEL ALMA
-            ==========================================
-            Dos barras: promedio del último valor registrado de Loves
-            y de Odios (escala 1-5 cada una). Toda la lógica vive en
-            loadEspejoDelAlma() en Components/mood_tracker/mood_tracker.js.
-        -->
-        <div id="espejo-alma-container"></div>
-
-        <!-- Menú de secciones (antes era la barra de tabs fija) -->
-        <div id="nav-menu-container"></div>
-
         <main id="main-content">
 
-            <!-- HABITOS -->
-
-            <div id="view-habits" class="view-content active">
-                <section class="category">
-                    <div
-                        style="display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 8px 16px; background-color: transparent; border-bottom: 1px solid var(--border-color);">
-                        <button class="icon-btn" onclick="changeWeek(-1)" title="Semana anterior"
-                            style="justify-self: start;">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="15 18 9 12 15 6"></polyline>
-                            </svg>
-                        </button>
-                        <span id="habit-week-label"
-                            style="font-size: 0.85rem; font-weight: 700; color: var(--text-dark); justify-self: center;">Semana
-                            Actual</span>
-                       <div style="display: flex; align-items: center; gap: 4px; justify-self: end;">
-    <button class="icon-btn" id="btn-next-week" onclick="changeWeek(1)" title="Semana siguiente" disabled style="opacity: 0.3; cursor: default;">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="9 18 15 12 9 6"></polyline>
-        </svg>
-    </button>
-</div>
+            <!-- 🏠 INICIO -->
+            <div id="view-home" class="bottom-view active">
+                <div class="weekly-progress-container">
+                    <div class="progress-header">
+                        <span id="current-week-text" class="week-title">Avance Semana -- de 52</span>
+                        <span id="current-month-text" class="month-title">--</span>
                     </div>
+                    <div class="progress-bar-segmented">
+                        <div class="day-segment"></div>
+                        <div class="day-segment"></div>
+                        <div class="day-segment"></div>
+                        <div class="day-segment"></div>
+                        <div class="day-segment"></div>
+                        <div class="day-segment"></div>
+                        <div class="day-segment"></div>
+                    </div>
+                    <div class="progress-labels">
+                        <span id="day-label-1">L</span>
+                        <span id="day-label-2">M</span>
+                        <span id="day-label-3">M</span>
+                        <span id="day-label-4">J</span>
+                        <span id="day-label-5">V</span>
+                        <span id="day-label-6">S</span>
+                        <span id="day-label-7">D</span>
+                    </div>
+                </div>
 
-                    <div class="item-list-header habit-grid" style="grid-template-columns: 1fr auto; padding: 10px 16px;">
-    <button class="add-habit-btn" onclick="addHabit()" aria-label="Agregar nuevo hábito">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-        Add Habit
-    </button>
-    <button class="sql-btn-compact" onclick="exportHabitsJSON()" aria-label="Exportar Hábitos (JSON)" title="Exportar Hábitos como JSON .txt">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-        </svg>
-        JSON
-    </button>
-</div>
-
-                    <ul id="list-habits" style="list-style:none;"></ul>
-                </section>
+                <div id="habit-legend-yesterday"></div>
+                <div id="state-bar-container"></div>
+                <div id="motivational-text" style="padding: 0 16px 16px; font-style: italic; color: var(--text-muted);"></div>
+                <div id="espejo-alma-container"></div>
             </div>
 
-            <!-- METRICAS -->
+            <!-- 📊 SEGUIMIENTO -->
+            <div id="view-tracking" class="bottom-view">
+                <div class="tabs" style="margin-bottom:16px;">
+                    <button class="tab-btn tab-active" data-subtab="habits"
+                        onclick="switchTrackingTab('habits', this)">✅ Hábitos</button>
+                    <button class="tab-btn tab-inactive" data-subtab="tareas"
+                        onclick="switchTrackingTab('tareas', this)">📝 Tareas</button>
+                    <button class="tab-btn tab-inactive" data-subtab="ideas"
+                        onclick="switchTrackingTab('ideas', this)">💡 Ideas</button>
+                </div>
 
-            <div id="view-metrics" class="view-content">
-                <section class="category">
-                    <!-- 1. Progreso del Año: ahora con semana actual corriendo + días restantes -->
-                    <div style="padding: 16px 16px 0;">
-                        <div class="category-header year-progress-title" id="year-progress-title"
-                            style="border-bottom: none; padding-left: 0; padding-right: 0;">
-                            Progreso del Año · Semana -- de 52
-                            <span class="year-progress-subtitle">Calculando días restantes...</span>
-                        </div>
-                        <div id="year-weeks-grid" class="weeks-grid"></div>
-
-                        <!--
-                            ==========================================
-                            NUEVO: PROGRESO CURSO DE INGLÉS
-                            ==========================================
-                            Cuenta en rojo las semanas transcurridas del
-                            curso de inglés (inicio: abril 2025, fin:
-                            julio 2027). Toda la lógica vive en
-                            renderEnglishCourseWeeks() en main.js.
-                        -->
-                        <div class="category-header year-progress-title" id="english-progress-title"
-                            style="border-bottom: none; padding-left: 0; padding-right: 0; margin-top: 20px;">
-                            Curso de Inglés · Semana -- de --
-                            <span class="year-progress-subtitle">Calculando semanas restantes...</span>
-                        </div>
-                        <div id="english-weeks-grid" class="weeks-grid"></div>
-                    </div>
-
-                    <!--
-                        2. Se eliminó por completo el gráfico radar "Avance de Proyectos"
-                        (canvas #balanceChart): no funcionaba bien y no aportaba valor real.
-                    -->
-
-                    <!-- 3. Top 3 mejores hábitos históricos -->
-                    <div class="top-habits-wrapper" style="border-top: 1px solid var(--border-color);">
-                        <div class="category-header" style="border-bottom: none;">Tus 3 Mejores Hábitos</div>
-                        <div id="top-habits-list" class="top-habits-list"></div>
-                    </div>
-
-                    <!--
-                        ==========================================
-                        NUEVO: TOP 3 DE LOVES (RANKING)
-                        ==========================================
-                        Muestra las 3 pasiones/actividades con más registros
-                        (columna "count") de la tabla loves_logs, en el mismo
-                        estilo visual que el Top 3 de Hábitos.
-                    -->
-                    <div class="top-habits-wrapper" id="top-loves-wrapper"
-                        style="border-top: 1px solid var(--border-color);">
-                        <div class="category-header" style="border-bottom: none;">Tus 3 Loves Favoritos</div>
-                        <div id="top-loves-list" class="top-habits-list"></div>
-                    </div>
-
-                    <!--
-                        ==========================================
-                        TOP 3 DE SENTIMIENTOS (POR INTENSIDAD ACTUAL)
-                        ==========================================
-                        Referenciado en main.js (loadTopSentimientos).
-                    -->
-                    <div class="top-habits-wrapper" id="top-sentimientos-wrapper"
-                        style="border-top: 1px solid var(--border-color);">
-                        <div class="category-header" style="border-bottom: none;">Tus 3 Sentimientos Más Fuertes
-                            Hoy</div>
-                        <div id="top-sentimientos-list" class="top-habits-list"></div>
-                    </div>
-
-                </section>
-            </div>
-
-            <!-- TAREAS -->
-
-            <div id="view-tareas" class="view-content">
-                <section class="category">
-                    <div class="item-list-header tarea-header">
-                        <button class="add-habit-btn" onclick="addTarea()" aria-label="Agregar tarea">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
-                            Nueva Tarea
-                        </button>
-                    </div>
-                    <!--
-                        Las tareas ahora soportan, igual que Brain Dump:
-                        clic = editar texto, clic derecho = eliminar permanentemente.
-                        El botón check se conserva para "completar" la tarea.
-                    -->
-                    <ul id="list-tareas-dia" style="list-style:none;"></ul>
-                </section>
-            </div>
-
-            <!-- MONEY -->
-
-            <div id="view-money" class="view-content">
-                <section class="category">
-                    <div id="subview-finanzas" style="padding: 16px;">
-                        <div id="finance-main">
-                            <!--
-                                Acciones rápidas al INICIO del componente,
-                                en una sola fila compacta (no se rompe en
-                                mobile, mismo patrón que el botón SQL de
-                                Hábitos). "Nueva Categoría" queda abajo,
-                                junto a las categorías de gasto.
-                            -->
-                            <div class="finance-actions-row">
-                                <button class="sql-btn-compact" onclick="exportFinanceSQL()"
-                                    aria-label="Exportar histórico de Finanzas"
-                                    title="Exportar histórico completo (SQL)">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                        <polyline points="7 10 12 15 17 10"></polyline>
-                                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                <div id="tracking-habits" class="tracking-subview">
+                    <section class="category">
+                        <div
+                            style="display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 8px 16px; background-color: transparent; border-bottom: 1px solid var(--border-color);">
+                            <button class="icon-btn" onclick="changeWeek(-1)" title="Semana anterior"
+                                style="justify-self: start;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="15 18 9 12 15 6"></polyline>
+                                </svg>
+                            </button>
+                            <span id="habit-week-label"
+                                style="font-size: 0.85rem; font-weight: 700; color: var(--text-dark); justify-self: center;">Semana
+                                Actual</span>
+                            <div style="display: flex; align-items: center; gap: 4px; justify-self: end;">
+                                <button class="icon-btn" id="btn-next-week" onclick="changeWeek(1)"
+                                    title="Semana siguiente" disabled style="opacity: 0.3; cursor: default;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="9 18 15 12 9 6"></polyline>
                                     </svg>
-                                    Historial
-                                </button>
-                                <button class="sql-btn-compact finance-reset-btn" onclick="resetFinanceMonth()"
-                                    aria-label="Reiniciar mes de finanzas"
-                                    title="Guarda el resumen del mes en el historial y reinicia los montos">
-                                    🔄 Reiniciar Mes
-                                </button>
-                                <button class="sql-btn-compact" onclick="toggleFinanceHistory()"
-                                    aria-label="Ver historial de meses" title="Ver historial de meses guardados">
-                                    📜 Historial
                                 </button>
                             </div>
-                            <!--
-                                Grid 2x2 armónico: las 4 tarjetas tienen
-                                exactamente el mismo tamaño (misma clase,
-                                sin "full-width" en ninguna) para que se
-                                vean uniformes.
-                            -->
-                            <section class="summary-grid">
-                                <div class="summary-card clickable" onclick="toggleFinanceView('finance-income')"
-                                    title="Ver detalles de ingresos">
-                                    <div class="summary-label">Ingresos</div>
-                                    <div class="summary-value text-income" id="kpi-ingresos">$0</div>
-                                </div>
-                                <div class="summary-card">
-                                    <div class="summary-label">Gastos Totales</div>
-                                    <div class="summary-value text-expense" id="kpi-gastos"
-                                        title="Suma de lo pagado real">$0</div>
-                                </div>
-                                <!--
-                                    ==========================================
-                                    TARJETA DE AHORRO / CAPITAL (SOLO INFORMATIVA)
-                                    ==========================================
-                                    Se calcula automáticamente como
-                                    Ingresos - Gastos. Ya no es clickeable:
-                                    el ahorro manual por item ahora vive en
-                                    la pestaña Compras (meta de ahorro por
-                                    artículo).
-                                -->
-                                <div class="summary-card" title="Ingresos - Gastos">
-                                    <div class="summary-label">Ahorro / Capital</div>
-                                    <div class="summary-value text-savings" id="kpi-ahorro">$0</div>
-                                </div>
-                                <!--
-                                    ==========================================
-                                    TARJETA DE DEUDAS
-                                    ==========================================
-                                    Misma funcionalidad que "Ingresos": suma
-                                    todos los registros de tipo 'debt' y al
-                                    hacer clic muestra el detalle editable.
-                                -->
-                                <div class="summary-card clickable" onclick="toggleFinanceView('finance-debts')"
-                                    title="Ver detalles de deudas">
-                                    <div class="summary-label">Deudas</div>
-                                    <div class="summary-value text-debt" id="kpi-deudas">$0</div>
-                                </div>
-
-                                <!--
-                                    NUEVO: Patrimonio Neto = Ahorro/Capital - Deudas.
-                                    Tarjeta de ancho completo para verlo de un vistazo.
-                                -->
-                                <div class="summary-card summary-card--wide" title="Ahorro / Capital menos Deudas">
-                                    <div class="summary-label">Patrimonio Neto</div>
-                                    <div class="summary-value text-savings" id="kpi-patrimonio">$0</div>
-                                </div>
-                            </section>
-                            <div id="dynamic-expense-categories"></div>
-                            <div style="margin-top:8px;">
-                                <button class="add-habit-btn" style="width: 100%;" onclick="addFinanceCategory()">+
-                                    Nueva Categoría</button>
-                            </div>
-
-                            <div id="finance-history-section" class="hidden"
-                                style="margin-top:16px; border-top:1px solid var(--border-color); padding-top:16px;">
-                                <div class="category-header"
-                                    style="border-bottom:none; padding-left:0; padding-right:0;">Historial de Meses
-                                </div>
-                                <div id="finance-history-list"
-                                    style="display:flex; flex-direction:column; gap:10px; margin-top:8px;"></div>
-                            </div>
                         </div>
-
-                        <!--
-                            Detalle de Ingresos (ya se generaba desde el JS con
-                            toggleFinanceView, pero faltaba el contenedor en el
-                            HTML; se agrega ahora para que funcione correctamente).
-                        -->
-                        <div id="finance-income" class="hidden">
-                            <button class="icon-btn" onclick="toggleFinanceView('finance-main')" title="Volver"
-                                style="margin-bottom: 8px;">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="15 18 9 12 15 6"></polyline>
-                                </svg>
-                                Volver
-                            </button>
-                            <div class="category-header" style="border-bottom: none; padding-left:0;">Detalle de
-                                Ingresos</div>
-                            <ul id="list-incomes" style="list-style:none;"></ul>
-                            <button class="add-habit-btn" style="width: 100%; margin-top: 8px;"
-                                onclick="addFinanceItem('income','Ingresos')">+ Nuevo Ingreso</button>
-                        </div>
-
-                        <!--
-                            ==========================================
-                            NUEVO: Detalle de Deudas
-                            ==========================================
-                        -->
-                        <div id="finance-debts" class="hidden">
-                            <button class="icon-btn" onclick="toggleFinanceView('finance-main')" title="Volver"
-                                style="margin-bottom: 8px;">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="15 18 9 12 15 6"></polyline>
-                                </svg>
-                                Volver
-                            </button>
-                            <div class="category-header" style="border-bottom: none; padding-left:0;">Detalle de Deudas
-                            </div>
-                            <ul id="list-debts" style="list-style:none;"></ul>
-                            <button class="add-habit-btn" style="width: 100%; margin-top: 8px;"
-                                onclick="addFinanceItem('debt','Deudas')">+ Nueva Deuda</button>
-                        </div>
-                    </div>
-                </section>
-            </div>
-
-            <!-- IDEAS -->
-
-            <div id="view-ideas" class="view-content">
-                <section class="category">
-                    <!--
-                        ==========================================
-                        NUEVO: PENSAMIENTO ALEATORIO
-                        ==========================================
-                        Toma un registro al azar de ideas_logs y lo muestra
-                        temporalmente, junto con la fecha en que se creó.
-                        Cada clic en el botón selecciona uno nuevo al azar.
-                    -->
-                    <div class="random-idea-box" id="random-idea-box">
-                        <div class="random-idea-label">Pensamiento Aleatorio</div>
-                        <div class="random-idea-text" id="random-idea-text">Presiona el botón para ver un pensamiento al
-                            azar.</div>
-                        <div class="random-idea-date" id="random-idea-date"></div>
-                        <button class="add-habit-btn" onclick="showRandomIdea()" style="margin-top:10px;">
-                            🎲 Nuevo Pensamiento
-                        </button>
-                    </div>
-
-                    <div class="item-list-header idea-header" style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button class="add-habit-btn" onclick="addIdea()" aria-label="Agregar nueva idea">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
-                            Nueva Idea
-                        </button>
-                        <button class="add-habit-btn" onclick="exportIdeasSQL()"
-                            aria-label="Exportar histórico de ideas"
-                            style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-dark);">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-                                style="margin-right: 4px;">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="7 10 12 15 17 10"></polyline>
-                                <line x1="12" y1="15" x2="12" y2="3"></line>
-                            </svg>
-                            Historial (SQL)
-                        </button>
-                    </div>
-                    <ul id="list-ideas" style="list-style:none;"></ul>
-                </section>
-            </div>
-
-            <!--
-                ==========================================
-                SENTIMIENTOS = LOVES + ODIOS EN TABS
-                ==========================================
-                Se fusionaron las 3 vistas anteriores (Loves, Odios,
-                Sentimientos) en una sola para liberar espacio en el
-                menú. Los items que antes vivían en "Sentimientos"
-                ahora se gestionan como Loves — corre una vez
-                migrarSentimientosALoves() en la consola para pasar
-                los que ya tenías. Las tabs cambian entre Loves y
-                Odios dentro de la misma vista (mood_tracker.js).
-            -->
-            <div id="view-sentimientos" class="view-content">
-                <section class="category">
-                    <div class="sent-tabs">
-                        <button type="button" class="sent-tab-btn" data-sub="loves"
-                            onclick="switchSentimientosTab('loves', this)">❤️ Loves</button>
-                        <button type="button" class="sent-tab-btn" data-sub="odios"
-                            onclick="switchSentimientosTab('odios', this)">💢 Odios</button>
-                    </div>
-
-                    <div id="subview-loves-pasiones">
-                        <!--
-                            Fila unificada y compacta (no se rompe en
-                            mobile): Add + Historial (SQL) + "Guardar
-                            registro de hoy" (este último lo inyecta
-                            mood_tracker.js en el slot de abajo).
-                        -->
-                        <div class="item-list-header love-header mood-header-row">
-                            <button class="add-habit-btn" onclick="addLove()" aria-label="Agregar nueva pasión"
-                                title="Agregar nueva pasión">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        <div class="item-list-header habit-grid"
+                            style="grid-template-columns: 1fr auto; padding: 10px 16px;">
+                            <button class="add-habit-btn" onclick="addHabit()" aria-label="Agregar nuevo hábito">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                 </svg>
-                                Add
+                                Add Habit
                             </button>
-                            <!-- Exportar historial completo de Loves a CSV -->
-                            <button class="add-habit-btn" onclick="exportLovesSQL()"
-                                aria-label="Exportar histórico de Loves" title="Exportar histórico completo (SQL)"
-                                style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-dark);">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            <button class="sql-btn-compact" onclick="exportHabitsJSON()"
+                                aria-label="Exportar Hábitos (JSON)" title="Exportar Hábitos como JSON .txt">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                                     <polyline points="7 10 12 15 17 10"></polyline>
                                     <line x1="12" y1="15" x2="12" y2="3"></line>
                                 </svg>
-                                SQL
+                                JSON
                             </button>
-                            <div class="mood-save-slot" data-save-slot="loves"></div>
                         </div>
-                        <div id="list-loves"></div>
-                    </div>
+                        <ul id="list-habits" style="list-style:none;"></ul>
+                    </section>
+                </div>
 
-                    <!--
-                        ODIOS — BARRA DE INTENSIDAD 1-10 (LO OPUESTO A LOVES)
-                        Requiere en Supabase "odios_logs" (id, name,
-                        image_filename) + "odios_registros" (id, odio_id,
-                        valor 1-10, fecha, created_at, UNIQUE(odio_id, fecha)).
-                    -->
-                    <div id="subview-odios-pasiones" class="hidden">
-                        <!-- Mismos 3 botones que Loves, para que quede simétrico. -->
-                        <div class="item-list-header love-header mood-header-row">
-                            <button class="add-habit-btn" onclick="addOdio()" aria-label="Agregar nuevo odio"
-                                title="Agregar nuevo odio">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                <div id="tracking-tareas" class="tracking-subview hidden">
+                    <section class="category">
+                        <div class="item-list-header tarea-header">
+                            <button class="add-habit-btn" onclick="addTarea()" aria-label="Agregar tarea">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                 </svg>
-                                Add
+                                Nueva Tarea
                             </button>
-                            <!-- Exportar historial completo de Odios a CSV -->
-                            <button class="add-habit-btn" onclick="exportOdiosSQL()"
-                                aria-label="Exportar histórico de Odios" title="Exportar histórico completo (SQL)"
+                        </div>
+                        <ul id="list-tareas-dia" style="list-style:none;"></ul>
+                    </section>
+                </div>
+
+                <div id="tracking-ideas" class="tracking-subview hidden">
+                    <section class="category">
+                        <div class="random-idea-box" id="random-idea-box">
+                            <div class="random-idea-label">Pensamiento Aleatorio</div>
+                            <div class="random-idea-text" id="random-idea-text">Presiona el botón para ver un
+                                pensamiento al azar.</div>
+                            <div class="random-idea-date" id="random-idea-date"></div>
+                            <button class="add-habit-btn" onclick="showRandomIdea()" style="margin-top:10px;">🎲 Nuevo
+                                Pensamiento</button>
+                        </div>
+                        <div class="item-list-header idea-header" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="add-habit-btn" onclick="addIdea()" aria-label="Agregar nueva idea">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                Nueva Idea
+                            </button>
+                            <button class="add-habit-btn" onclick="exportIdeasSQL()"
+                                aria-label="Exportar histórico de ideas"
                                 style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-dark);">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                                    style="margin-right: 4px;">
                                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                                     <polyline points="7 10 12 15 17 10"></polyline>
                                     <line x1="12" y1="15" x2="12" y2="3"></line>
                                 </svg>
-                                SQL
+                                Historial (SQL)
                             </button>
-                            <div class="mood-save-slot" data-save-slot="odios"></div>
                         </div>
-                        <div id="list-odios"></div>
-                    </div>
+                        <ul id="list-ideas" style="list-style:none;"></ul>
+                    </section>
+                </div>
+            </div>
+
+            <!-- 🌱 CAMINO -->
+            <div id="view-camino" class="bottom-view">
+                <section class="category" style="padding:40px 20px; text-align:center; color:var(--text-muted);">
+                    <div style="font-size:3rem; margin-bottom:12px;">🌱</div>
+                    <div style="font-size:1.1rem; font-weight:700; color:var(--text-dark); margin-bottom:8px;">Camino de
+                        Felicidad</div>
+                    <p>Próximo paso: Apariencia, NoFap, Piel, Composición, Casino, Apego/Sistema Nervioso.</p>
                 </section>
             </div>
 
-            <!--
-                ==========================================
-                PLANES
-                ==========================================
-                Reemplazó por completo a "Reglas de Vida" (se
-                eliminó por redundante con Hábitos). Permite guardar
-                planes futuros con fecha (ej. "Caminata de
-                senderismo" el 9 de agosto), muestra en grande los
-                días que faltan y, cuando la fecha está dentro del
-                rango de pronóstico (16 días), el clima real esperado
-                en el lugar del plan.
-
-                Requiere en Supabase la tabla "planes_logs" (id,
-                title, plan_date [date], location_name [text,
-                nullable], lat [float8, nullable], lng [float8,
-                nullable], created_at).
-
-                El clima se consulta en vivo contra Open-Meteo
-                (geocoding-api.open-meteo.com y api.open-meteo.com),
-                gratuito y sin API key.
-            -->
-            <div id="view-reglas" class="view-content">
+            <!-- 📅 PLANES -->
+            <div id="view-planes" class="bottom-view">
                 <section class="category">
                     <div id="subview-planes-wrap">
                         <div class="item-list-header tarea-header" style="display: flex; gap: 10px; flex-wrap: wrap;">
@@ -619,45 +254,52 @@
                 </section>
             </div>
 
-            <!-- COMPRAS -->
-
-            <div id="view-compras" class="view-content">
+            <!-- 👤 PERFIL -->
+            <div id="view-perfil" class="bottom-view">
                 <section class="category">
-                    <div id="subview-compras-cards">
-                        <div class="item-list-header love-header">
-                            <button class="add-habit-btn" onclick="addCompra()" aria-label="Agregar nueva compra">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
-                                Add Compra
-                            </button>
+                    <div style="padding: 16px 16px 0;">
+                        <div class="category-header year-progress-title" id="year-progress-title"
+                            style="border-bottom: none; padding-left: 0; padding-right: 0;">
+                            Progreso del Año · Semana -- de 52
+                            <span class="year-progress-subtitle">Calculando días restantes...</span>
                         </div>
-                        <div id="list-compras"></div>
+                        <div id="year-weeks-grid" class="weeks-grid"></div>
+                        <div class="category-header year-progress-title" id="english-progress-title"
+                            style="border-bottom: none; padding-left: 0; padding-right: 0; margin-top: 20px;">
+                            Curso de Inglés · Semana -- de --
+                            <span class="year-progress-subtitle">Calculando semanas restantes...</span>
+                        </div>
+                        <div id="english-weeks-grid" class="weeks-grid"></div>
                     </div>
+                    <div class="top-habits-wrapper" style="border-top: 1px solid var(--border-color);">
+                        <div class="category-header" style="border-bottom: none;">Tus 3 Mejores Hábitos</div>
+                        <div id="top-habits-list" class="top-habits-list"></div>
+                    </div>
+                    <div class="top-habits-wrapper" id="top-loves-wrapper"
+                        style="border-top: 1px solid var(--border-color);">
+                        <div class="category-header" style="border-bottom: none;">Tus 3 Loves Favoritos</div>
+                        <div id="top-loves-list" class="top-habits-list"></div>
+                    </div>
+                    <div class="top-habits-wrapper" id="top-sentimientos-wrapper"
+                        style="border-top: 1px solid var(--border-color);">
+                        <div class="category-header" style="border-bottom: none;">Tus 3 Sentimientos Más Fuertes Hoy
+                        </div>
+                        <div id="top-sentimientos-list" class="top-habits-list"></div>
+                    </div>
+                    <div id="english-section" style="padding: 16px;"></div>
                 </section>
-            </div>
-
-            <!-- ENGLISH -->
-            <div id="view-english" class="view-content">
-                <section class="category" id="english-section"></section>
             </div>
 
         </main>
     </div>
 
-    <!--
-        Orden de carga:
-        1. main.js define _supabase y funciones core
-        2. Componentes usan _supabase y exponen funciones globales
-    -->
     <script src="main.js"></script>
     <script src="./Components/auth_lock/auth_lock.js"></script>
-    <script src="./Components/nav_menu/nav_menu.js"></script>
+    <!-- <script src="./Components/nav_menu/nav_menu.js"></script> -->
     <script src="./Components/mood_tracker/mood_tracker.js"></script>
     <script src="./Components/finance/finance.js"></script>
     <script src="./Components/english/english.js"></script>
+    <script src="./Components/bottom_nav/bottom_nav.js"></script>
 </body>
 
 </html>
