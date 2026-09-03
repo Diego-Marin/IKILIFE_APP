@@ -105,12 +105,6 @@
                         <span id="day-label-7">D</span>
                     </div>
                 </div>
-
-                <div id="habit-legend-yesterday"></div>
-                <div id="state-bar-container"></div>
-                <div id="motivational-text" style="padding: 0 16px 16px; font-style: italic; color: var(--text-muted);">
-                </div>
-                <div id="espejo-alma-container"></div>
                 <div class="year-progress-card"
                     style="margin: 16px 0; padding: 16px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--white);">
                     <div class="category-header year-progress-title" id="year-progress-title"
@@ -120,6 +114,11 @@
                     </div>
                     <div id="year-weeks-grid" class="weeks-grid"></div>
                 </div>
+                <div id="habit-legend-yesterday"></div>
+                <div id="state-bar-container"></div>
+                <div id="motivational-text" style="padding: 0 16px 16px; font-style: italic; color: var(--text-muted);">
+                </div>
+                <div id="espejo-alma-container"></div>
             </div>
 
             <!-- 📊 SEGUIMIENTO -->
@@ -295,12 +294,109 @@
                 </section>
             </div>
 
+            <!-- 💰 FINANZAS -->
+            <div id="view-money" class="bottom-view">
+                <div id="finance-main">
+                    <!-- Header -->
+                    <div class="finance-top-bar" style="position:relative; justify-content:center;">
+                        <h3>💰 Resumen Financiero</h3>
+                    </div>
+
+                    <!-- KPIs -->
+                    <div class="summary-grid">
+                        <div class="summary-card clickable" onclick="toggleFinanceView('finance-income')">
+                            <div class="summary-label">Ingresos</div>
+                            <div class="summary-value text-income" id="kpi-ingresos">$0</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">Gastos</div>
+                            <div class="summary-value text-expense" id="kpi-gastos">$0</div>
+                        </div>
+                        <div class="summary-card clickable" onclick="toggleFinanceView('finance-main')">
+                            <div class="summary-label">Ahorro / Capital</div>
+                            <div class="summary-value text-savings" id="kpi-ahorro">$0</div>
+                        </div>
+                        <div class="summary-card clickable" onclick="toggleFinanceView('finance-debts')">
+                            <div class="summary-label">Deudas</div>
+                            <div class="summary-value text-debt" id="kpi-deudas">$0</div>
+                        </div>
+                        <div class="summary-card summary-card--wide">
+                            <div class="summary-label">Patrimonio Neto</div>
+                            <div class="summary-value" id="kpi-patrimonio">$0</div>
+                        </div>
+                    </div>
+
+                    <!-- Acciones -->
+                    <div class="finance-actions-row">
+                        <button class="sql-btn-compact" onclick="toggleFinanceHistory()">📊 Historial</button>
+                        <button class="sql-btn-compact finance-reset-btn" onclick="resetFinanceMonth()">🔄 Reiniciar
+                            Mes</button>
+                    </div>
+
+                    <!-- Categorías dinámicas -->
+                    <div id="dynamic-expense-categories"></div>
+
+                    <!-- Agregar categoría -->
+                    <div style="padding: 16px;">
+                        <button class="add-habit-btn" onclick="addFinanceCategory()" style="width:100%;">+ Nueva
+                            Categoría de Gasto</button>
+                    </div>
+
+                    <!-- Exportar -->
+                    <div style="padding: 0 16px 16px;">
+                        <button class="sql-btn-compact" onclick="exportFinanceSQL()"
+                            style="width:100%; justify-content:center;">💾 Exportar SQL</button>
+                    </div>
+                </div>
+
+                <!-- Vista Ingresos -->
+                <div id="finance-income" class="hidden">
+                    <div class="finance-top-bar" style="position:relative; justify-content:center;">
+                        <button class="icon-btn" onclick="toggleFinanceView('finance-main')"
+                            style="position:absolute; left:16px; top:50%; transform:translateY(-50%);">←</button>
+                        <h3>💵 Ingresos</h3>
+                    </div>
+                    <div class="finance-item-header">
+                        <div>Concepto</div>
+                        <div>Total</div>
+                        <div>+ Sumar</div>
+                    </div>
+                    <ul id="list-incomes" style="list-style:none;"></ul>
+                    <div style="padding: 16px;">
+                        <button class="add-habit-btn" onclick="addFinanceItem('income', 'Ingresos')"
+                            style="width:100%;">+ Agregar Ingreso</button>
+                    </div>
+                    <div style="padding: 0 16px 16px; text-align:center; color:var(--text-muted); font-size:0.8rem;">
+                        Total: <span id="kpi-ingresos-detail" class="text-income" style="font-weight:800;">$0</span>
+                    </div>
+                </div>
+
+                <!-- Vista Deudas -->
+                <div id="finance-debts" class="hidden">
+                    <div class="finance-top-bar" style="position:relative; justify-content:center;">
+                        <button class="icon-btn" onclick="toggleFinanceView('finance-main')"
+                            style="position:absolute; left:16px; top:50%; transform:translateY(-50%);">←</button>
+                        <h3>💳 Deudas</h3>
+                    </div>
+                    <div class="finance-item-header">
+                        <div>Concepto</div>
+                        <div>Total</div>
+                        <div>+ Sumar</div>
+                    </div>
+                    <ul id="list-debts" style="list-style:none;"></ul>
+                    <div style="padding: 16px;">
+                        <button class="add-habit-btn" onclick="addFinanceItem('debt', 'Deudas')" style="width:100%;">+
+                            Agregar Deuda</button>
+                    </div>
+                </div>
+
+                <!-- Historial -->
+
         </main>
     </div>
 
     <script src="main.js"></script>
     <script src="./Components/auth_lock/auth_lock.js"></script>
-    <!-- <script src="./Components/nav_menu/nav_menu.js"></script> -->
     <script src="./Components/mood_tracker/mood_tracker.js"></script>
     <script src="./Components/finance/finance.js"></script>
     <script src="./Components/english/english.js"></script>

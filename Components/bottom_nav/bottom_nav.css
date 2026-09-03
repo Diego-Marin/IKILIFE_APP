@@ -1,30 +1,27 @@
 /**
  * ==========================================
- * BOTTOM NAVIGATION BAR (Estilo círculo activo)
+ * BOTTOM NAVIGATION BAR (Pegado, minimalista)
  * ==========================================
  */
+
 .bottom-nav {
     position: fixed;
-    bottom: 12px;
-    left: 16px;
-    right: 16px;
+    bottom: 0;
+    left: 0;
+    right: 0;
     z-index: 1000;
     background: var(--white);
-    border-radius: 24px;
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.10), 0 1px 4px rgba(0,0,0,0.04);
-    border: 1px solid var(--border-color);
-    max-width: 560px;
-    margin: 0 auto;
+    border-top: 1px solid var(--border-color);
     padding-bottom: env(safe-area-inset-bottom, 0);
-    overflow: hidden;
 }
 
 .bottom-nav-inner {
     display: flex;
     justify-content: space-around;
     align-items: center;
-    height: 64px;
-    padding: 0 4px;
+    max-width: 600px;
+    margin: 0 auto;
+    height: 52px;
 }
 
 .bottom-nav-item {
@@ -33,43 +30,32 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
+    gap: 2px;
     background: none;
     border: none;
-    color: var(--text-muted);
-    font-size: 0.6rem;
-    font-weight: 700;
     cursor: pointer;
     height: 100%;
     padding: 2px 0;
-    transition: color 0.2s ease;
-    position: relative;
-}
-
-.nav-icon-wrap {
-    width: 44px;
-    height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: color 0.15s ease;
 }
 
 .nav-icon {
-    width: 22px;
-    height: 22px;
-    stroke-width: 2;
-    transition: stroke 0.2s ease, transform 0.2s ease;
+    width: 20px;
+    height: 20px;
+    stroke-width: 1.5;
+    transition: stroke 0.15s ease;
 }
 
 .nav-label {
-    transition: color 0.2s ease;
+    font-size: 0.55rem;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    transition: color 0.15s ease;
 }
 
 /* Inactivo */
-.bottom-nav-item:not(.active) .nav-icon-wrap {
-    background: transparent;
+.bottom-nav-item:not(.active) {
+    color: #9ca3af;
 }
 .bottom-nav-item:not(.active) .nav-icon {
     stroke: #9ca3af;
@@ -78,29 +64,42 @@
     color: #9ca3af;
 }
 
-/* Activo: círculo verde */
-.bottom-nav-item.active .nav-icon-wrap {
-    background-color: var(--primary-green);
-    box-shadow: 0 4px 12px rgba(116, 192, 138, 0.45);
-    transform: translateY(-2px);
+/* Activo: solo color, sin fondo, sin punto, sin línea */
+.bottom-nav-item.active {
+    color: var(--primary-green);
 }
 .bottom-nav-item.active .nav-icon {
-    stroke: #ffffff;
+    stroke: var(--primary-green);
 }
 .bottom-nav-item.active .nav-label {
     color: var(--primary-green);
 }
 
-/* Padding del contenedor para que no tape el nav flotante */
-.container {
-    padding-bottom: 96px !important;
+/* Modo oscuro */
+.dark-mode .bottom-nav {
+    background: var(--white);
+    border-color: var(--border-color);
 }
 
-/* Vistas controladas por bottom nav */
+.dark-mode .bottom-nav-item:not(.active) {
+    color: #666;
+}
+.dark-mode .bottom-nav-item:not(.active) .nav-icon {
+    stroke: #666;
+}
+.dark-mode .bottom-nav-item:not(.active) .nav-label {
+    color: #666;
+}
+
+/* Padding del contenedor (ajustado a altura 52px) */
+.container {
+    padding-bottom: 64px !important;
+}
+
+/* Vistas */
 .bottom-view {
     display: none;
 }
-
 .bottom-view.active {
     display: block;
 }
