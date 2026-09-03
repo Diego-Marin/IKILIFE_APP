@@ -2062,6 +2062,131 @@ div.day-segment.future {
 
 /**
  * ==========================================
+ * IDEA RÁPIDA (INICIO) — TEXTO + VOZ
+ * ==========================================
+ */
+.quick-idea-card {
+    background: linear-gradient(135deg, var(--bg-header) 0%, transparent 100%);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+}
+
+.quick-idea-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 10px;
+    gap: 8px;
+}
+
+.quick-idea-header span:first-child {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    white-space: nowrap;
+}
+
+.quick-idea-hint {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-align: right;
+    transition: color var(--transition);
+}
+
+.quick-idea-hint--recording {
+    color: #e74c3c;
+    font-weight: 700;
+}
+
+.quick-idea-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.quick-idea-textarea {
+    width: 100%;
+    resize: none;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background-color: var(--white);
+    color: var(--text-dark);
+    font-family: inherit;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    transition: border-color var(--transition);
+}
+
+.quick-idea-textarea:focus {
+    outline: none;
+    border-color: var(--primary-green);
+}
+
+.quick-idea-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.quick-idea-mic-btn {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background-color: var(--white);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.quick-idea-mic-btn:hover {
+    border-color: var(--primary-green);
+    color: var(--primary-green);
+}
+
+.quick-idea-mic-btn--recording {
+    background-color: #e74c3c;
+    border-color: #e74c3c;
+    color: var(--white);
+    animation: quickIdeaPulse 1.2s ease-in-out infinite;
+}
+
+.quick-idea-mic-btn--unsupported {
+    display: none;
+}
+
+@keyframes quickIdeaPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.45); }
+    70%  { box-shadow: 0 0 0 10px rgba(231, 76, 60, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+}
+
+.quick-idea-save-btn {
+    flex: 1;
+    padding: 10px 0;
+    border-radius: 10px;
+    border: none;
+    background-color: var(--text-dark);
+    color: var(--bg-light);
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: opacity var(--transition);
+}
+
+.quick-idea-save-btn:hover {
+    opacity: 0.85;
+}
+
+/**
+ * ==========================================
  * DASHBOARD DE INICIO (HOY) — UNIFICADO
  * ==========================================
  */

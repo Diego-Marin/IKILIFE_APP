@@ -89,6 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
         applySavedTheme();
                 updateWeeklyProgress();
         loadHomeUpcomingPlans();
+        initQuickIdeaWidget();
         loadHabits();
         loadIdeas();
         showRandomIdea();
@@ -1188,6 +1189,131 @@ async function saveLearning() {
 
 
 
+
+/**
+ * ==========================================
+ * IDEA RÁPIDA (INICIO) — TEXTO + VOZ
+ * ==========================================
+ * Permite capturar una idea sin salir de Inicio. Escribe directo en el
+ * textarea o usa el micrófono para dictarla (Web Speech API). Si el
+ * navegador no soporta reconocimiento de voz, el botón de micrófono se
+ * oculta y solo queda la escritura manual. Guarda en la misma tabla
+ * "ideas_logs" que usa el Brain Dump.
+ */
+let quickIdeaRecognition = null;
+let quickIdeaRecording = false;
+let quickIdeaBaseText = '';
+
+function initQuickIdeaWidget() {
+    const micBtn = document.getElementById('quick-idea-mic-btn');
+    const input = document.getElementById('quick-idea-input');
+    if (!micBtn || !input) return;
+
+    input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            saveQuickIdea();
+        }
+    });
+
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognitionAPI) {
+        micBtn.classList.add('quick-idea-mic-btn--unsupported');
+        return;
+    }
+
+    quickIdeaRecognition = new SpeechRecognitionAPI();
+    quickIdeaRecognition.lang = 'es-CO';
+    quickIdeaRecognition.continuous = true;
+    quickIdeaRecognition.interimResults = true;
+
+    quickIdeaRecognition.onstart = function () {
+        quickIdeaBaseText = input.value.trim();
+        if (quickIdeaBaseText) quickIdeaBaseText += ' ';
+    };
+
+    quickIdeaRecognition.onresult = function (event) {
+        let finalTranscript = '';
+        let interimTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+                finalTranscript += transcript;
+            } else {
+                interimTranscript += transcript;
+            }
+        }
+        if (finalTranscript) quickIdeaBaseText += finalTranscript;
+        input.value = (quickIdeaBaseText + interimTranscript).trim();
+    };
+
+    quickIdeaRecognition.onerror = function (event) {
+        console.warn('Idea rápida: error de reconocimiento de voz.', event.error);
+        stopQuickIdeaVoice();
+    };
+
+    quickIdeaRecognition.onend = function () {
+        quickIdeaRecording = false;
+        updateQuickIdeaMicUI();
+    };
+}
+
+function toggleQuickIdeaVoice() {
+    if (!quickIdeaRecognition) return;
+    if (quickIdeaRecording) {
+        stopQuickIdeaVoice();
+        return;
+    }
+    try {
+        quickIdeaRecognition.start();
+        quickIdeaRecording = true;
+        updateQuickIdeaMicUI();
+    } catch (e) {
+        console.warn('Idea rápida: no se pudo iniciar el dictado.', e.message);
+    }
+}
+
+function stopQuickIdeaVoice() {
+    if (quickIdeaRecognition) {
+        try { quickIdeaRecognition.stop(); } catch (e) { /* ignore */ }
+    }
+    quickIdeaRecording = false;
+    updateQuickIdeaMicUI();
+}
+
+function updateQuickIdeaMicUI() {
+    const micBtn = document.getElementById('quick-idea-mic-btn');
+    const hint = document.getElementById('quick-idea-hint');
+    if (!micBtn) return;
+    micBtn.classList.toggle('quick-idea-mic-btn--recording', quickIdeaRecording);
+    if (hint) {
+        hint.textContent = quickIdeaRecording ? '🎙️ Escuchando...' : 'Escribe o dicta tu idea';
+        hint.classList.toggle('quick-idea-hint--recording', quickIdeaRecording);
+    }
+}
+
+async function saveQuickIdea() {
+    const input = document.getElementById('quick-idea-input');
+    if (!input) return;
+    const content = input.value.trim();
+    if (!content) return;
+
+    if (quickIdeaRecording) stopQuickIdeaVoice();
+
+    const { error } = await _supabase
+        .from('ideas_logs')
+        .insert([{ content: content }]);
+
+    if (error) {
+        alert("Error al guardar la idea: " + error.message);
+        return;
+    }
+
+    input.value = '';
+    randomIdeaCache = []; // invalida el caché de "Pensamiento Aleatorio"
+    if (typeof loadIdeas === 'function') loadIdeas();
+    if (typeof showRandomIdea === 'function') showRandomIdea();
+}
 
 /**
  * ==========================================
