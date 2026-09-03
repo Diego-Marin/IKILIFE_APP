@@ -79,18 +79,23 @@
             updateWeeklyProgress();
             if (typeof loadEspejoDelAlma === 'function') loadEspejoDelAlma();
             if (typeof renderYearWeeks === 'function') renderYearWeeks();
+            if (typeof loadHomeUpcomingPlans === 'function') loadHomeUpcomingPlans();
         }
+
         if (tabId === 'tracking') {
-            loadHabits();
-            loadTareas();
-            loadIdeas();
+            if (typeof loadHabits === 'function') loadHabits();
+            if (typeof loadTareas === 'function') loadTareas();
+            if (typeof loadIdeas === 'function') loadIdeas();
         }
+
         if (tabId === 'planes') {
-            loadPlanes();
+            if (typeof loadPlanes === 'function') loadPlanes();
         }
+
         if (tabId === 'money') {
             if (typeof loadFinances === 'function') loadFinances();
         }
+
         if (tabId === 'perfil') {
             if (typeof loadMetrics === 'function') loadMetrics();
             if (typeof renderEnglishCourseWeeks === 'function') renderEnglishCourseWeeks();

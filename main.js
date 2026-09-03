@@ -87,8 +87,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // rompía la carga inicial con un ReferenceError en consola.
     try {
         applySavedTheme();
-        updateWeeklyProgress();
-        loadDailyQuote();
+                updateWeeklyProgress();
+        loadHomeUpcomingPlans();
         loadHabits();
         loadIdeas();
         showRandomIdea();
@@ -213,7 +213,7 @@ function getDaysRemainingInYear(date) {
 function updateWeeklyProgress() {
     const today = new Date();
 
-    const dateElement = document.getElementById('current-month-text');
+    const dateElement = document.getElementById('fusion-date-text');
     if (dateElement) {
         const fullDate = new Intl.DateTimeFormat('es-CO', {
             day: 'numeric',
@@ -223,11 +223,11 @@ function updateWeeklyProgress() {
         dateElement.textContent = fullDate;
     }
 
-    // Ahora se muestra la semana del año (no la semana del mes)
+    // Semana del año (header izquierda)
     const weekOfYear = getWeekOfYear(today);
-    const weekElement = document.getElementById('current-week-text');
+    const weekElement = document.getElementById('fusion-week-text');
     if (weekElement) {
-        weekElement.textContent = `Avance Semana ${weekOfYear} de 52`;
+        weekElement.textContent = `Semana ${weekOfYear}`;
     }
 
     let currentDay = today.getDay();
@@ -2004,6 +2004,62 @@ async function deletePlan(id, title) {
     }
 }
 
+/**
+ * ==========================================
+ * DASHBOARD DE INICIO: PLANES PRÓXIMOS
+ * ==========================================
+ * Muestra en la pestaña Home los planes que ocurren hoy, mañana
+ * o pasado mañana, para tener una ventana rápida a la actualidad.
+ */
+async function loadHomeUpcomingPlans() {
+    const container = document.getElementById('home-upcoming-plans');
+    if (!container) return;
+
+    const { data: planes, error } = await _supabase
+        .from('planes_logs')
+        .select('*')
+        .order('plan_date', { ascending: true });
+
+    if (error) {
+        console.error("Error cargando planes para home:", error.message);
+        container.innerHTML = '';
+        return;
+    }
+
+    const upcoming = (planes || []).filter(p => {
+        const d = diasRestantes(p.plan_date);
+        return d >= 0 && d <= 2;
+    });
+
+    if (upcoming.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    let html = '<div class="home-plans-list">';
+
+    upcoming.forEach(plan => {
+        const dias = diasRestantes(plan.plan_date);
+        let badgeClass = 'home-plan-badge--soon';
+        let badgeText = `En ${dias} días`;
+        if (dias === 0) { badgeClass = 'home-plan-badge--today'; badgeText = 'HOY'; }
+        else if (dias === 1) { badgeText = 'Mañana'; }
+
+        html += `
+            <div class="home-plan-item" onclick="switchBottomTab('planes')" title="Ver en Planes">
+                <div class="home-plan-info">
+                    <div class="home-plan-title">${plan.title}</div>
+                    <div class="home-plan-date">${formatearFechaPlan(plan.plan_date)}${plan.location_name ? ' · ' + plan.location_name : ''}</div>
+                </div>
+                <span class="home-plan-badge ${badgeClass}">${badgeText}</span>
+            </div>
+        `;
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+}
+
 
 
 
@@ -2052,36 +2108,30 @@ async function loadMetrics() {
 
 function renderYearWeeks() {
     const container = document.getElementById('year-weeks-grid');
+    const footerEl = document.getElementById('fusion-footer');
     if (!container) return;
+
     container.innerHTML = '';
-
     const today = new Date();
-
-    // Semana actual del año y días restantes hasta el 31 de diciembre
     const currentWeek = getWeekOfYear(today);
     const daysRemaining = getDaysRemainingInYear(today);
     const totalWeeks = 52;
 
-    // Actualizar el título de la sección con la semana corriendo
-    // y el mensaje de días restantes para terminar el año.
-    const titleEl = document.getElementById('year-progress-title');
-    if (titleEl) {
-        titleEl.innerHTML = `Progreso del Año · Semana ${currentWeek} de ${totalWeeks}
-            <span class="year-progress-subtitle">Quedan ${daysRemaining} días para terminar el año</span>`;
+    // Footer: días restantes
+    if (footerEl) {
+        footerEl.textContent = `Quedan ${daysRemaining} días para terminar el año`;
     }
+
+    container.className = 'fusion-weeks-grid';
 
     for (let i = 1; i <= totalWeeks; i++) {
         const box = document.createElement('div');
         box.className = 'week-box';
-        box.title = `Semana ${i}`;
-
         if (i < currentWeek) {
             box.classList.add('passed');
         } else if (i === currentWeek) {
             box.classList.add('current');
-            box.title = `Semana ${i} (Actual)`;
         }
-
         container.appendChild(box);
     }
 }
@@ -2558,25 +2608,26 @@ function renderStateBar(containerId) {
     }
 
     function update() {
-        const now = new Date();
-        const mins = now.getHours() * 60 + now.getMinutes();
-        const isWeekend = now.getDay() === 0 || now.getDay() === 6;
+    const now = new Date();
+    const mins = now.getHours() * 60 + now.getMinutes();
+    const isWeekend = now.getDay() === 0 || now.getDay() === 6;
 
-        const schedule = isWeekend ? CONFIG.weekend : CONFIG.weekday;
+    const schedule = isWeekend ? CONFIG.weekend : CONFIG.weekday;
 
-        // Solo se conservan los slots cuyo rango horario incluye la
-        // hora ACTUAL. Nada fuera de horario se muestra. Si dos o más
-        // slots comparten el mismo rango (a propósito), ambos aparecen.
-        activeSlots = schedule.filter(s => isWithinRange(mins, s.start, s.end));
+    activeSlots = schedule.filter(s => isWithinRange(mins, s.start, s.end));
 
-        // Si el slot que tenía el dropdown abierto ya no está activo
-        // (cambió la hora), se cierra para no dejar un índice inválido.
-        if (openIndex !== null && openIndex >= activeSlots.length) {
-            openIndex = null;
-        }
-
-        renderCards();
+    if (openIndex !== null && openIndex >= activeSlots.length) {
+        openIndex = null;
     }
+
+    // Actualizar reloj del dashboard de hoy
+    const clockEl = document.getElementById('today-clock');
+    if (clockEl) {
+        clockEl.textContent = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true });
+    }
+
+    renderCards();
+}
 
     update();
     setInterval(update, 60000);

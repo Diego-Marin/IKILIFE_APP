@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="./Components/bottom_nav/bottom_nav.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <base target="_blank">
+    <base target="_blank">
 </head>
 
 <body>
@@ -81,10 +82,11 @@
 
             <!-- 🏠 INICIO -->
             <div id="view-home" class="bottom-view active">
-                <div class="weekly-progress-container">
-                    <div class="progress-header">
-                        <span id="current-week-text" class="week-title">Avance Semana -- de 52</span>
-                        <span id="current-month-text" class="month-title">--</span>
+                <!-- Progreso Semanal + Anual (fusionado) -->
+                <div class="progress-fusion-card">
+                    <div class="progress-fusion-header">
+                        <span id="fusion-week-text">Semana --</span>
+                        <span id="fusion-date-text" class="progress-fusion-date">--</span>
                     </div>
                     <div class="progress-bar-segmented">
                         <div class="day-segment"></div>
@@ -104,18 +106,21 @@
                         <span id="day-label-6">S</span>
                         <span id="day-label-7">D</span>
                     </div>
+                    <div class="progress-fusion-divider"></div>
+                    <div id="year-weeks-grid" class="fusion-weeks-grid"></div>
+                    <div id="fusion-footer" class="progress-fusion-footer">Quedan -- días para terminar el año</div>
                 </div>
-                <div class="year-progress-card"
-                    style="margin: 16px 0; padding: 16px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--white);">
-                    <div class="category-header year-progress-title" id="year-progress-title"
-                        style="border-bottom: none; padding: 0; margin-bottom: 8px;">
-                        Progreso del Año · Semana -- de 52
-                        <span class="year-progress-subtitle">Calculando días restantes...</span>
-                    </div>
-                    <div id="year-weeks-grid" class="weeks-grid"></div>
-                </div>
+
                 <div id="habit-legend-yesterday"></div>
-                <div id="state-bar-container"></div>
+                <!-- Dashboard del Día: Estado + Planes próximos -->
+                <div class="today-dashboard">
+                    <div class="today-dashboard-header">
+                        <span>📍 Ahora</span>
+                        <span id="today-clock">--:--</span>
+                    </div>
+                    <div id="state-bar-container"></div>
+                    <div id="home-upcoming-plans"></div>
+                </div>
                 <div id="espejo-alma-container"></div>
             </div>
 
@@ -264,15 +269,6 @@
             <!-- 👤 PERFIL -->
             <div id="view-perfil" class="bottom-view">
                 <section class="category">
-                    <div style="padding: 16px 16px 0;">
-                        <div id="year-weeks-grid" class="weeks-grid"></div>
-                        <div class="category-header year-progress-title" id="english-progress-title"
-                            style="border-bottom: none; padding-left: 0; padding-right: 0; margin-top: 20px;">
-                            Curso de Inglés · Semana -- de --
-                            <span class="year-progress-subtitle">Calculando semanas restantes...</span>
-                        </div>
-                        <div id="english-weeks-grid" class="weeks-grid"></div>
-                    </div>
                     <div class="top-habits-wrapper" style="border-top: 1px solid var(--border-color);">
                         <div class="category-header" style="border-bottom: none;">Tus 3 Mejores Hábitos</div>
                         <div id="top-habits-list" class="top-habits-list"></div>
@@ -288,7 +284,14 @@
                         </div>
                         <div id="top-sentimientos-list" class="top-habits-list"></div>
                     </div>
-                    <div id="english-section" style="padding: 16px;"></div>
+                    <div style="padding: 16px 16px 0;">
+                        <div class="category-header year-progress-title" id="english-progress-title"
+                            style="border-bottom: none; padding-left: 0; padding-right: 0; margin-top: 20px;">
+                            Curso de Inglés · Semana -- de --
+                            <span class="year-progress-subtitle">Calculando semanas restantes...</span>
+                        </div>
+                        <div id="english-weeks-grid" class="weeks-grid"></div>
+                    </div>
                 </section>
             </div>
 
@@ -386,9 +389,10 @@
                         <button class="add-habit-btn" onclick="addFinanceItem('debt', 'Deudas')" style="width:100%;">+
                             Agregar Deuda</button>
                     </div>
-                </div>
 
-                <!-- Historial -->
+                </div>div>
+
+            </div>
 
         </main>
     </div>
@@ -398,6 +402,7 @@
     <script src="./Components/mood_tracker/mood_tracker.js"></script>
     <script src="./Components/finance/finance.js"></script>
     <script src="./Components/english/english.js"></script>
+    <script src="./Components/nav_menu/nav_menu.js"></script>
     <script src="./Components/bottom_nav/bottom_nav.js"></script>
 </body>
 
