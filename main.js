@@ -498,7 +498,7 @@ async function loadHabits() {
     });
 
     // Orden preferido para tags conocidos. Los demás van alfabéticamente al final.
-    const knownOrder = ['ME', 'WORK', 'INGLES', 'LOVES', 'OPPORTUNITIES', 'SALUD', 'FAMILIA', 'ESTUDIO'];
+    const knownOrder = ['SALUD', 'ME', 'FAMILIA', 'LOVES', 'WORK', 'ESTUDIO', 'INGLES', 'OPPORTUNITIES'];
     const sortedTags = Object.keys(projectMap).sort((a, b) => {
         const idxA = knownOrder.indexOf(a);
         const idxB = knownOrder.indexOf(b);
@@ -1082,20 +1082,16 @@ function loadAgradecimientos() {
 }
 
 function switchTrackingTab(subtab, btn) {
-    document.querySelectorAll('#view-tracking .tab-btn').forEach(b => {
-        b.classList.remove('tab-active');
-        b.classList.add('tab-inactive');
+    document.querySelectorAll('#view-tracking .camino-tab-btn').forEach(b => {
+        b.classList.remove('camino-tab-active');
     });
     if (btn) {
-        btn.classList.add('tab-active');
-        btn.classList.remove('tab-inactive');
+        btn.classList.add('camino-tab-active');
     }
-    document.querySelectorAll('.tracking-subview').forEach(v => v.classList.add('hidden'));
+    document.querySelectorAll('#view-tracking .tracking-subview').forEach(v => v.classList.add('hidden'));
     const target = document.getElementById('tracking-' + subtab);
     if (target) target.classList.remove('hidden');
 }
-
-
 
 
 
@@ -1144,8 +1140,8 @@ function switchTab(tab, btn) {
     }
 }
 
-function switchTrackingTab(subtab, btn) {
-    document.querySelectorAll('#view-tracking .tab-btn').forEach(b => {
+function switchPlanesTab(subtab, btn) {
+    document.querySelectorAll('#view-planes .tab-btn').forEach(b => {
         b.classList.remove('tab-active');
         b.classList.add('tab-inactive');
     });
@@ -1153,8 +1149,8 @@ function switchTrackingTab(subtab, btn) {
         btn.classList.add('tab-active');
         btn.classList.remove('tab-inactive');
     }
-    document.querySelectorAll('.tracking-subview').forEach(v => v.classList.add('hidden'));
-    const target = document.getElementById('tracking-' + subtab);
+    document.querySelectorAll('#view-planes .planes-subview').forEach(v => v.classList.add('hidden'));
+    const target = document.getElementById('planes-' + subtab);
     if (target) target.classList.remove('hidden');
 }
 

@@ -151,15 +151,19 @@
                 <div id="espejo-alma-container"></div>
             </div>
 
-            <!-- 📊 SEGUIMIENTO -->
+            <!-- 🌱 CAMINO -->
             <div id="view-tracking" class="bottom-view">
-                <div class="tabs" style="margin-bottom:16px;">
-                    <button class="tab-btn tab-active" data-subtab="habits"
-                        onclick="switchTrackingTab('habits', this)">✅ Hábitos</button>
-                    <button class="tab-btn tab-inactive" data-subtab="tareas"
-                        onclick="switchTrackingTab('tareas', this)">📝 Tareas</button>
-                    <button class="tab-btn tab-inactive" data-subtab="ideas"
-                        onclick="switchTrackingTab('ideas', this)">💡 Ideas</button>
+                <div class="camino-tabs">
+                    <button class="camino-tab-btn camino-tab-active" data-subtab="habits"
+                        onclick="switchTrackingTab('habits', this)">
+                        <span class="camino-tab-icon">✅</span>
+                        <span class="camino-tab-label">Hábitos</span>
+                    </button>
+                    <button class="camino-tab-btn" data-subtab="sentimientos"
+                        onclick="switchTrackingTab('sentimientos', this)">
+                        <span class="camino-tab-icon">❤️</span>
+                        <span class="camino-tab-label">Sentimientos</span>
+                    </button>
                 </div>
 
                 <div id="tracking-habits" class="tracking-subview">
@@ -211,7 +215,88 @@
                     </section>
                 </div>
 
-                <div id="tracking-tareas" class="tracking-subview hidden">
+                <div id="tracking-sentimientos" class="tracking-subview hidden">
+                    <div class="sent-tabs">
+                        <button class="sent-tab-btn sent-tab-active" data-sub="loves"
+                            onclick="switchSentimientosTab('loves', this)">❤️ Loves</button>
+                        <button class="sent-tab-btn" data-sub="odios"
+                            onclick="switchSentimientosTab('odios', this)">💢 Odios</button>
+                    </div>
+
+                    <div id="subview-loves-pasiones">
+                        <div class="mood-minimal-header">
+                            <button type="button" class="icon-btn" onclick="addLove()" aria-label="Agregar nuevo love"
+                                title="Agregar nuevo love">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        <ul id="list-loves" style="list-style:none;"></ul>
+                        <div class="item-list-header mood-header-row" style="display: flex; gap: 6px; padding: 8px 16px;">
+                            <button class="add-habit-btn" onclick="exportLovesSQL()"
+                                aria-label="Exportar histórico de Loves"
+                                style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-dark);">📊
+                                Historial</button>
+                            <div class="mood-save-slot" data-save-slot="loves"></div>
+                        </div>
+                    </div>
+
+                    <div id="subview-odios-pasiones" class="hidden">
+                        <div class="mood-minimal-header">
+                            <button type="button" class="icon-btn" onclick="addOdio()" aria-label="Agregar nuevo odio"
+                                title="Agregar nuevo odio">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        <ul id="list-odios" style="list-style:none;"></ul>
+                        <div class="item-list-header mood-header-row" style="display: flex; gap: 6px; padding: 8px 16px;">
+                            <button class="add-habit-btn" onclick="exportOdiosSQL()"
+                                aria-label="Exportar histórico de Odios"
+                                style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-dark);">📊
+                                Historial</button>
+                            <div class="mood-save-slot" data-save-slot="odios"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 📅 PLANES -->
+            <div id="view-planes" class="bottom-view">
+                <div class="tabs" style="margin-bottom:16px;">
+                    <button class="tab-btn tab-active" data-subtab="reglas"
+                        onclick="switchPlanesTab('reglas', this)">📅 Planes</button>
+                    <button class="tab-btn tab-inactive" data-subtab="tareas"
+                        onclick="switchPlanesTab('tareas', this)">📝 Tareas</button>
+                    <button class="tab-btn tab-inactive" data-subtab="ideas"
+                        onclick="switchPlanesTab('ideas', this)">💡 Ideas</button>
+                </div>
+
+                <div id="planes-reglas" class="planes-subview">
+                    <section class="category">
+                        <div id="subview-planes-wrap">
+                            <div class="item-list-header tarea-header" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <button class="add-habit-btn" onclick="addPlan()" aria-label="Agregar nuevo plan">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
+                                    Nuevo Plan
+                                </button>
+                            </div>
+                            <div id="list-planes"></div>
+                        </div>
+                    </section>
+                </div>
+
+                <div id="planes-tareas" class="planes-subview hidden">
                     <section class="category">
                         <div class="item-list-header tarea-header">
                             <button class="add-habit-btn" onclick="addTarea()" aria-label="Agregar tarea">
@@ -227,7 +312,7 @@
                     </section>
                 </div>
 
-                <div id="tracking-ideas" class="tracking-subview hidden">
+                <div id="planes-ideas" class="planes-subview hidden">
                     <section class="category">
                         <div class="random-idea-box" id="random-idea-box">
                             <div class="random-idea-label">Pensamiento Aleatorio</div>
@@ -264,34 +349,6 @@
                 </div>
             </div>
 
-            <!-- 🌱 CAMINO -->
-            <div id="view-camino" class="bottom-view">
-                <section class="category" style="padding:40px 20px; text-align:center; color:var(--text-muted);">
-                    <div style="font-size:3rem; margin-bottom:12px;">🌱</div>
-                    <div style="font-size:1.1rem; font-weight:700; color:var(--text-dark); margin-bottom:8px;">Camino de
-                        Felicidad</div>
-                    <p>Próximo paso: Apariencia, NoFap, Piel, Composición, Casino, Apego/Sistema Nervioso.</p>
-                </section>
-            </div>
-
-            <!-- 📅 PLANES -->
-            <div id="view-planes" class="bottom-view">
-                <section class="category">
-                    <div id="subview-planes-wrap">
-                        <div class="item-list-header tarea-header" style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <button class="add-habit-btn" onclick="addPlan()" aria-label="Agregar nuevo plan">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
-                                Nuevo Plan
-                            </button>
-                        </div>
-                        <div id="list-planes"></div>
-                    </div>
-                </section>
-            </div>
 
             <!-- 👤 PERFIL -->
             <div id="view-perfil" class="bottom-view">

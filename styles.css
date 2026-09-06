@@ -207,6 +207,62 @@ header.main-header {
 
 /**
  * ==========================================
+ * TABS "CAMINO" (Hábitos / Sentimientos)
+ * ==========================================
+ * Igual patrón que .tabs/.tab-btn pero con cuadros más grandes: más
+ * padding, ícono destacado arriba y texto debajo, para que se sientan
+ * como las dos puertas de entrada principales de esta pestaña.
+ */
+.camino-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 16px 16px 4px;
+    margin-bottom: 8px;
+}
+
+.camino-tab-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 20px 12px;
+    border-radius: 14px;
+    border: 1px solid var(--border-color);
+    background-color: var(--white);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.camino-tab-icon {
+    font-size: 1.6rem;
+    line-height: 1;
+}
+
+.camino-tab-label {
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.camino-tab-btn:hover {
+    border-color: var(--text-muted);
+    color: var(--text-dark);
+}
+
+.camino-tab-active {
+    background-color: var(--text-dark);
+    border-color: var(--text-dark);
+    color: var(--bg-light);
+}
+
+.camino-tab-active:hover {
+    color: var(--bg-light);
+}
+
+/**
+ * ==========================================
  * PROGRESO SEMANAL
  * ==========================================
  */
@@ -2235,7 +2291,6 @@ div.day-segment.future {
     display: grid;
     grid-template-columns: 1fr;
     padding: 12px 16px 12px;
-    gap: 10px;
 }
 
 .home-plan-item {

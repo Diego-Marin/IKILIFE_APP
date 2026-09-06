@@ -12,13 +12,8 @@
         },
         {
             id: 'tracking',
-            label: 'Seguimiento',
-            svg: '<line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line>'
-        },
-        {
-            id: 'camino',
             label: 'Camino',
-            svg: '<path d="M12 22c0-5-4-9-9-9 0 5 4 9 9 9z"></path><path d="M12 22c0-5 4-9 9-9 0 5-4 9-9 9z"></path>'
+            svg: '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline>'
         },
         {
             id: 'planes',
@@ -51,7 +46,7 @@
             btn.className = 'bottom-nav-item' + (tab.id === 'home' ? ' active' : '');
             btn.dataset.tab = tab.id;
             btn.innerHTML = `
-                <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <svg class="nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     ${tab.svg}
                 </svg>
                 <span class="nav-label">${tab.label}</span>
@@ -84,12 +79,13 @@
 
         if (tabId === 'tracking') {
             if (typeof loadHabits === 'function') loadHabits();
-            if (typeof loadTareas === 'function') loadTareas();
-            if (typeof loadIdeas === 'function') loadIdeas();
+            if (typeof initSentimientosTabs === 'function') initSentimientosTabs();
         }
 
         if (tabId === 'planes') {
             if (typeof loadPlanes === 'function') loadPlanes();
+            if (typeof loadTareas === 'function') loadTareas();
+            if (typeof loadIdeas === 'function') loadIdeas();
         }
 
         if (tabId === 'money') {

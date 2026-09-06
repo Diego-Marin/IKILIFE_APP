@@ -11,6 +11,12 @@
    Compacta y en una sola fila (no se rompe en mobile): los 2-3
    botones se reparten el ancho disponible a partes iguales y el
    texto se trunca con ellipsis si no cabe. */
+.mood-minimal-header {
+    display: flex;
+    justify-content: flex-end;
+    padding: 8px 16px 4px;
+}
+
 .mood-header-row {
     flex-wrap: nowrap;
     justify-content: flex-start;
