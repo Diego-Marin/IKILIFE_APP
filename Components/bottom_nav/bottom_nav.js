@@ -21,15 +21,10 @@
             svg: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line>'
         },
         {
-            id: 'money',
-            label: 'Finanzas',
-            svg: '<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="6" x2="12" y2="12"></line><path d="M16 12l-4 4-4-4"></path>'
-        },
-        {
-            id: 'perfil',
-            label: 'Perfil',
-            svg: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle>'
-        },
+    id: 'money',
+    label: 'Finanzas',
+    svg: '<line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>'
+},
     ];
 
     let currentTab = 'home';
@@ -77,10 +72,11 @@
             if (typeof loadHomeUpcomingPlans === 'function') loadHomeUpcomingPlans();
         }
 
-        if (tabId === 'tracking') {
-            if (typeof loadHabits === 'function') loadHabits();
-            if (typeof initSentimientosTabs === 'function') initSentimientosTabs();
-        }
+      if (tabId === 'tracking') {
+    const activeBtn = document.querySelector('#view-tracking .camino-tab-active');
+    const sub = activeBtn ? activeBtn.dataset.subtab : 'me';
+    switchTrackingTab(sub, activeBtn);
+}
 
         if (tabId === 'planes') {
             if (typeof loadPlanes === 'function') loadPlanes();
@@ -92,10 +88,7 @@
             if (typeof loadFinances === 'function') loadFinances();
         }
 
-        if (tabId === 'perfil') {
-            if (typeof loadMetrics === 'function') loadMetrics();
-            if (typeof renderEnglishCourseWeeks === 'function') renderEnglishCourseWeeks();
-        }
+
 
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };

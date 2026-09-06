@@ -89,7 +89,6 @@ document.addEventListener('DOMContentLoaded', () => {
         applySavedTheme();
                 updateWeeklyProgress();
         loadHomeUpcomingPlans();
-        initQuickIdeaWidget();
         loadHabits();
         loadIdeas();
         showRandomIdea();
@@ -408,61 +407,23 @@ function formatDateLocal(date) {
     return `${year}-${month}-${day}`;
 }
 
-let currentWeekOffset = 0;
-
-function changeWeek(delta) {
-    currentWeekOffset += delta;
-    if (currentWeekOffset > 0) currentWeekOffset = 0;
-    loadHabits();
-}
-
 async function loadHabits() {
     const today = new Date();
     let currentDay = today.getDay();
     currentDay = currentDay === 0 ? 7 : currentDay;
 
     const monday = new Date(today);
-    monday.setDate(today.getDate() - currentDay + 1 + (currentWeekOffset * 7));
+    monday.setDate(today.getDate() - currentDay + 1);
 
     const datesOfWeek = [];
-    let sunday;
     const dayLabels = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
     for (let i = 0; i < 7; i++) {
         const d = new Date(monday);
         d.setDate(monday.getDate() + i);
         datesOfWeek.push(formatDateLocal(d));
-        if (i === 6) sunday = d;
         const labelEl = document.getElementById(`day-label-${i + 1}`);
         if (labelEl) labelEl.textContent = String(d.getDate()).padStart(2, '0');
-    }
-
-    const monthStart = monday.toLocaleDateString('es-CO', { month: 'long' });
-    const monthEnd = sunday.toLocaleDateString('es-CO', { month: 'long' });
-    const dayStart = monday.getDate();
-    const dayEnd = sunday.getDate();
-
-    let weekTitleStr = "";
-    if (monthStart === monthEnd) {
-        weekTitleStr = `Semana del ${dayStart} al ${dayEnd} de ${monthStart}`;
-    } else {
-        weekTitleStr = `Semana del ${dayStart} de ${monthStart} al ${dayEnd} de ${monthEnd}`;
-    }
-
-    const weekLabel = document.getElementById('habit-week-label');
-    const nextBtn = document.getElementById('btn-next-week');
-    if (weekLabel && nextBtn) {
-        if (currentWeekOffset === 0) {
-            weekLabel.textContent = "Semana Actual";
-            nextBtn.disabled = true;
-            nextBtn.style.opacity = '0.3';
-            nextBtn.style.cursor = 'default';
-        } else {
-            weekLabel.textContent = weekTitleStr;
-            nextBtn.disabled = false;
-            nextBtn.style.opacity = '1';
-            nextBtn.style.cursor = 'pointer';
-        }
     }
 
     const { data: allHabitsData, error: err1 } = await _supabase.from('habit_logs').select('habit_name, project_tag');
@@ -545,8 +506,8 @@ async function loadHabits() {
                 const isDone = log ? log.is_completed : false;
                 if (isDone) streakCount++;
 
-                const isToday = idx + 1 === currentDay && currentWeekOffset === 0;
-                const isFuture = currentWeekOffset === 0 && idx + 1 > currentDay;
+                const isToday = idx + 1 === currentDay;
+                const isFuture = idx + 1 > currentDay;
 
                 if (isToday) isDoneToday = isDone;
 
@@ -560,7 +521,7 @@ async function loadHabits() {
             const imageFilename = habitImages[habitName] || 'default.jpg';
             const localImagePath = `assets/images/${imageFilename}`;
             const habitNameEscaped = habitName.replace(/'/g, "\\'");
-            const pendienteClass = (currentWeekOffset === 0 && !isDoneToday) ? ' habit-card--pendiente' : '';
+            const pendienteClass = !isDoneToday ? ' habit-card--pendiente' : '';
 
             const card = `
                 <li class="habit-card${pendienteClass}" oncontextmenu="event.preventDefault(); deleteHabit('${habitNameEscaped}')" title="Clic derecho para eliminar">
@@ -816,6 +777,18 @@ const TABLAS_EXPORTABLES = [
     'ideas_logs', 'compras_logs', 'finance_logs',
     'inversiones_logs', 'journal_logs', 'bloques_logs', 'planes_logs','english_classes'
 ];
+
+
+function showMetricsView() {
+    document.querySelectorAll('.bottom-view').forEach(v => v.classList.remove('active'));
+    const target = document.getElementById('view-metrics');
+    if (target) {
+        target.classList.add('active');
+        if (typeof loadMetrics === 'function') loadMetrics();
+        if (typeof renderEnglishCourseWeeks === 'function') renderEnglishCourseWeeks();
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
 async function exportAllDataJSON() {
     try {
@@ -1085,12 +1058,16 @@ function switchTrackingTab(subtab, btn) {
     document.querySelectorAll('#view-tracking .camino-tab-btn').forEach(b => {
         b.classList.remove('camino-tab-active');
     });
-    if (btn) {
-        btn.classList.add('camino-tab-active');
-    }
+    if (btn) btn.classList.add('camino-tab-active');
     document.querySelectorAll('#view-tracking .tracking-subview').forEach(v => v.classList.add('hidden'));
     const target = document.getElementById('tracking-' + subtab);
     if (target) target.classList.remove('hidden');
+
+    if (subtab === 'me') loadHabitsGroup('ME', 'list-habits-me');
+    if (subtab === 'health') loadHabitsGroup('SALUD', 'list-habits-health');
+    if (subtab === 'work') loadHabitsGroup('WORK', 'list-habits-work');
+    if (subtab === 'loves') loadHabitsGroup('LOVES', 'list-habits-loves');
+    if (subtab === 'sentimientos') initSentimientosTabs();
 }
 
 
@@ -1141,14 +1118,10 @@ function switchTab(tab, btn) {
 }
 
 function switchPlanesTab(subtab, btn) {
-    document.querySelectorAll('#view-planes .tab-btn').forEach(b => {
-        b.classList.remove('tab-active');
-        b.classList.add('tab-inactive');
+    document.querySelectorAll('#view-planes .camino-tab-btn').forEach(b => {
+        b.classList.remove('camino-tab-active');
     });
-    if (btn) {
-        btn.classList.add('tab-active');
-        btn.classList.remove('tab-inactive');
-    }
+    if (btn) btn.classList.add('camino-tab-active');
     document.querySelectorAll('#view-planes .planes-subview').forEach(v => v.classList.add('hidden'));
     const target = document.getElementById('planes-' + subtab);
     if (target) target.classList.remove('hidden');
@@ -1200,101 +1173,11 @@ let quickIdeaRecognition = null;
 let quickIdeaRecording = false;
 let quickIdeaBaseText = '';
 
-function initQuickIdeaWidget() {
-    const micBtn = document.getElementById('quick-idea-mic-btn');
-    const input = document.getElementById('quick-idea-input');
-    if (!micBtn || !input) return;
-
-    input.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            saveQuickIdea();
-        }
-    });
-
-    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognitionAPI) {
-        micBtn.classList.add('quick-idea-mic-btn--unsupported');
-        return;
-    }
-
-    quickIdeaRecognition = new SpeechRecognitionAPI();
-    quickIdeaRecognition.lang = 'es-CO';
-    quickIdeaRecognition.continuous = true;
-    quickIdeaRecognition.interimResults = true;
-
-    quickIdeaRecognition.onstart = function () {
-        quickIdeaBaseText = input.value.trim();
-        if (quickIdeaBaseText) quickIdeaBaseText += ' ';
-    };
-
-    quickIdeaRecognition.onresult = function (event) {
-        let finalTranscript = '';
-        let interimTranscript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-            const transcript = event.results[i][0].transcript;
-            if (event.results[i].isFinal) {
-                finalTranscript += transcript;
-            } else {
-                interimTranscript += transcript;
-            }
-        }
-        if (finalTranscript) quickIdeaBaseText += finalTranscript;
-        input.value = (quickIdeaBaseText + interimTranscript).trim();
-    };
-
-    quickIdeaRecognition.onerror = function (event) {
-        console.warn('Idea rápida: error de reconocimiento de voz.', event.error);
-        stopQuickIdeaVoice();
-    };
-
-    quickIdeaRecognition.onend = function () {
-        quickIdeaRecording = false;
-        updateQuickIdeaMicUI();
-    };
-}
-
-function toggleQuickIdeaVoice() {
-    if (!quickIdeaRecognition) return;
-    if (quickIdeaRecording) {
-        stopQuickIdeaVoice();
-        return;
-    }
-    try {
-        quickIdeaRecognition.start();
-        quickIdeaRecording = true;
-        updateQuickIdeaMicUI();
-    } catch (e) {
-        console.warn('Idea rápida: no se pudo iniciar el dictado.', e.message);
-    }
-}
-
-function stopQuickIdeaVoice() {
-    if (quickIdeaRecognition) {
-        try { quickIdeaRecognition.stop(); } catch (e) { /* ignore */ }
-    }
-    quickIdeaRecording = false;
-    updateQuickIdeaMicUI();
-}
-
-function updateQuickIdeaMicUI() {
-    const micBtn = document.getElementById('quick-idea-mic-btn');
-    const hint = document.getElementById('quick-idea-hint');
-    if (!micBtn) return;
-    micBtn.classList.toggle('quick-idea-mic-btn--recording', quickIdeaRecording);
-    if (hint) {
-        hint.textContent = quickIdeaRecording ? '🎙️ Escuchando...' : 'Escribe o dicta tu idea';
-        hint.classList.toggle('quick-idea-hint--recording', quickIdeaRecording);
-    }
-}
-
 async function saveQuickIdea() {
     const input = document.getElementById('quick-idea-input');
     if (!input) return;
     const content = input.value.trim();
     if (!content) return;
-
-    if (quickIdeaRecording) stopQuickIdeaVoice();
 
     const { error } = await _supabase
         .from('ideas_logs')
@@ -2753,4 +2636,140 @@ function renderStateBar(containerId) {
 
     update();
     setInterval(update, 60000);
+}
+
+/* ---------- NUEVO: Hábitos por Grupo (ME / HEALTH / WORK / LOVES) ---------- */
+async function loadHabitsGroup(tag, containerId) {
+    const today = new Date();
+    let currentDay = today.getDay();
+    currentDay = currentDay === 0 ? 7 : currentDay;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - currentDay + 1);
+    const datesOfWeek = [];
+    const dayLabels = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        datesOfWeek.push(formatDateLocal(d));
+    }
+
+    const { data: allHabitsData, error: err1 } = await _supabase
+        .from('habit_logs')
+        .select('habit_name, project_tag');
+    if (err1) return console.error(err1.message);
+
+    const uniqueHabits = [...new Set(
+        allHabitsData
+            .filter(h => {
+                const fromName = getProjectFromHabitName(h.habit_name);
+                const fromField = (h.project_tag || '').toUpperCase();
+                return fromName === tag.toUpperCase() || fromField === tag.toUpperCase();
+            })
+            .map(h => h.habit_name)
+    )].sort();
+
+    const listContainer = document.getElementById(containerId);
+    if (!listContainer) return;
+    listContainer.innerHTML = '';
+
+    if (uniqueHabits.length === 0) {
+        listContainer.innerHTML = `<li style="padding:16px; color:var(--text-muted); text-align:center;">No hay hábitos en <strong>${tag}</strong>.<br>Agrega uno con #${tag}.</li>`;
+        return;
+    }
+
+    const { data: weekLogs, error: err2 } = await _supabase
+        .from('habit_logs')
+        .select('*')
+        .gte('log_date', datesOfWeek[0])
+        .lte('log_date', datesOfWeek[6]);
+    if (err2) return console.error(err2.message);
+
+    const { data: habitImagesData, error: err3 } = await _supabase
+        .from('habit_images')
+        .select('habit_name, image_filename');
+    const habitImages = Object.fromEntries((habitImagesData || []).map(h => [h.habit_name, h.image_filename]));
+
+    uniqueHabits.forEach(habitName => {
+        let daysHTML = '';
+        let streakCount = 0;
+        let isDoneToday = true;
+        datesOfWeek.forEach((dateStr, idx) => {
+            const log = weekLogs.find(l => l.habit_name === habitName && l.log_date === dateStr);
+            const isDone = log ? log.is_completed : false;
+            if (isDone) streakCount++;
+            const isToday = idx + 1 === currentDay;
+            const isFuture = idx + 1 > currentDay;
+            if (isToday) isDoneToday = isDone;
+            daysHTML += `<button type="button" class="habit-day-chip${isDone ? ' habit-day-chip--done' : ''}${isToday ? ' habit-day-chip--today' : ''}${isFuture ? ' habit-day-chip--future' : ''}" ${isFuture ? 'disabled' : `onclick="toggleHabit('${habitName.replace(/'/g, "\\'")}', '${dateStr}', ${isDone})"`}>${dayLabels[idx]}</button>`;
+        });
+
+        const imageFilename = habitImages[habitName] || 'default.jpg';
+        const localImagePath = `assets/images/${imageFilename}`;
+        const habitNameEscaped = habitName.replace(/'/g, "\\'");
+        const pendienteClass = !isDoneToday ? ' habit-card--pendiente' : '';
+
+        const card = `
+            <li class="habit-card${pendienteClass}" oncontextmenu="event.preventDefault(); deleteHabit('${habitNameEscaped}')" title="Clic derecho para eliminar">
+                <img src="${localImagePath}" class="habit-card-img" onerror="this.src='assets/images/default.jpg'" onclick="event.stopPropagation(); setHabitImage('${habitNameEscaped}')" title="Clic para cambiar la imagen">
+                <div class="habit-card-info">
+                    <div class="habit-card-top">
+                        <span class="habit-card-name" onclick="editHabit('${habitNameEscaped}')" title="Clic para editar">${cleanHabitName(habitName)}</span>
+                        <span class="habit-card-streak">${streakCount}/7</span>
+                    </div>
+                    <div class="habit-day-row">${daysHTML}</div>
+                </div>
+            </li>
+        `;
+        listContainer.insertAdjacentHTML('beforeend', card);
+    });
+}
+
+async function addHabitForTag(tag) {
+    const name = prompt(`Nuevo hábito para ${tag}:`);
+    if (!name || name.trim() === "") return;
+    let habitName = name.trim();
+    const upperTag = tag.toUpperCase();
+    if (!habitName.toUpperCase().includes('#' + upperTag)) {
+        habitName += ' #' + upperTag;
+    }
+    const todayStr = formatDateLocal(new Date());
+    const { error } = await _supabase.from('habit_logs').insert([{
+        habit_name: habitName,
+        log_date: todayStr,
+        is_completed: false,
+        project_tag: upperTag
+    }]);
+    if (error) {
+        alert("Error al guardar: " + error.message);
+    } else {
+        const map = { 'ME': 'me', 'SALUD': 'health', 'WORK': 'work', 'LOVES': 'loves' };
+        const sub = map[upperTag];
+        if (sub) loadHabitsGroup(upperTag, 'list-habits-' + sub);
+    }
+}
+
+async function saveQuickIdeaFor(tag) {
+    const input = document.getElementById('quick-idea-' + tag);
+    if (!input) return;
+    const content = input.value.trim();
+    if (!content) return;
+    const taggedContent = `[${tag.toUpperCase()}] ${content}`;
+    const { error } = await _supabase.from('ideas_logs').insert([{ content: taggedContent }]);
+    if (error) {
+        alert("Error al guardar: " + error.message);
+    } else {
+        input.value = '';
+        randomIdeaCache = [];
+        if (typeof loadIdeas === 'function') loadIdeas();
+    }
+}
+
+function openIdeasFromHeader() {
+    switchBottomTab('planes');
+    document.querySelectorAll('#view-planes .camino-tab-btn').forEach(b => b.classList.remove('camino-tab-active'));
+    document.querySelectorAll('#view-planes .planes-subview').forEach(v => v.classList.add('hidden'));
+    const target = document.getElementById('planes-ideas');
+    if (target) target.classList.remove('hidden');
+    if (typeof loadIdeas === 'function') loadIdeas();
+    if (typeof showRandomIdea === 'function') showRandomIdea();
 }
