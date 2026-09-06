@@ -71,7 +71,7 @@ header.main-header {
 }
 
 .brand-name {
-    font-size: 2.7rem; 
+    font-size: 2.2rem; 
     font-weight: 700;
     letter-spacing: -0.5px;
 }
@@ -79,7 +79,7 @@ header.main-header {
 .header-actions {
     display: flex;
     align-items: center;
-    gap: 12px; 
+    gap: 14px; 
 }
 
 /* Botón de Tema */
@@ -217,7 +217,7 @@ header.main-header {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
-    padding: 16px 16px 4px;
+    padding: 0 0 16px;
     margin-bottom: 8px;
 }
 
@@ -383,64 +383,6 @@ div.day-segment.future {
 
 .ik-bar-track--split .ik-bar-fill:last-child {
     border-radius: 0 5px 5px 0;
-}
-
-/**
- * ==========================================
- * EL ESPEJO DEL ALMA
- * ==========================================
- */
-.espejo-alma-card {
-    background-color: transparent;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 6px;
-    margin-bottom: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-}
-
-.espejo-alma-row {
-    display: grid;
-    grid-template-columns: 70px 1fr 42px;
-    align-items: center;
-    gap: 10px;
-}
-
-
-.espejo-alma-label {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--text-muted);
-}
-
-.espejo-alma-value {
-    font-size: 0.85rem;
-    font-weight: 800;
-    color: var(--text-dark);
-    text-align: right;
-}
-
-.espejo-alma-msg {
-    font-size: 0.78rem;
-    color: var(--text-muted);
-    font-style: italic;
-    margin-top: 2px;
-    padding-top: 8px;
-    border-top: 1px solid var(--border-color);
-}
-
-/*
-    NUEVO (2026-08-16): texto pequeño bajo la barra de balance de
-    Hábitos, con el detalle exacto del % cumplido/no cumplido y
-    cuántos registros históricos lo respaldan.
-*/
-.espejo-alma-subtext {
-    font-size: 0.65rem;
-    color: var(--text-muted);
-    margin-top: 2px;
-    text-align: right;
 }
 
 
@@ -2017,6 +1959,27 @@ div.day-segment.future {
     gap: 4px;
 }
 
+/*
+    NUEVO: encabezado de sub-grupo dentro de ME / Health / Work
+    (ej: "APARIENCIA", "SALUD MENTAL"). Solo se muestra si hay más
+    de un sub-grupo en la lista; separa visualmente sin ser una card.
+*/
+.habit-subgroup-header {
+    list-style: none;
+    padding: 14px 4px 6px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 6px;
+}
+
+.habit-subgroup-header:first-child {
+    padding-top: 2px;
+}
+
 .habit-day-chip {
     width: 100%;
     height: 26px;
@@ -2157,18 +2120,6 @@ div.day-segment.future {
     font-weight: 700;
     color: var(--text-dark);
     white-space: nowrap;
-}
-
-.quick-idea-hint {
-    font-size: 0.7rem;
-    color: var(--text-muted);
-    text-align: right;
-    transition: color var(--transition);
-}
-
-.quick-idea-hint--recording {
-    color: #e74c3c;
-    font-weight: 700;
 }
 
 .quick-idea-body {
@@ -2387,39 +2338,69 @@ div.day-segment.future {
  * EL ESPEJO DEL ALMA — MINIMALISTA
  * ==========================================
  */
+/**
+ * ==========================================
+ * EL ESPEJO DEL ALMA — REDISEÑO
+ * ==========================================
+ * Card con un título propio, e icono + nombre + % grande por métrica
+ * (en vez de barra partida en dos con 2 números encima y 2 debajo,
+ * que se sentía repetitivo). Una sola barra de progreso por métrica
+ * y un renglón de detalle debajo.
+ */
 .espejo-alma-card {
     background: var(--bg-header);
     border-radius: 16px;
     margin-bottom: 20px;
-    padding: 16px;
+    padding: 18px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 18px;
+}
+
+.espejo-alma-title {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--text-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .espejo-section {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
+}
+
+.espejo-section + .espejo-section {
+    padding-top: 18px;
+    border-top: 1px solid var(--border-color);
 }
 
 .espejo-section-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: baseline;
+    gap: 10px;
 }
 
-.espejo-section-header span {
-    font-size: 0.75rem;
+.espejo-section-header .espejo-metric-name {
+    font-size: 0.8rem;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    color: var(--text-dark);
 }
 
-.espejo-section-header .label-left { color: #e0479e; }
-.espejo-section-header .label-right { color: #e74c3c; }
-.espejo-section-header .label-done { color: #16a34a; }
-.espejo-section-header .label-pending { color: #e74c3c; }
+.espejo-section-header .espejo-metric-pct {
+    font-size: 1.3rem;
+    font-weight: 800;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.espejo-section--emocional .espejo-metric-pct { color: #e0479e; }
+.espejo-section--habitos .espejo-metric-pct { color: #16a34a; }
 
 .espejo-bar-track {
     width: 100%;
@@ -2427,40 +2408,20 @@ div.day-segment.future {
     border-radius: 4px;
     overflow: hidden;
     background: var(--border-color);
-    display: flex;
 }
 
 .espejo-bar-fill {
     height: 100%;
-    flex-shrink: 0;
+    border-radius: 4px;
     transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.espejo-bar-fill--love { background: linear-gradient(90deg, #f28cc0, #e0479e); }
-.espejo-bar-fill--odio { background: linear-gradient(90deg, #f0776a, #e74c3c); }
-.espejo-bar-fill--done { background: linear-gradient(90deg, #74C08A, #16a34a); }
-.espejo-bar-fill--pending { background: linear-gradient(90deg, #f0776a, #e74c3c); }
-
-.espejo-section-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.espejo-section-footer span {
-    font-size: 0.75rem;
-    font-weight: 800;
-}
-
-.espejo-section-footer .pct-left { color: #e0479e; }
-.espejo-section-footer .pct-right { color: #e74c3c; }
-.espejo-section-footer .pct-done { color: #16a34a; }
-.espejo-section-footer .pct-pending { color: #e74c3c; }
+.espejo-bar-fill--emocional { background: linear-gradient(90deg, #f28cc0, #e0479e); }
+.espejo-bar-fill--habitos { background: linear-gradient(90deg, #74C08A, #16a34a); }
 
 .espejo-subtext {
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     color: var(--text-muted);
-    text-align: right;
     font-weight: 500;
-    letter-spacing: 0.2px;
+    letter-spacing: 0.1px;
 }

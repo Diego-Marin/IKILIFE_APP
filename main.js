@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadIdeas();
         showRandomIdea();
         loadTareas();
-        initSentimientosTabs();
+        loadOdios();
         loadPlanes();
         loadCompras();
         loadMetrics(); // Esta ya ejecuta internamente renderYearWeeks(), renderEnglishCourseWeeks(), loadTopHabits(), loadTopLoves() y loadTopSentimientos()
@@ -552,6 +552,20 @@ function getProjectFromHabitName(name) {
     if (match) {
         // Devuelve el tag tal cual (ej: #FAMILIA → FAMILIA)
         return match[1].toUpperCase();
+    }
+    return null;
+}
+
+/**
+ * NUEVO: sub-grupo dentro de ME/Health/Work (ej: "Meditar #ME #APARIENCIA"
+ * -> subgrupo "APARIENCIA"). Es el SEGUNDO hashtag del nombre; si no
+ * existe, el hábito cae en el grupo "General".
+ */
+function getSubgroupFromHabitName(name) {
+    if (!name) return null;
+    const matches = [...name.matchAll(/#([A-Za-z0-9_ÁÉÍÓÚáéíóúÑñ]+)/g)];
+    if (matches.length > 1) {
+        return matches[1][1].toUpperCase();
     }
     return null;
 }
@@ -1066,8 +1080,8 @@ function switchTrackingTab(subtab, btn) {
     if (subtab === 'me') loadHabitsGroup('ME', 'list-habits-me');
     if (subtab === 'health') loadHabitsGroup('SALUD', 'list-habits-health');
     if (subtab === 'work') loadHabitsGroup('WORK', 'list-habits-work');
-    if (subtab === 'loves') loadHabitsGroup('LOVES', 'list-habits-loves');
-    if (subtab === 'sentimientos') initSentimientosTabs();
+    if (subtab === 'loves' && typeof loadLoves === 'function') loadLoves();
+    if (subtab === 'sentimientos' && typeof loadOdios === 'function') loadOdios();
 }
 
 
@@ -1117,14 +1131,17 @@ function switchTab(tab, btn) {
     }
 }
 
-function switchPlanesTab(subtab, btn) {
-    document.querySelectorAll('#view-planes .camino-tab-btn').forEach(b => {
-        b.classList.remove('camino-tab-active');
-    });
-    if (btn) btn.classList.add('camino-tab-active');
-    document.querySelectorAll('#view-planes .planes-subview').forEach(v => v.classList.add('hidden'));
-    const target = document.getElementById('planes-' + subtab);
-    if (target) target.classList.remove('hidden');
+/**
+ * Planes y Tareas ahora viven juntos en "planes-main" (una sola
+ * pestaña, sin sub-tabs). "planes-ideas" (Brain Dump) es la única
+ * subvista alterna, y solo se muestra al abrirla desde el botón de
+ * ideas del header (ver openIdeasFromHeader / closeIdeasView).
+ */
+function showPlanesMain() {
+    const main = document.getElementById('planes-main');
+    const ideas = document.getElementById('planes-ideas');
+    if (main) main.classList.remove('hidden');
+    if (ideas) ideas.classList.add('hidden');
 }
 
 async function saveLearning() {
@@ -2689,39 +2706,71 @@ async function loadHabitsGroup(tag, containerId) {
         .select('habit_name, image_filename');
     const habitImages = Object.fromEntries((habitImagesData || []).map(h => [h.habit_name, h.image_filename]));
 
-    uniqueHabits.forEach(habitName => {
-        let daysHTML = '';
-        let streakCount = 0;
-        let isDoneToday = true;
-        datesOfWeek.forEach((dateStr, idx) => {
-            const log = weekLogs.find(l => l.habit_name === habitName && l.log_date === dateStr);
-            const isDone = log ? log.is_completed : false;
-            if (isDone) streakCount++;
-            const isToday = idx + 1 === currentDay;
-            const isFuture = idx + 1 > currentDay;
-            if (isToday) isDoneToday = isDone;
-            daysHTML += `<button type="button" class="habit-day-chip${isDone ? ' habit-day-chip--done' : ''}${isToday ? ' habit-day-chip--today' : ''}${isFuture ? ' habit-day-chip--future' : ''}" ${isFuture ? 'disabled' : `onclick="toggleHabit('${habitName.replace(/'/g, "\\'")}', '${dateStr}', ${isDone})"`}>${dayLabels[idx]}</button>`;
-        });
-
-        const imageFilename = habitImages[habitName] || 'default.jpg';
-        const localImagePath = `assets/images/${imageFilename}`;
-        const habitNameEscaped = habitName.replace(/'/g, "\\'");
-        const pendienteClass = !isDoneToday ? ' habit-card--pendiente' : '';
-
-        const card = `
-            <li class="habit-card${pendienteClass}" oncontextmenu="event.preventDefault(); deleteHabit('${habitNameEscaped}')" title="Clic derecho para eliminar">
-                <img src="${localImagePath}" class="habit-card-img" onerror="this.src='assets/images/default.jpg'" onclick="event.stopPropagation(); setHabitImage('${habitNameEscaped}')" title="Clic para cambiar la imagen">
-                <div class="habit-card-info">
-                    <div class="habit-card-top">
-                        <span class="habit-card-name" onclick="editHabit('${habitNameEscaped}')" title="Clic para editar">${cleanHabitName(habitName)}</span>
-                        <span class="habit-card-streak">${streakCount}/7</span>
-                    </div>
-                    <div class="habit-day-row">${daysHTML}</div>
-                </div>
-            </li>
-        `;
-        listContainer.insertAdjacentHTML('beforeend', card);
+    uniqueHabits.sort((a, b) => {
+        const ga = getSubgroupFromHabitName(a) || '';
+        const gb = getSubgroupFromHabitName(b) || '';
+        if (ga !== gb) return ga.localeCompare(gb);
+        return a.localeCompare(b);
     });
+
+    // Agrupa los hábitos por su sub-grupo (segundo hashtag). Los que no
+    // tienen sub-grupo caen en "General".
+    const groups = new Map();
+    uniqueHabits.forEach(habitName => {
+        const sub = getSubgroupFromHabitName(habitName) || 'General';
+        if (!groups.has(sub)) groups.set(sub, []);
+        groups.get(sub).push(habitName);
+    });
+    const sortedGroupNames = [...groups.keys()].sort((a, b) => {
+        if (a === 'General') return 1;
+        if (b === 'General') return -1;
+        return a.localeCompare(b);
+    });
+
+    groups.forEach((habitsInGroup, groupName) => {
+        if (sortedGroupNames.length > 1) {
+            const displayName = groupName.replace(/_/g, ' ');
+            listContainer.insertAdjacentHTML('beforeend',
+                `<li class="habit-subgroup-header">${displayName}</li>`);
+        }
+        habitsInGroup.forEach(habitName => {
+            renderHabitCard(habitName, listContainer, datesOfWeek, currentDay, dayLabels, weekLogs, habitImages);
+        });
+    });
+}
+
+function renderHabitCard(habitName, listContainer, datesOfWeek, currentDay, dayLabels, weekLogs, habitImages) {
+    let daysHTML = '';
+    let streakCount = 0;
+    let isDoneToday = true;
+    datesOfWeek.forEach((dateStr, idx) => {
+        const log = weekLogs.find(l => l.habit_name === habitName && l.log_date === dateStr);
+        const isDone = log ? log.is_completed : false;
+        if (isDone) streakCount++;
+        const isToday = idx + 1 === currentDay;
+        const isFuture = idx + 1 > currentDay;
+        if (isToday) isDoneToday = isDone;
+        daysHTML += `<button type="button" class="habit-day-chip${isDone ? ' habit-day-chip--done' : ''}${isToday ? ' habit-day-chip--today' : ''}${isFuture ? ' habit-day-chip--future' : ''}" ${isFuture ? 'disabled' : `onclick="toggleHabit('${habitName.replace(/'/g, "\\'")}', '${dateStr}', ${isDone})"`}>${dayLabels[idx]}</button>`;
+    });
+
+    const imageFilename = habitImages[habitName] || 'default.jpg';
+    const localImagePath = `assets/images/${imageFilename}`;
+    const habitNameEscaped = habitName.replace(/'/g, "\\'");
+    const pendienteClass = !isDoneToday ? ' habit-card--pendiente' : '';
+
+    const card = `
+        <li class="habit-card${pendienteClass}" oncontextmenu="event.preventDefault(); deleteHabit('${habitNameEscaped}')" title="Clic derecho para eliminar">
+            <img src="${localImagePath}" class="habit-card-img" onerror="this.src='assets/images/default.jpg'" onclick="event.stopPropagation(); setHabitImage('${habitNameEscaped}')" title="Clic para cambiar la imagen">
+            <div class="habit-card-info">
+                <div class="habit-card-top">
+                    <span class="habit-card-name" onclick="editHabit('${habitNameEscaped}')" title="Clic para editar">${cleanHabitName(habitName)}</span>
+                    <span class="habit-card-streak">${streakCount}/7</span>
+                </div>
+                <div class="habit-day-row">${daysHTML}</div>
+            </div>
+        </li>
+    `;
+    listContainer.insertAdjacentHTML('beforeend', card);
 }
 
 async function addHabitForTag(tag) {
@@ -2731,6 +2780,10 @@ async function addHabitForTag(tag) {
     const upperTag = tag.toUpperCase();
     if (!habitName.toUpperCase().includes('#' + upperTag)) {
         habitName += ' #' + upperTag;
+    }
+    const subgroup = prompt(`Sub-grupo dentro de ${tag} (opcional, ej: Apariencia, Salud Mental). Deja vacío para "General":`);
+    if (subgroup && subgroup.trim() !== "") {
+        habitName += ' #' + subgroup.trim().toUpperCase().replace(/\s+/g, '_');
     }
     const todayStr = formatDateLocal(new Date());
     const { error } = await _supabase.from('habit_logs').insert([{
@@ -2766,10 +2819,14 @@ async function saveQuickIdeaFor(tag) {
 
 function openIdeasFromHeader() {
     switchBottomTab('planes');
-    document.querySelectorAll('#view-planes .camino-tab-btn').forEach(b => b.classList.remove('camino-tab-active'));
-    document.querySelectorAll('#view-planes .planes-subview').forEach(v => v.classList.add('hidden'));
-    const target = document.getElementById('planes-ideas');
-    if (target) target.classList.remove('hidden');
+    const main = document.getElementById('planes-main');
+    const ideas = document.getElementById('planes-ideas');
+    if (main) main.classList.add('hidden');
+    if (ideas) ideas.classList.remove('hidden');
     if (typeof loadIdeas === 'function') loadIdeas();
     if (typeof showRandomIdea === 'function') showRandomIdea();
+}
+
+function closeIdeasView() {
+    showPlanesMain();
 }

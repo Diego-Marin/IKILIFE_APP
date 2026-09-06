@@ -638,42 +638,34 @@ async function loadEspejoDelAlma() {
 
     container.innerHTML = `
         <div class="espejo-alma-card">
-            <div class="espejo-section">
+            <div class="espejo-alma-title">🪞 Espejo del Alma</div>
+
+            <div class="espejo-section espejo-section--emocional">
                 <div class="espejo-section-header">
-                    <span class="label-left">❤️ Loves</span>
-                    <span class="label-right">💢 Odios</span>
+                    <span class="espejo-metric-name">❤️ Balance emocional del mes</span>
+                    <span class="espejo-metric-pct">${balanceMes.lovesPct}%</span>
                 </div>
                 <div class="espejo-bar-track">
-                    <div class="espejo-bar-fill espejo-bar-fill--love" style="width:${balanceMes.lovesPct}%;"></div>
-                    <div class="espejo-bar-fill espejo-bar-fill--odio" style="width:${balanceMes.odiosPct}%;"></div>
-                </div>
-                <div class="espejo-section-footer">
-                    <span class="pct-left">${balanceMes.lovesPct}%</span>
-                    <span class="pct-right">${balanceMes.odiosPct}%</span>
+                    <div class="espejo-bar-fill espejo-bar-fill--emocional" style="width:${balanceMes.lovesPct}%;"></div>
                 </div>
                 <div class="espejo-subtext">
-                    ${balanceMes.total > 0 
-                        ? `❤️ ${balanceMes.sumLoves} pts · 💢 ${balanceMes.sumOdios} pts · ${balanceMes.total} registros` 
+                    ${balanceMes.total > 0
+                        ? `❤️ ${balanceMes.sumLoves} pts · 💢 ${balanceMes.sumOdios} pts · ${balanceMes.total} registros`
                         : 'Sin registros este mes'}
                 </div>
             </div>
 
-            <div class="espejo-section">
+            <div class="espejo-section espejo-section--habitos">
                 <div class="espejo-section-header">
-                    <span class="label-done">✅ Hechos</span>
-                    <span class="label-pending">⬜ Pendientes</span>
+                    <span class="espejo-metric-name">✅ Hábitos de hoy</span>
+                    <span class="espejo-metric-pct">${hPctDone}%</span>
                 </div>
                 <div class="espejo-bar-track">
-                    <div class="espejo-bar-fill espejo-bar-fill--done" style="width:${hPctDone}%;"></div>
-                    <div class="espejo-bar-fill espejo-bar-fill--pending" style="width:${hPctPending}%;"></div>
-                </div>
-                <div class="espejo-section-footer">
-                    <span class="pct-done">${hPctDone}%</span>
-                    <span class="pct-pending">${hPctPending}%</span>
+                    <div class="espejo-bar-fill espejo-bar-fill--habitos" style="width:${hPctDone}%;"></div>
                 </div>
                 <div class="espejo-subtext">
-                    ${habitosHoy.total > 0 
-                        ? `${habitosHoy.done} hechos · ${habitosHoy.pending} pendientes · ${habitosHoy.total} total` 
+                    ${habitosHoy.total > 0
+                        ? `${habitosHoy.done} hechos · ${habitosHoy.pending} pendientes · ${habitosHoy.total} total`
                         : 'Sin hábitos hoy'}
                 </div>
             </div>
@@ -719,30 +711,8 @@ async function migrarSentimientosALoves() {
 }
 
 /* ==========================================
-   TABS: LOVES / ODIOS DENTRO DE "SENTIMIENTOS"
-   ==========================================
-   Se unificaron las 3 vistas antiguas (Loves, Odios, Sentimientos)
-   en una sola pantalla con 2 tabs para liberar espacio en el menú.
-   Los items que antes vivían en "Sentimientos" ahora se gestionan
-   como Loves (ver migrarSentimientosALoves() arriba).
+   NOTA: las antiguas tabs internas "Loves / Odios" dentro de
+   "Sentimientos" se eliminaron. Loves ahora vive en su propia pestaña
+   principal de Camino (usa loadLoves() directamente); Sentimientos
+   quedó dedicado solo a Odios (usa loadOdios() directamente).
    ========================================== */
-const SENTIMIENTOS_SUBTAB_KEY = 'ikilife_sentimientos_subtab';
-
-function switchSentimientosTab(sub, btn) {
-    document.querySelectorAll('.sent-tab-btn').forEach(b => b.classList.remove('sent-tab-active'));
-    const targetBtn = btn || document.querySelector(`.sent-tab-btn[data-sub="${sub}"]`);
-    if (targetBtn) targetBtn.classList.add('sent-tab-active');
-
-    const loveEl = document.getElementById('subview-loves-pasiones');
-    const odioEl = document.getElementById('subview-odios-pasiones');
-    if (loveEl) loveEl.classList.toggle('hidden', sub !== 'loves');
-    if (odioEl) odioEl.classList.toggle('hidden', sub !== 'odios');
-
-    localStorage.setItem(SENTIMIENTOS_SUBTAB_KEY, sub);
-    if (sub === 'loves') loadLoves(); else loadOdios();
-}
-
-function initSentimientosTabs() {
-    const saved = localStorage.getItem(SENTIMIENTOS_SUBTAB_KEY) === 'odios' ? 'odios' : 'loves';
-    switchSentimientosTab(saved);
-}
