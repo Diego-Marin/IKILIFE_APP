@@ -10,11 +10,11 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="./Components/state_bar/state_bar.css">
     <link rel="stylesheet" href="./Components/auth_lock/auth_lock.css">
-    <link rel="stylesheet" href="./Components/nav_menu/nav_menu.css">
     <link rel="stylesheet" href="./Components/mood_tracker/mood_tracker.css">
     <link rel="stylesheet" href="./Components/finance/finance.css">
     <link rel="stylesheet" href="./Components/english/english.css">
     <link rel="stylesheet" href="./Components/bottom_nav/bottom_nav.css">
+    <link rel="stylesheet" href="./Components/loves_counter/loves_counter.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <base target="_blank">
     <base target="_blank">
@@ -148,121 +148,221 @@
 
             <!-- 🌱 CAMINO -->
             <div id="view-tracking" class="bottom-view">
-    <div class="camino-tabs">
-        <button class="camino-tab-btn camino-tab-active" data-subtab="me" onclick="switchTrackingTab('me', this)">
-            <span class="camino-tab-icon">🧘</span>
-            <span class="camino-tab-label">ME</span>
-        </button>
-        <button class="camino-tab-btn" data-subtab="health" onclick="switchTrackingTab('health', this)">
-            <span class="camino-tab-icon">💪</span>
-            <span class="camino-tab-label">Health</span>
-        </button>
-        <button class="camino-tab-btn" data-subtab="work" onclick="switchTrackingTab('work', this)">
-            <span class="camino-tab-icon">💼</span>
-            <span class="camino-tab-label">Work</span>
-        </button>
-        <button class="camino-tab-btn" data-subtab="loves" onclick="switchTrackingTab('loves', this)">
-            <span class="camino-tab-icon">❤️</span>
-            <span class="camino-tab-label">Loves</span>
-        </button>
-        <button class="camino-tab-btn" data-subtab="sentimientos" onclick="switchTrackingTab('sentimientos', this)">
-            <span class="camino-tab-icon">🧠</span>
-            <span class="camino-tab-label">Sentimientos</span>
-        </button>
-    </div>
+                <div class="camino-tabs">
+                    <button class="camino-tab-btn camino-tab-active" data-subtab="me"
+                        onclick="switchTrackingTab('me', this)">
+                        <span class="camino-tab-icon">🧘</span>
+                        <span class="camino-tab-label">ME</span>
+                    </button>
+                    <button class="camino-tab-btn" data-subtab="health" onclick="switchTrackingTab('health', this)">
+                        <span class="camino-tab-icon">💪</span>
+                        <span class="camino-tab-label">HEALTH</span>
+                    </button>
+                    <button class="camino-tab-btn" data-subtab="work" onclick="switchTrackingTab('work', this)">
+                        <span class="camino-tab-icon">💼</span>
+                        <span class="camino-tab-label">WORK</span>
+                    </button>
+                    <button class="camino-tab-btn" data-subtab="loves" onclick="switchTrackingTab('loves', this)">
+                        <span class="camino-tab-icon">❤️</span>
+                        <span class="camino-tab-label">LOVES</span>
+                    </button>
+                    <button class="camino-tab-btn" data-subtab="sentimientos"
+                        onclick="switchTrackingTab('sentimientos', this)">
+                        <span class="camino-tab-icon">🧠</span>
+                        <span class="camino-tab-label">SENTIMIENTOS</span>
+                    </button>
+                    <button class="camino-tab-btn" data-subtab="otros" onclick="switchTrackingTab('otros', this)">
+                        <span class="camino-tab-icon">🗂️</span>
+                        <span class="camino-tab-label">OTROS</span>
+                    </button>
+                    <button class="camino-tab-btn" data-subtab="english" onclick="switchTrackingTab('english', this)">
+                        <span class="camino-tab-icon">🇬🇧</span>
+                        <span class="camino-tab-label">INGLÉS</span>
+                    </button>
+                </div>
 
-    <!-- ME -->
-    <div id="tracking-me" class="tracking-subview">
-        <div class="quick-idea-card">
-            <div class="quick-idea-header"><span>💡 Nota rápida (ME)</span></div>
-            <div class="quick-idea-body">
-                <textarea id="quick-idea-me" class="quick-idea-textarea" rows="2" placeholder="¿Qué se te ocurre para ME?"></textarea>
-                <div class="quick-idea-actions">
-                    <button type="button" class="quick-idea-save-btn" onclick="saveQuickIdeaFor('me')" style="width:100%;">Guardar en Brain Dump</button>
+                <!-- ME -->
+                <div id="tracking-me" class="tracking-subview">
+                    <div class="quick-idea-card">
+                        <div class="quick-idea-header"><span>💡 Nota rápida (ME)</span></div>
+                        <div class="quick-idea-body">
+                            <textarea id="quick-idea-me" class="quick-idea-textarea" rows="2"
+                                placeholder="¿Qué se te ocurre para ME?"></textarea>
+                            <div class="quick-idea-actions">
+                                <button type="button" class="quick-idea-save-btn" onclick="saveQuickIdeaFor('me')"
+                                    style="width:100%;">Guardar en Brain Dump</button>
+                            </div>
+                        </div>
+                    </div>
+                    <section class="category" style="border:none;">
+                        <div
+                            style="display:flex; justify-content:flex-end; align-items:center; padding: 8px 16px 4px;">
+                            <button type="button" class="icon-btn" onclick="addHabitForTag('ME')"
+                                aria-label="Agregar hábito ME" title="Agregar hábito ME">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        <ul id="list-habits-me" style="list-style:none; padding: 0 16px 16px;"></ul>
+                    </section>
+                </div>
+
+                <!-- HEALTH -->
+                <div id="tracking-health" class="tracking-subview hidden">
+                    <div class="quick-idea-card">
+                        <div class="quick-idea-header"><span>💡 Nota rápida (Health)</span></div>
+                        <div class="quick-idea-body">
+                            <textarea id="quick-idea-health" class="quick-idea-textarea" rows="2"
+                                placeholder="¿Qué se te ocurre para Health?"></textarea>
+                            <div class="quick-idea-actions">
+                                <button type="button" class="quick-idea-save-btn" onclick="saveQuickIdeaFor('health')"
+                                    style="width:100%;">Guardar en Brain Dump</button>
+                            </div>
+                        </div>
+                    </div>
+                    <section class="category" style="border:none;">
+                        <div
+                            style="display:flex; justify-content:flex-end; align-items:center; padding: 8px 16px 4px;">
+                            <button type="button" class="icon-btn" onclick="addHabitForTag('SALUD')"
+                                aria-label="Agregar hábito Health" title="Agregar hábito Health">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        <ul id="list-habits-health" style="list-style:none; padding: 0 16px 16px;"></ul>
+                    </section>
+                </div>
+
+                <!-- WORK -->
+                <div id="tracking-work" class="tracking-subview hidden">
+                    <div class="quick-idea-card">
+                        <div class="quick-idea-header"><span>💡 Nota rápida (Work)</span></div>
+                        <div class="quick-idea-body">
+                            <textarea id="quick-idea-work" class="quick-idea-textarea" rows="2"
+                                placeholder="¿Qué se te ocurre para Work?"></textarea>
+                            <div class="quick-idea-actions">
+                                <button type="button" class="quick-idea-save-btn" onclick="saveQuickIdeaFor('work')"
+                                    style="width:100%;">Guardar en Brain Dump</button>
+                            </div>
+                        </div>
+                    </div>
+                    <section class="category" style="border:none;">
+                        <div
+                            style="display:flex; justify-content:flex-end; align-items:center; padding: 8px 16px 4px;">
+                            <button type="button" class="icon-btn" onclick="addHabitForTag('WORK')"
+                                aria-label="Agregar hábito Work" title="Agregar hábito Work">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        <ul id="list-habits-work" style="list-style:none; padding: 0 16px 16px;"></ul>
+                    </section>
+                </div>
+
+                <!-- LOVES: ya no es un ranking de intensidad (eso se mudó a
+         Sentimientos › Positivos). Ahora es un "mapa" de cuánto haces
+         lo que amas: contador + barra de progreso mensual, con un
+         check diario por actividad. Ver Components/loves_counter/. -->
+                <div id="tracking-loves" class="tracking-subview hidden">
+                    <div id="loves-counter-container"></div>
+                </div>
+
+                <!-- SENTIMIENTOS: fusiona Positivos (antes "Loves", ranking 1-10)
+         y Negativos (antes "Odios") en una sola pestaña con dos
+         sub-tabs internas. -->
+                <div id="tracking-sentimientos" class="tracking-subview hidden">
+                    <div class="sent-tabs">
+                        <button type="button" class="sent-tab-btn sent-tab-active" data-sent-tab="positivos"
+                            onclick="switchSentTab('positivos', this)">💚 Positivos</button>
+                        <button type="button" class="sent-tab-btn" data-sent-tab="negativos"
+                            onclick="switchSentTab('negativos', this)">💢 Negativos</button>
+                    </div>
+
+                    <!-- POSITIVOS (antes "Loves"): ranking 1-10, con foto y card individual por pasión. -->
+                    <div id="sent-positivos" class="sent-subview">
+                        <div class="mood-minimal-header">
+                            <button type="button" class="icon-btn" onclick="addLove()" aria-label="Agregar nuevo love"
+                                title="Agregar nueva pasión">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        <ul id="list-loves" style="list-style:none;"></ul>
+                        <div class="item-list-header mood-header-row"
+                            style="display: flex; gap: 6px; padding: 8px 16px;">
+                            <button class="add-habit-btn" onclick="exportLovesSQL()"
+                                aria-label="Exportar histórico de Positivos"
+                                style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-dark);">📊
+                                Historial</button>
+                            <div class="mood-save-slot" data-save-slot="loves"></div>
+                        </div>
+                    </div>
+
+                    <!-- NEGATIVOS (antes "Odios") -->
+                    <div id="sent-negativos" class="sent-subview hidden">
+                        <div class="mood-minimal-header">
+                            <button type="button" class="icon-btn" onclick="addOdio()" aria-label="Agregar nuevo odio"
+                                title="Agregar nuevo odio">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        <ul id="list-odios" style="list-style:none;"></ul>
+                        <div class="item-list-header mood-header-row"
+                            style="display: flex; gap: 6px; padding: 8px 16px;">
+                            <button class="add-habit-btn" onclick="exportOdiosSQL()"
+                                aria-label="Exportar histórico de Negativos"
+                                style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-dark);">📊
+                                Historial</button>
+                            <div class="mood-save-slot" data-save-slot="odios"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- OTROS: hábitos cuyo hashtag no coincide con #ME/#SALUD/#WORK
+         (o que no tienen hashtag) — antes desaparecían silenciosamente
+         al dividir Hábitos en ME/HEALTH/WORK. Aquí puedes verlos y
+         reetiquetarlos (clic en el nombre) para moverlos al grupo
+         correcto. -->
+                <div id="tracking-otros" class="tracking-subview hidden">
+                    <div
+                        style="display:flex; justify-content:space-between; align-items:center; padding: 8px 16px 4px;">
+                        <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">Hábitos sin
+                            #ME/#SALUD/#WORK — edita el nombre para reubicarlos</span>
+                        <button type="button" class="icon-btn" onclick="addHabitForTag('OTROS')"
+                            aria-label="Agregar hábito en Otros" title="Agregar hábito en Otros">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <ul id="list-habits-otros" style="list-style:none; padding: 0 16px 16px;"></ul>
+                </div>
+
+                <!-- INGLÉS: aquí vive el componente completo de Components/english/english.js,
+                     que antes se generaba pero no tenía dónde mostrarse (no existía
+                     #english-section en ningún lado del HTML). -->
+                <div id="tracking-english" class="tracking-subview hidden">
+                    <div id="english-section"></div>
                 </div>
             </div>
-        </div>
-        <section class="category" style="border:none;">
-            <div style="display:flex; justify-content:space-between; align-items:center; padding: 8px 16px 4px;">
-                <button type="button" class="icon-btn" onclick="addHabitForTag('ME')" aria-label="Agregar hábito ME" title="Agregar hábito ME">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                </button>
-            </div>
-            <ul id="list-habits-me" style="list-style:none; padding: 0 16px 16px;"></ul>
-        </section>
-    </div>
-
-    <!-- HEALTH -->
-    <div id="tracking-health" class="tracking-subview hidden">
-        <div class="quick-idea-card">
-            <div class="quick-idea-header"><span>💡 Nota rápida (Health)</span></div>
-            <div class="quick-idea-body">
-                <textarea id="quick-idea-health" class="quick-idea-textarea" rows="2" placeholder="¿Qué se te ocurre para Health?"></textarea>
-                <div class="quick-idea-actions">
-                    <button type="button" class="quick-idea-save-btn" onclick="saveQuickIdeaFor('health')" style="width:100%;">Guardar en Brain Dump</button>
-                </div>
-            </div>
-        </div>
-        <section class="category" style="border:none;">
-            <div style="display:flex; justify-content:space-between; align-items:center; padding: 8px 16px 4px;">
-                <button type="button" class="icon-btn" onclick="addHabitForTag('SALUD')" aria-label="Agregar hábito Health" title="Agregar hábito Health">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                </button>
-            </div>
-            <ul id="list-habits-health" style="list-style:none; padding: 0 16px 16px;"></ul>
-        </section>
-    </div>
-
-    <!-- WORK -->
-    <div id="tracking-work" class="tracking-subview hidden">
-        <div class="quick-idea-card">
-            <div class="quick-idea-header"><span>💡 Nota rápida (Work)</span></div>
-            <div class="quick-idea-body">
-                <textarea id="quick-idea-work" class="quick-idea-textarea" rows="2" placeholder="¿Qué se te ocurre para Work?"></textarea>
-                <div class="quick-idea-actions">
-                    <button type="button" class="quick-idea-save-btn" onclick="saveQuickIdeaFor('work')" style="width:100%;">Guardar en Brain Dump</button>
-                </div>
-            </div>
-        </div>
-        <section class="category" style="border:none;">
-            <div style="display:flex; justify-content:space-between; align-items:center; padding: 8px 16px 4px;">
-                <button type="button" class="icon-btn" onclick="addHabitForTag('WORK')" aria-label="Agregar hábito Work" title="Agregar hábito Work">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                </button>
-            </div>
-            <ul id="list-habits-work" style="list-style:none; padding: 0 16px 16px;"></ul>
-        </section>
-    </div>
-
-    <!-- LOVES: no es un hábito semanal — es un registro ocasional tipo
-         ranking (1-10), con foto y card individual por pasión. -->
-    <div id="tracking-loves" class="tracking-subview hidden">
-        <div class="mood-minimal-header">
-            <button type="button" class="icon-btn" onclick="addLove()" aria-label="Agregar nuevo love" title="Agregar nueva pasión">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            </button>
-        </div>
-        <ul id="list-loves" style="list-style:none;"></ul>
-        <div class="item-list-header mood-header-row" style="display: flex; gap: 6px; padding: 8px 16px;">
-            <button class="add-habit-btn" onclick="exportLovesSQL()" aria-label="Exportar histórico de Loves" style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-dark);">📊 Historial</button>
-            <div class="mood-save-slot" data-save-slot="loves"></div>
-        </div>
-    </div>
-
-    <!-- SENTIMIENTOS: ahora solo Odios (Loves tiene su propia pestaña arriba) -->
-    <div id="tracking-sentimientos" class="tracking-subview hidden">
-        <div class="mood-minimal-header">
-            <button type="button" class="icon-btn" onclick="addOdio()" aria-label="Agregar nuevo odio" title="Agregar nuevo odio">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            </button>
-        </div>
-        <ul id="list-odios" style="list-style:none;"></ul>
-        <div class="item-list-header mood-header-row" style="display: flex; gap: 6px; padding: 8px 16px;">
-            <button class="add-habit-btn" onclick="exportOdiosSQL()" aria-label="Exportar histórico de Odios" style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-dark);">📊 Historial</button>
-            <div class="mood-save-slot" data-save-slot="odios"></div>
-        </div>
-    </div>
-</div>
 
             <!-- 📅 PLANES (Planes + Tareas fusionados en una sola pestaña) -->
             <div id="view-planes" class="bottom-view">
@@ -302,8 +402,10 @@
 
                 <div id="planes-ideas" class="planes-subview hidden">
                     <div style="display:flex; justify-content:flex-start; padding: 0 0 8px;">
-                        <button type="button" class="icon-btn" onclick="closeIdeasView()" aria-label="Volver a Planes" title="Volver a Planes">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <button type="button" class="icon-btn" onclick="closeIdeasView()" aria-label="Volver a Planes"
+                            title="Volver a Planes">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <line x1="19" y1="12" x2="5" y2="12"></line>
                                 <polyline points="12 19 5 12 12 5"></polyline>
                             </svg>
@@ -420,6 +522,11 @@
                             Mes</button>
                     </div>
 
+                    <!-- Historial de Meses Guardados (oculto hasta que se presiona "Historial") -->
+                    <div id="finance-history-section" class="hidden" style="padding: 0 16px 16px;">
+                        <div id="finance-history-list"></div>
+                    </div>
+
                     <!-- Categorías dinámicas -->
                     <div id="dynamic-expense-categories"></div>
 
@@ -434,6 +541,20 @@
                         <button class="sql-btn-compact" onclick="exportFinanceSQL()"
                             style="width:100%; justify-content:center;">💾 Exportar SQL</button>
                     </div>
+
+                    <!-- 🛒 COMPRAS: ahorro por item, vive dentro de Finanzas -->
+                    <section class="category" style="border-top: 1px solid var(--border-color);">
+                        <div class="category-header" style="border-bottom: none;">🛒 Compras (ahorro por item)</div>
+                        <div id="list-compras"></div>
+                        <div style="padding: 0 16px 16px;">
+                            <button class="add-habit-btn" onclick="addCompra()" style="width:100%;">+ Nueva
+                                Compra</button>
+                        </div>
+                        <div style="padding: 0 16px 16px;">
+                            <button class="sql-btn-compact" onclick="exportComprasSQL()"
+                                style="width:100%; justify-content:center;">💾 Exportar SQL de Compras</button>
+                        </div>
+                    </section>
                 </div>
 
                 <!-- Vista Ingresos -->
@@ -488,8 +609,8 @@
     <script src="./Components/mood_tracker/mood_tracker.js"></script>
     <script src="./Components/finance/finance.js"></script>
     <script src="./Components/english/english.js"></script>
-    <script src="./Components/nav_menu/nav_menu.js"></script>
     <script src="./Components/bottom_nav/bottom_nav.js"></script>
+    <script src="./Components/loves_counter/loves_counter.js"></script>
 </body>
 
 </html>

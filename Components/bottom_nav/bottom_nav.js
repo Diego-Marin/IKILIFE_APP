@@ -86,6 +86,7 @@
 
         if (tabId === 'money') {
             if (typeof loadFinances === 'function') loadFinances();
+            if (typeof loadCompras === 'function') loadCompras();
         }
 
 

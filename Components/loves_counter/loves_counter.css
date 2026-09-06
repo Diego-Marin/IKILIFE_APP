@@ -1,0 +1,161 @@
+/**
+ * ==========================================
+ * COMPONENTE: LOVES COUNTER — ESTILOS
+ * ==========================================
+ */
+
+.loves-counter-card {
+    background: linear-gradient(135deg, rgba(224, 71, 158, 0.08) 0%, var(--bg-header) 100%);
+    border: 1px solid rgba(224, 71, 158, 0.25);
+    border-radius: 16px;
+    margin: 16px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.loves-counter-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.loves-counter-title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--text-dark);
+}
+
+.loves-counter-goal-btn {
+    padding: 4px;
+}
+
+.loves-counter-total {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.loves-counter-total-value {
+    font-size: 2.2rem;
+    font-weight: 800;
+    line-height: 1;
+    color: #e0479e;
+}
+
+.loves-counter-total-label {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.loves-counter-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.loves-counter-progress-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+.loves-counter-bar-track {
+    height: 10px;
+}
+
+.loves-counter-bar-fill {
+    background: linear-gradient(90deg, #f28cc0, #e0479e);
+}
+
+.loves-actividades-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px 4px;
+}
+
+.loves-actividades-header-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.loves-actividades-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 8px 16px 16px;
+}
+
+.loves-actividades-empty {
+    padding: 24px 16px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.loves-actividad-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 2px solid rgba(224, 71, 158, 0.25);
+    background-color: var(--white);
+    transition: border-color var(--transition);
+}
+
+.loves-actividad-card--done {
+    border-color: #e0479e;
+    background-color: rgba(224, 71, 158, 0.06);
+}
+
+.loves-actividad-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.loves-actividad-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    cursor: pointer;
+}
+
+.loves-actividad-count {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: #e0479e;
+    flex-shrink: 0;
+}
+
+.loves-actividad-btn {
+    padding: 10px 0;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-light);
+    color: var(--text-dark);
+    font-weight: 700;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.loves-actividad-btn:hover {
+    border-color: #e0479e;
+}
+
+.loves-actividad-btn--done {
+    background-color: #e0479e;
+    border-color: #e0479e;
+    color: var(--white);
+}

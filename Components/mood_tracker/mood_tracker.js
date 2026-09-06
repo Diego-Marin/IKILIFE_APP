@@ -636,6 +636,11 @@ async function loadEspejoDelAlma() {
     const hPctDone = habitosHoy.pct;
     const hPctPending = 100 - habitosHoy.pct;
 
+    // Anillo SVG para "Hábitos de hoy" (r=32 → circunferencia ≈ 201.06).
+    const RADIO = 32;
+    const CIRCUNFERENCIA = 2 * Math.PI * RADIO;
+    const offsetHabitos = CIRCUNFERENCIA - (hPctDone / 100) * CIRCUNFERENCIA;
+
     container.innerHTML = `
         <div class="espejo-alma-card">
             <div class="espejo-alma-title">🪞 Espejo del Alma</div>
@@ -655,18 +660,25 @@ async function loadEspejoDelAlma() {
                 </div>
             </div>
 
-            <div class="espejo-section espejo-section--habitos">
-                <div class="espejo-section-header">
-                    <span class="espejo-metric-name">✅ Hábitos de hoy</span>
-                    <span class="espejo-metric-pct">${hPctDone}%</span>
+            <div class="espejo-section espejo-section--habitos espejo-section--ring">
+                <div class="espejo-habitos-texts">
+                    <div class="espejo-habitos-title">Hábitos de hoy</div>
+                    <div class="espejo-habitos-count">
+                        <span class="espejo-habitos-count-done">${habitosHoy.done}</span>/${habitosHoy.total} completados
+                    </div>
+                    <div class="espejo-bar-track espejo-habitos-bar-track">
+                        <div class="espejo-bar-fill espejo-bar-fill--habitos" style="width:${hPctDone}%;"></div>
+                    </div>
                 </div>
-                <div class="espejo-bar-track">
-                    <div class="espejo-bar-fill espejo-bar-fill--habitos" style="width:${hPctDone}%;"></div>
-                </div>
-                <div class="espejo-subtext">
-                    ${habitosHoy.total > 0
-                        ? `${habitosHoy.done} hechos · ${habitosHoy.pending} pendientes · ${habitosHoy.total} total`
-                        : 'Sin hábitos hoy'}
+                <div class="espejo-ring-wrap">
+                    <svg class="espejo-ring-svg" viewBox="0 0 72 72">
+                        <circle class="espejo-ring-track" cx="36" cy="36" r="${RADIO}"></circle>
+                        <circle class="espejo-ring-fill" cx="36" cy="36" r="${RADIO}"
+                            stroke-dasharray="${CIRCUNFERENCIA}" stroke-dashoffset="${offsetHabitos}"></circle>
+                    </svg>
+                    <div class="espejo-ring-center">
+                        <span class="espejo-ring-pct">${hPctDone}%</span>
+                    </div>
                 </div>
             </div>
         </div>

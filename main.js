@@ -89,7 +89,6 @@ document.addEventListener('DOMContentLoaded', () => {
         applySavedTheme();
                 updateWeeklyProgress();
         loadHomeUpcomingPlans();
-        loadHabits();
         loadIdeas();
         showRandomIdea();
         loadTareas();
@@ -99,7 +98,10 @@ document.addEventListener('DOMContentLoaded', () => {
         loadMetrics(); // Esta ya ejecuta internamente renderYearWeeks(), renderEnglishCourseWeeks(), loadTopHabits(), loadTopLoves() y loadTopSentimientos()
         loadFinances();
         loadAgradecimientos();
-        loadEnglish(); 
+        // loadEnglish() ya no se llama aquí: apuntaba a #english-section, que
+        // no existía en ningún lado del HTML (código muerto). Ahora el
+        // componente vive como sub-tab "INGLÉS" dentro de Camino y se carga
+        // al visitarla (ver switchTrackingTab).
         if (typeof loadEspejoDelAlma === 'function') loadEspejoDelAlma();
     } catch (error) {
         console.error("Error durante la carga de datos:", error);
@@ -109,9 +111,9 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
         if (typeof _supabase !== 'undefined') {
             _supabase.channel('habit-changes')
-                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'habit_logs' }, () => loadHabits())
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'habit_logs' }, () => loadHabits())
-                .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'habit_logs' }, () => loadHabits())
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'habit_logs' }, () => refreshActiveHabitsList())
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'habit_logs' }, () => refreshActiveHabitsList())
+                .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'habit_logs' }, () => refreshActiveHabitsList())
                 .subscribe();
         }
     } catch (error) {
@@ -407,141 +409,34 @@ function formatDateLocal(date) {
     return `${year}-${month}-${day}`;
 }
 
-async function loadHabits() {
-    const today = new Date();
-    let currentDay = today.getDay();
-    currentDay = currentDay === 0 ? 7 : currentDay;
+/**
+ * ==========================================
+ * REFRESCO DE HÁBITOS (post add/edit/delete/toggle)
+ * ==========================================
+ * Antes existía loadHabits(), que renderizaba TODOS los hábitos juntos
+ * en un contenedor #list-habits. Ese contenedor ya no existe en el HTML
+ * (los hábitos se separaron en listas por grupo: #list-habits-me,
+ * #list-habits-health, #list-habits-work, #list-habits-otros), así que
+ * loadHabits() se había vuelto código muerto: seguía haciendo 3 consultas
+ * a Supabase cada vez que agregabas/editabas/borrabas un hábito, pero el
+ * `if (!listContainer) return;` cortaba todo antes de pintar nada. Esto
+ * hacía que la lista visible NO se actualizara sola tras esas acciones
+ * (había que cambiar de sub-tab y volver para verla refrescada).
+ *
+ * refreshActiveHabitsList() reemplaza esas llamadas: detecta qué sub-tab
+ * de Camino está activa (ME/HEALTH/WORK/OTROS) y recarga solo esa lista.
+ */
+function refreshActiveHabitsList() {
+    const activeBtn = document.querySelector('#view-tracking .camino-tab-active');
+    const sub = activeBtn ? activeBtn.dataset.subtab : null;
+    const groupMap = { me: 'ME', health: 'SALUD', work: 'WORK' };
 
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - currentDay + 1);
-
-    const datesOfWeek = [];
-    const dayLabels = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
-
-    for (let i = 0; i < 7; i++) {
-        const d = new Date(monday);
-        d.setDate(monday.getDate() + i);
-        datesOfWeek.push(formatDateLocal(d));
-        const labelEl = document.getElementById(`day-label-${i + 1}`);
-        if (labelEl) labelEl.textContent = String(d.getDate()).padStart(2, '0');
+    if (sub && groupMap[sub]) {
+        loadHabitsGroup(groupMap[sub], 'list-habits-' + sub);
+    } else if (sub === 'otros' && typeof loadHabitsOtros === 'function') {
+        loadHabitsOtros();
     }
-
-    const { data: allHabitsData, error: err1 } = await _supabase.from('habit_logs').select('habit_name, project_tag');
-    if (err1) return console.error("Error obteniendo nombres:", err1.message);
-
-    const uniqueHabits = [...new Set(allHabitsData.map(h => h.habit_name))].sort();
-
-    const { data: weekLogs, error: err2 } = await _supabase
-        .from('habit_logs')
-        .select('*')
-        .gte('log_date', datesOfWeek[0])
-        .lte('log_date', datesOfWeek[6]);
-
-    if (err2) return console.error("Error cargando logs semanales:", err2.message);
-
-    const { data: habitImagesData, error: err3 } = await _supabase
-        .from('habit_images')
-        .select('habit_name, image_filename');
-    if (err3) console.warn('No se pudo leer habit_images:', err3.message);
-    const habitImages = Object.fromEntries((habitImagesData || []).map(h => [h.habit_name, h.image_filename]));
-
-    const listContainer = document.getElementById('list-habits');
-    if (!listContainer) return;
-    listContainer.innerHTML = '';
-
-    /* ---------- Agrupar DINÁMICAMENTE por hashtag ---------- */
-    const projectMap = {};
-    
-    uniqueHabits.forEach(habitName => {
-        const tag = getProjectFromHabitName(habitName) || 'General';
-        if (!projectMap[tag]) projectMap[tag] = [];
-        projectMap[tag].push(habitName);
-    });
-
-    // Orden preferido para tags conocidos. Los demás van alfabéticamente al final.
-    const knownOrder = ['SALUD', 'ME', 'FAMILIA', 'LOVES', 'WORK', 'ESTUDIO', 'INGLES', 'OPPORTUNITIES'];
-    const sortedTags = Object.keys(projectMap).sort((a, b) => {
-        const idxA = knownOrder.indexOf(a);
-        const idxB = knownOrder.indexOf(b);
-        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-        if (idxA !== -1) return -1;
-        if (idxB !== -1) return 1;
-        return a.localeCompare(b);
-    });
-
-    /* ---------- Render por grupo ---------- */
-    sortedTags.forEach(tag => {
-        const habitsInGroup = projectMap[tag];
-
-        // Header del grupo (solo si hay hábitos — nunca aparece vacío)
-        const groupHeader = document.createElement('div');
-        groupHeader.style.cssText = `
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            margin-top: 2px;
-            background: var(--bg-header);
-            border-bottom: 1px solid var(--border-color);
-            font-size: 0.7rem;
-            font-weight: 700;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.6px;
-        `;
-        groupHeader.innerHTML = `
-            <span style="width:6px; height:6px; border-radius:50%; background:var(--primary-green); display:inline-block;"></span>
-            ${tag}
-        `;
-        listContainer.appendChild(groupHeader);
-
-        // Hábitos del grupo
-        habitsInGroup.forEach(habitName => {
-            let daysHTML = '';
-            let streakCount = 0;
-            let isDoneToday = true;
-
-            datesOfWeek.forEach((dateStr, idx) => {
-                const log = weekLogs.find(l => l.habit_name === habitName && l.log_date === dateStr);
-                const isDone = log ? log.is_completed : false;
-                if (isDone) streakCount++;
-
-                const isToday = idx + 1 === currentDay;
-                const isFuture = idx + 1 > currentDay;
-
-                if (isToday) isDoneToday = isDone;
-
-                daysHTML += `
-                    <button type="button" class="habit-day-chip${isDone ? ' habit-day-chip--done' : ''}${isToday ? ' habit-day-chip--today' : ''}${isFuture ? ' habit-day-chip--future' : ''}"
-                        ${isFuture ? 'disabled' : `onclick="toggleHabit('${habitName.replace(/'/g, "\\'")}', '${dateStr}', ${isDone})"`}>
-                        ${dayLabels[idx]}
-                    </button>`;
-            });
-
-            const imageFilename = habitImages[habitName] || 'default.jpg';
-            const localImagePath = `assets/images/${imageFilename}`;
-            const habitNameEscaped = habitName.replace(/'/g, "\\'");
-            const pendienteClass = !isDoneToday ? ' habit-card--pendiente' : '';
-
-            const card = `
-                <li class="habit-card${pendienteClass}" oncontextmenu="event.preventDefault(); deleteHabit('${habitNameEscaped}')" title="Clic derecho para eliminar">
-                    <img src="${localImagePath}" class="habit-card-img" onerror="this.src='assets/images/default.jpg'"
-                         onclick="event.stopPropagation(); setHabitImage('${habitNameEscaped}')"
-                         title="Clic para cambiar la imagen">
-                    <div class="habit-card-info">
-                        <div class="habit-card-top">
-                            <span class="habit-card-name" onclick="editHabit('${habitNameEscaped}')" title="Clic para editar">${cleanHabitName(habitName)}</span>
-                            <span class="habit-card-streak">${streakCount}/7</span>
-                        </div>
-                        <div class="habit-day-row">
-                            ${daysHTML}
-                        </div>
-                    </div>
-                </li>
-            `;
-            listContainer.insertAdjacentHTML('beforeend', card);
-        });
-    });
+    if (typeof loadEspejoDelAlma === 'function') loadEspejoDelAlma();
 }
 
 // Función auxiliar para extraer el proyecto del nombre del hábito
@@ -591,7 +486,7 @@ async function addHabit() {
     if (error) {
         alert("Fallo al guardar. Revisa la Consola (F12). Error: " + error.message);
     } else {
-        loadHabits();
+        refreshActiveHabitsList();
     }
 }
 
@@ -630,7 +525,7 @@ async function toggleHabit(habitName, dateStr, currentState) {
         if (insertError) console.error("Error insertando:", insertError.message);
     }
 
-    loadHabits();
+    refreshActiveHabitsList();
     if (typeof loadMetrics === 'function') loadMetrics();
 }
 
@@ -657,7 +552,7 @@ async function editHabit(oldName) {
     // Mantiene la imagen asociada al renombrar el hábito.
     await _supabase.from('habit_images').update({ habit_name: updatedName }).eq('habit_name', oldName);
 
-    loadHabits();
+    refreshActiveHabitsList();
 }
 
 async function deleteHabit(name) {
@@ -676,7 +571,7 @@ async function deleteHabit(name) {
 
     await _supabase.from('habit_images').delete().eq('habit_name', name);
 
-    loadHabits();
+    refreshActiveHabitsList();
 }
 
 /* NUEVO: define o cambia la imagen de un hábito. Guarda solo el
@@ -699,7 +594,7 @@ async function setHabitImage(habitName) {
     if (error) {
         alert("Error al guardar la imagen: " + error.message);
     } else {
-        loadHabits();
+        refreshActiveHabitsList();
     }
 }
 
@@ -1080,8 +975,42 @@ function switchTrackingTab(subtab, btn) {
     if (subtab === 'me') loadHabitsGroup('ME', 'list-habits-me');
     if (subtab === 'health') loadHabitsGroup('SALUD', 'list-habits-health');
     if (subtab === 'work') loadHabitsGroup('WORK', 'list-habits-work');
-    if (subtab === 'loves' && typeof loadLoves === 'function') loadLoves();
-    if (subtab === 'sentimientos' && typeof loadOdios === 'function') loadOdios();
+    // LOVES ya no es un ranking — es el "mapa" de cuánto haces lo que
+    // amas (contador + barra de progreso). Ver Components/loves_counter/.
+    if (subtab === 'loves' && typeof loadLovesCounter === 'function') loadLovesCounter();
+    // SENTIMIENTOS fusiona Positivos (antes Loves) y Negativos (antes
+    // Odios) en sub-tabs internas — carga ambas listas de una vez para
+    // que el cambio de sub-tab sea instantáneo.
+    if (subtab === 'sentimientos') {
+        if (typeof loadLoves === 'function') loadLoves();
+        if (typeof loadOdios === 'function') loadOdios();
+    }
+    // OTROS: hábitos cuyo hashtag no es #ME/#SALUD/#WORK (o sin hashtag),
+    // que antes desaparecían silenciosamente al dividir Hábitos en grupos.
+    if (subtab === 'otros' && typeof loadHabitsOtros === 'function') loadHabitsOtros();
+    // INGLÉS: componente completo de Components/english/english.js. Antes
+    // se cargaba en el arranque apuntando a un contenedor que no existía
+    // en el HTML (#english-section); ahora vive aquí como una sub-tab más
+    // de Camino y se carga (o refresca) cada vez que se visita.
+    if (subtab === 'english' && typeof loadEnglish === 'function') loadEnglish();
+}
+
+/**
+ * Alterna entre las sub-tabs internas "Positivos" (Loves) y "Negativos"
+ * (Odios) dentro de la pestaña fusionada Sentimientos.
+ */
+function switchSentTab(which, btn) {
+    document.querySelectorAll('#tracking-sentimientos .sent-tab-btn').forEach(b => {
+        b.classList.remove('sent-tab-active');
+    });
+    if (btn) btn.classList.add('sent-tab-active');
+
+    document.querySelectorAll('#tracking-sentimientos .sent-subview').forEach(v => v.classList.add('hidden'));
+    const target = document.getElementById('sent-' + which);
+    if (target) target.classList.remove('hidden');
+
+    if (which === 'positivos' && typeof loadLoves === 'function') loadLoves();
+    if (which === 'negativos' && typeof loadOdios === 'function') loadOdios();
 }
 
 
@@ -1095,41 +1024,16 @@ function switchTrackingTab(subtab, btn) {
  * ==========================================
  * INTERFAZ DE USUARIO (TABS Y OTROS)
  * ==========================================
+ * NOTA: se removieron switchTab() y saveLearning() — código muerto.
+ * switchTab() manejaba una barra de tabs (.tabs/.tab-btn) generada por
+ * Components/nav_menu, cuyo contenedor (#nav-menu-container) tampoco
+ * existía en el HTML; además llamaba a switchSentimientosTab(), una
+ * función que nunca llegó a definirse. saveLearning() guardaba en la
+ * tabla "journal_logs" desde un campo (#daily-learning) que no existe
+ * en ningún lado del HTML. Ninguna de las dos podía ejecutarse nunca
+ * desde la interfaz real de la app (Components/nav_menu/nav_menu.js y
+ * .css tampoco se cargan ya desde index.html).
  */
-function switchTab(tab, btn) {
-    // Compatibilidad: Loves y Odios se fusionaron como tabs internas
-    // dentro de "Sentimientos". Si algo aún llama a 'loves' u 'odios',
-    // redirige a la vista fusionada y activa la tab interna correcta.
-    let subtab = null;
-    if (tab === 'loves' || tab === 'odios') {
-        subtab = tab;
-        tab = 'sentimientos';
-    }
-
-    document.querySelectorAll('.tab-btn').forEach(b => {
-        b.classList.remove('tab-active');
-        b.classList.add('tab-inactive');
-    });
-    btn.classList.add('tab-active');
-    btn.classList.remove('tab-inactive');
-
-    const views = ['view-habits','view-english', 'view-metrics', 'view-ideas', 'view-tareas', 'view-sentimientos', 'view-reglas', 'view-money', 'view-compras'];
-    views.forEach(v => {
-        const viewEl = document.getElementById(v);
-        if (viewEl) viewEl.classList.remove('active');
-    });
-
-    const targetView = document.getElementById(`view-${tab}`);
-    if (targetView) targetView.classList.add('active');
-
-    if (tab === 'metrics') {
-        loadMetrics();
-    }
-
-    if (tab === 'sentimientos' && typeof switchSentimientosTab === 'function') {
-        switchSentimientosTab(subtab || (localStorage.getItem('ikilife_sentimientos_subtab') === 'odios' ? 'odios' : 'loves'));
-    }
-}
 
 /**
  * Planes y Tareas ahora viven juntos en "planes-main" (una sola
@@ -1142,22 +1046,6 @@ function showPlanesMain() {
     const ideas = document.getElementById('planes-ideas');
     if (main) main.classList.remove('hidden');
     if (ideas) ideas.classList.add('hidden');
-}
-
-async function saveLearning() {
-    const textEl = document.getElementById('daily-learning');
-    if (!textEl || !textEl.value.trim()) return;
-
-    const { error } = await _supabase
-        .from('journal_logs')
-        .insert([{ content: textEl.value }]);
-
-    if (!error) {
-        alert("Guardado");
-        textEl.value = '';
-    } else {
-        alert("Error al guardar: " + error.message);
-    }
 }
 
 /**
@@ -1178,18 +1066,15 @@ async function saveLearning() {
 
 /**
  * ==========================================
- * IDEA RÁPIDA (INICIO) — TEXTO + VOZ
+ * IDEA RÁPIDA (INICIO)
  * ==========================================
- * Permite capturar una idea sin salir de Inicio. Escribe directo en el
- * textarea o usa el micrófono para dictarla (Web Speech API). Si el
- * navegador no soporta reconocimiento de voz, el botón de micrófono se
- * oculta y solo queda la escritura manual. Guarda en la misma tabla
- * "ideas_logs" que usa el Brain Dump.
+ * Permite capturar una idea sin salir de Inicio, directo en el textarea.
+ * Guarda en la misma tabla "ideas_logs" que usa el Brain Dump.
+ * NOTA: se removieron las variables de dictado por voz (Web Speech API,
+ * quickIdeaRecognition/Recording/BaseText) — no existe ningún botón de
+ * micrófono en el HTML ni se usan en ninguna otra parte del código, así
+ * que quedaron declaradas sin ningún efecto real.
  */
-let quickIdeaRecognition = null;
-let quickIdeaRecording = false;
-let quickIdeaBaseText = '';
-
 async function saveQuickIdea() {
     const input = document.getElementById('quick-idea-input');
     if (!input) return;
@@ -1582,6 +1467,32 @@ async function exportOdiosSQL() {
     } catch (err) {
         console.error(err);
         alert("Error exportando Odios: " + err.message);
+    }
+}
+
+// ======================================================
+// EXPORTAR COMPRAS (ahora visible dentro de Finanzas)
+// ======================================================
+async function exportComprasSQL() {
+    try {
+        const { data, error } = await _supabase
+            .from('compras_logs')
+            .select('*')
+            .order('created_at', { ascending: true });
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            alert("No hay registros para exportar.");
+            return;
+        }
+
+        const sql = buildSQLInsert('compras_logs', data);
+        descargarArchivo(sql, 'compras_logs.sql', 'text/sql');
+
+    } catch (err) {
+        console.error(err);
+        alert("Error exportando Compras: " + err.message);
     }
 }
 
@@ -2739,6 +2650,72 @@ async function loadHabitsGroup(tag, containerId) {
     });
 }
 
+/**
+ * OTROS: catch-all para hábitos cuyo primer hashtag NO es #ME/#SALUD/#WORK
+ * (incluye los que tienen otro hashtag, ej. #FAMILIA, y los que no
+ * tienen ningún hashtag). Antes de existir esta pestaña, esos hábitos
+ * seguían vivos en "habit_logs" pero no aparecían en ningún lado
+ * porque loadHabitsGroup solo buscaba ME/SALUD/WORK. Aquí se muestran
+ * para poder reetiquetarlos (clic en el nombre → editHabit) y que así
+ * aparezcan en el grupo correcto.
+ */
+async function loadHabitsOtros() {
+    const RECONOCIDOS = ['ME', 'SALUD', 'WORK'];
+    const today = new Date();
+    let currentDay = today.getDay();
+    currentDay = currentDay === 0 ? 7 : currentDay;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - currentDay + 1);
+    const datesOfWeek = [];
+    const dayLabels = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        datesOfWeek.push(formatDateLocal(d));
+    }
+
+    const { data: allHabitsData, error: err1 } = await _supabase
+        .from('habit_logs')
+        .select('habit_name, project_tag');
+    if (err1) return console.error(err1.message);
+
+    const uniqueHabits = [...new Set(
+        allHabitsData
+            .filter(h => {
+                const fromName = getProjectFromHabitName(h.habit_name);
+                const fromField = (h.project_tag || '').toUpperCase();
+                const tag = fromName || fromField || null;
+                return !tag || !RECONOCIDOS.includes(tag);
+            })
+            .map(h => h.habit_name)
+    )].sort();
+
+    const listContainer = document.getElementById('list-habits-otros');
+    if (!listContainer) return;
+    listContainer.innerHTML = '';
+
+    if (uniqueHabits.length === 0) {
+        listContainer.innerHTML = `<li style="padding:16px; color:var(--text-muted); text-align:center;">No hay hábitos sueltos — todo está en ME, HEALTH o WORK. 🎉</li>`;
+        return;
+    }
+
+    const { data: weekLogs, error: err2 } = await _supabase
+        .from('habit_logs')
+        .select('*')
+        .gte('log_date', datesOfWeek[0])
+        .lte('log_date', datesOfWeek[6]);
+    if (err2) return console.error(err2.message);
+
+    const { data: habitImagesData } = await _supabase
+        .from('habit_images')
+        .select('habit_name, image_filename');
+    const habitImages = Object.fromEntries((habitImagesData || []).map(h => [h.habit_name, h.image_filename]));
+
+    uniqueHabits.forEach(habitName => {
+        renderHabitCard(habitName, listContainer, datesOfWeek, currentDay, dayLabels, weekLogs, habitImages);
+    });
+}
+
 function renderHabitCard(habitName, listContainer, datesOfWeek, currentDay, dayLabels, weekLogs, habitImages) {
     let daysHTML = '';
     let streakCount = 0;
@@ -2798,6 +2775,7 @@ async function addHabitForTag(tag) {
         const map = { 'ME': 'me', 'SALUD': 'health', 'WORK': 'work', 'LOVES': 'loves' };
         const sub = map[upperTag];
         if (sub) loadHabitsGroup(upperTag, 'list-habits-' + sub);
+        if (upperTag === 'OTROS' && typeof loadHabitsOtros === 'function') loadHabitsOtros();
     }
 }
 

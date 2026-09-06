@@ -169,44 +169,6 @@ header.main-header {
 
 /**
  * ==========================================
- * NAVEGACIÓN (TABS)
- * ==========================================
- */
-.tabs {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    margin-bottom: 24px;
-}
-
-.tab-btn {
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid transparent;
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all var(--transition);
-}
-
-.tab-active { 
-    background-color: var(--text-dark); 
-    color: var(--bg-light); 
-}
-
-.tab-inactive { 
-    background-color: var(--white); 
-    color: var(--text-muted);
-    border-color: var(--border-color);
-}
-
-.tab-inactive:hover {
-    color: var(--text-dark);
-    border-color: var(--text-muted);
-}
-
-/**
- * ==========================================
  * TABS "CAMINO" (Hábitos / Sentimientos)
  * ==========================================
  * Igual patrón que .tabs/.tab-btn pero con cuadros más grandes: más
@@ -2153,43 +2115,6 @@ div.day-segment.future {
     gap: 10px;
 }
 
-.quick-idea-mic-btn {
-    flex-shrink: 0;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: 1px solid var(--border-color);
-    background-color: var(--white);
-    color: var(--text-muted);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all var(--transition);
-}
-
-.quick-idea-mic-btn:hover {
-    border-color: var(--primary-green);
-    color: var(--primary-green);
-}
-
-.quick-idea-mic-btn--recording {
-    background-color: #e74c3c;
-    border-color: #e74c3c;
-    color: var(--white);
-    animation: quickIdeaPulse 1.2s ease-in-out infinite;
-}
-
-.quick-idea-mic-btn--unsupported {
-    display: none;
-}
-
-@keyframes quickIdeaPulse {
-    0%   { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.45); }
-    70%  { box-shadow: 0 0 0 10px rgba(231, 76, 60, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
-}
-
 .quick-idea-save-btn {
     flex: 1;
     padding: 10px 0;
@@ -2349,16 +2274,18 @@ div.day-segment.future {
  */
 .espejo-alma-card {
     background: var(--bg-header);
-    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
     margin-bottom: 20px;
-    padding: 18px;
+    padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
 }
 
 .espejo-alma-title {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     font-weight: 800;
     color: var(--text-dark);
     text-transform: uppercase;
@@ -2366,6 +2293,85 @@ div.day-segment.future {
     display: flex;
     align-items: center;
     gap: 6px;
+}
+
+/* ---------- Hábitos de hoy: título grande + contador + barra a la
+   izquierda, anillo circular con el % a la derecha ---------- */
+.espejo-section--ring {
+    flex-direction: row;
+    align-items: center;
+    gap: 18px;
+}
+
+.espejo-habitos-texts {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.espejo-habitos-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--text-dark);
+    line-height: 1.2;
+}
+
+.espejo-habitos-count {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.espejo-habitos-count-done {
+    color: #16a34a;
+    font-weight: 800;
+}
+
+.espejo-habitos-bar-track {
+    margin-top: 2px;
+}
+
+.espejo-ring-wrap {
+    position: relative;
+    width: 72px;
+    height: 72px;
+    flex-shrink: 0;
+}
+
+.espejo-ring-svg {
+    width: 72px;
+    height: 72px;
+    transform: rotate(-90deg);
+}
+
+.espejo-ring-track {
+    fill: none;
+    stroke: var(--border-color);
+    stroke-width: 7;
+}
+
+.espejo-ring-fill {
+    fill: none;
+    stroke: #16a34a;
+    stroke-width: 7;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.espejo-ring-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.espejo-ring-pct {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #16a34a;
 }
 
 .espejo-section {
