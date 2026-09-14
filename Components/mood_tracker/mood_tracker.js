@@ -645,18 +645,23 @@ async function loadEspejoDelAlma() {
         <div class="espejo-alma-card">
             <div class="espejo-alma-title">🪞 Espejo del Alma</div>
 
-            <div class="espejo-section espejo-section--emocional">
-                <div class="espejo-section-header">
-                    <span class="espejo-metric-name">❤️ Balance emocional del mes</span>
-                    <span class="espejo-metric-pct">${balanceMes.lovesPct}%</span>
-                </div>
-                <div class="espejo-bar-track">
-                    <div class="espejo-bar-fill espejo-bar-fill--emocional" style="width:${balanceMes.lovesPct}%;"></div>
-                </div>
-                <div class="espejo-subtext">
-                    ${balanceMes.total > 0
-                        ? `❤️ ${balanceMes.sumLoves} pts · 💢 ${balanceMes.sumOdios} pts · ${balanceMes.total} registros`
-                        : 'Sin registros este mes'}
+            <div class="espejo-emo-card">
+                <div class="espejo-emo-icon">❤️</div>
+                <div class="espejo-emo-body">
+                    <div class="espejo-emo-top">
+                        <span class="espejo-emo-label">Balance emocional del mes</span>
+                        <span class="espejo-emo-pct">${balanceMes.lovesPct}%</span>
+                    </div>
+                    <div class="espejo-emo-bar-track">
+                        <div class="espejo-emo-bar-fill" style="width:${balanceMes.lovesPct}%;"></div>
+                    </div>
+                    <div class="espejo-emo-stats">
+                        ${balanceMes.total > 0
+                            ? `<span class="espejo-emo-chip espejo-emo-chip--love">❤️ ${balanceMes.sumLoves} pts</span>
+                               <span class="espejo-emo-chip espejo-emo-chip--odio">💢 ${balanceMes.sumOdios} pts</span>
+                               <span class="espejo-emo-chip">${balanceMes.total} registros</span>`
+                            : '<span class="espejo-emo-chip">Sin registros este mes</span>'}
+                    </div>
                 </div>
             </div>
 

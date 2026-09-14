@@ -12,7 +12,7 @@
         },
         {
             id: 'tracking',
-            label: 'Camino',
+            label: 'Hábitos',
             svg: '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline>'
         },
         {
@@ -74,7 +74,7 @@
 
       if (tabId === 'tracking') {
     const activeBtn = document.querySelector('#view-tracking .camino-tab-active');
-    const sub = activeBtn ? activeBtn.dataset.subtab : 'me';
+    const sub = activeBtn ? activeBtn.dataset.subtab : 'cabello';
     switchTrackingTab(sub, activeBtn);
 }
 

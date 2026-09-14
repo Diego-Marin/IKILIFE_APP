@@ -414,29 +414,79 @@ function formatDateLocal(date) {
  * REFRESCO DE HÁBITOS (post add/edit/delete/toggle)
  * ==========================================
  * Antes existía loadHabits(), que renderizaba TODOS los hábitos juntos
- * en un contenedor #list-habits. Ese contenedor ya no existe en el HTML
- * (los hábitos se separaron en listas por grupo: #list-habits-me,
- * #list-habits-health, #list-habits-work, #list-habits-otros), así que
- * loadHabits() se había vuelto código muerto: seguía haciendo 3 consultas
- * a Supabase cada vez que agregabas/editabas/borrabas un hábito, pero el
- * `if (!listContainer) return;` cortaba todo antes de pintar nada. Esto
- * hacía que la lista visible NO se actualizara sola tras esas acciones
- * (había que cambiar de sub-tab y volver para verla refrescada).
+ * en un contenedor #list-habits. Ese contenedor ya no existe en el HTML:
+ * los hábitos viven en listas separadas por categoría dentro de la
+ * pestaña "Hábitos" (antes "Camino"): #list-habits-cabello,
+ * #list-habits-sexualidad, #list-habits-piel, #list-habits-cuerpo,
+ * #list-habits-dinero y #list-habits-saludemocional.
  *
- * refreshActiveHabitsList() reemplaza esas llamadas: detecta qué sub-tab
- * de Camino está activa (ME/HEALTH/WORK/OTROS) y recarga solo esa lista.
+ * refreshActiveHabitsList() detecta qué sub-tab de Hábitos está activa
+ * y recarga solo esa lista.
  */
 function refreshActiveHabitsList() {
     const activeBtn = document.querySelector('#view-tracking .camino-tab-active');
     const sub = activeBtn ? activeBtn.dataset.subtab : null;
-    const groupMap = { me: 'ME', health: 'SALUD', work: 'WORK' };
+    const groupMap = {
+        cabello: 'CABELLO',
+        sexualidad: 'SEXUALIDAD',
+        piel: 'PIEL',
+        cuerpo: 'CUERPO',
+        dinero: 'DINERO',
+        saludemocional: 'BIENESTAR',
+    };
 
     if (sub && groupMap[sub]) {
         loadHabitsGroup(groupMap[sub], 'list-habits-' + sub);
-    } else if (sub === 'otros' && typeof loadHabitsOtros === 'function') {
-        loadHabitsOtros();
     }
     if (typeof loadEspejoDelAlma === 'function') loadEspejoDelAlma();
+}
+
+/**
+ * ==========================================
+ * HÁBITOS POR DEFECTO DE CADA CATEGORÍA DE "HÁBITOS" (antes "Camino")
+ * ==========================================
+ * Cada categoría trae una lista inicial de hábitos ya definida. Se
+ * siembra UNA SOLA VEZ por categoría (se marca en localStorage) para
+ * no volver a crear un hábito que el usuario borró a propósito.
+ */
+const DEFAULT_HABITS_BY_TAG = {
+    CABELLO: ['Recortado a punto', 'Degradado lateral', 'Limpio y humectado'],
+    SEXUALIDAD: ['No pornografía', 'No masturbación', 'Ejercicios de Kegel'],
+    PIEL: ['Lavado de rostro', 'Afeitado limpio', 'Hidratación / skin care', 'No arañar', 'Retinoides y foliculitis'],
+    CUERPO: ['50 abdominales diarias', '70 sentadillas', 'Fondos x30', 'Rutina de gym'],
+    DINERO: ['No casino', 'Gasto consciente', 'Ahorro diario'],
+    BIENESTAR: ['Lecturas sanadoras', 'Conexiones reales', 'Meditación'],
+};
+
+async function seedDefaultHabitsOnce(tag) {
+    const seedKey = 'ikilife_seeded_habits_' + tag;
+    if (localStorage.getItem(seedKey) === '1') return;
+
+    const defaults = DEFAULT_HABITS_BY_TAG[tag] || [];
+    if (defaults.length === 0) {
+        localStorage.setItem(seedKey, '1');
+        return;
+    }
+
+    const todayStr = formatDateLocal(new Date());
+    const rows = defaults.map(name => ({
+        habit_name: `${name} #${tag}`,
+        log_date: todayStr,
+        is_completed: false,
+        project_tag: tag,
+    }));
+
+    const { error } = await _supabase.from('habit_logs').insert(rows);
+    if (error) {
+        console.error(`Error sembrando hábitos por defecto de ${tag}:`, error.message);
+        return; // no marcar como sembrado: se reintentará la próxima vez
+    }
+    localStorage.setItem(seedKey, '1');
+}
+
+async function loadHabitCategory(tag, containerId) {
+    await seedDefaultHabitsOnce(tag);
+    await loadHabitsGroup(tag, containerId);
 }
 
 // Función auxiliar para extraer el proyecto del nombre del hábito
@@ -972,12 +1022,14 @@ function switchTrackingTab(subtab, btn) {
     const target = document.getElementById('tracking-' + subtab);
     if (target) target.classList.remove('hidden');
 
-    if (subtab === 'me') loadHabitsGroup('ME', 'list-habits-me');
-    if (subtab === 'health') loadHabitsGroup('SALUD', 'list-habits-health');
-    if (subtab === 'work') loadHabitsGroup('WORK', 'list-habits-work');
-    // LOVES ya no es un ranking — es el "mapa" de cuánto haces lo que
-    // amas (contador + barra de progreso). Ver Components/loves_counter/.
-    if (subtab === 'loves' && typeof loadLovesCounter === 'function') loadLovesCounter();
+    // Categorías de hábitos diarios (cada una trae una lista de hábitos
+    // por defecto la primera vez que se abre — ver DEFAULT_HABITS_BY_TAG).
+    if (subtab === 'cabello') loadHabitCategory('CABELLO', 'list-habits-cabello');
+    if (subtab === 'sexualidad') loadHabitCategory('SEXUALIDAD', 'list-habits-sexualidad');
+    if (subtab === 'piel') loadHabitCategory('PIEL', 'list-habits-piel');
+    if (subtab === 'cuerpo') loadHabitCategory('CUERPO', 'list-habits-cuerpo');
+    if (subtab === 'dinero') loadHabitCategory('DINERO', 'list-habits-dinero');
+    if (subtab === 'saludemocional') loadHabitCategory('BIENESTAR', 'list-habits-saludemocional');
     // SENTIMIENTOS fusiona Positivos (antes Loves) y Negativos (antes
     // Odios) en sub-tabs internas — carga ambas listas de una vez para
     // que el cambio de sub-tab sea instantáneo.
@@ -985,13 +1037,10 @@ function switchTrackingTab(subtab, btn) {
         if (typeof loadLoves === 'function') loadLoves();
         if (typeof loadOdios === 'function') loadOdios();
     }
-    // OTROS: hábitos cuyo hashtag no es #ME/#SALUD/#WORK (o sin hashtag),
-    // que antes desaparecían silenciosamente al dividir Hábitos en grupos.
-    if (subtab === 'otros' && typeof loadHabitsOtros === 'function') loadHabitsOtros();
     // INGLÉS: componente completo de Components/english/english.js. Antes
     // se cargaba en el arranque apuntando a un contenedor que no existía
     // en el HTML (#english-section); ahora vive aquí como una sub-tab más
-    // de Camino y se carga (o refresca) cada vez que se visita.
+    // de Hábitos y se carga (o refresca) cada vez que se visita.
     if (subtab === 'english' && typeof loadEnglish === 'function') loadEnglish();
 }
 
@@ -2772,10 +2821,16 @@ async function addHabitForTag(tag) {
     if (error) {
         alert("Error al guardar: " + error.message);
     } else {
-        const map = { 'ME': 'me', 'SALUD': 'health', 'WORK': 'work', 'LOVES': 'loves' };
+        const map = {
+            'CABELLO': 'cabello',
+            'SEXUALIDAD': 'sexualidad',
+            'PIEL': 'piel',
+            'CUERPO': 'cuerpo',
+            'DINERO': 'dinero',
+            'BIENESTAR': 'saludemocional',
+        };
         const sub = map[upperTag];
         if (sub) loadHabitsGroup(upperTag, 'list-habits-' + sub);
-        if (upperTag === 'OTROS' && typeof loadHabitsOtros === 'function') loadHabitsOtros();
     }
 }
 

@@ -89,21 +89,6 @@
             <!-- 🏠 INICIO -->
             <div id="view-home" class="bottom-view active">
 
-                <!-- 💡 Idea Rápida (texto o voz) -->
-                <div class="quick-idea-card" id="quick-idea-card">
-                    <div class="quick-idea-header">
-                        <span>💡 Idea rápida</span>
-                    </div>
-                    <div class="quick-idea-body">
-                        <textarea id="quick-idea-input" class="quick-idea-textarea" rows="2"
-                            placeholder="Se me acaba de ocurrir..."></textarea>
-                        <div class="quick-idea-actions">
-                            <button type="button" id="quick-idea-save-btn" class="quick-idea-save-btn"
-                                onclick="saveQuickIdea()" style="width:100%;">Guardar</button>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Progreso Semanal + Anual (fusionado) -->
                 <div class="progress-fusion-card">
                     <div class="progress-fusion-header">
@@ -134,6 +119,9 @@
                 </div>
 
                 <div id="habit-legend-yesterday"></div>
+
+                <div id="espejo-alma-container"></div>
+
                 <!-- Dashboard del Día: Estado + Planes próximos -->
                 <div class="today-dashboard">
                     <div class="today-dashboard-header">
@@ -143,62 +131,74 @@
                     <div id="state-bar-container"></div>
                     <div id="home-upcoming-plans"></div>
                 </div>
-                <div id="espejo-alma-container"></div>
+
+                <!-- 💡 Idea Rápida (texto o voz) -->
+                <div class="quick-idea-card" id="quick-idea-card">
+                    <div class="quick-idea-header">
+                        <span>💡 Idea rápida</span>
+                    </div>
+                    <div class="quick-idea-body">
+                        <textarea id="quick-idea-input" class="quick-idea-textarea" rows="2"
+                            placeholder="Se me acaba de ocurrir..."></textarea>
+                        <div class="quick-idea-actions">
+                            <button type="button" id="quick-idea-save-btn" class="quick-idea-save-btn"
+                                onclick="saveQuickIdea()" style="width:100%;">Guardar</button>
+                        </div>
+                    </div>
+                </div>
+
+
+                
             </div>
 
-            <!-- 🌱 CAMINO -->
+            <!-- 🌱 HÁBITOS (antes "Camino") -->
             <div id="view-tracking" class="bottom-view">
                 <div class="camino-tabs">
-                    <button class="camino-tab-btn camino-tab-active" data-subtab="me"
-                        onclick="switchTrackingTab('me', this)">
-                        <span class="camino-tab-icon">🧘</span>
-                        <span class="camino-tab-label">ME</span>
+                    <button class="camino-tab-btn camino-tab-active" data-subtab="cabello"
+                        onclick="switchTrackingTab('cabello', this)">
+                        <span class="camino-tab-icon">✂️</span>
+                        <span class="camino-tab-label">CABELLO</span>
                     </button>
-                    <button class="camino-tab-btn" data-subtab="health" onclick="switchTrackingTab('health', this)">
+                    <button class="camino-tab-btn" data-subtab="sexualidad"
+                        onclick="switchTrackingTab('sexualidad', this)">
+                        <span class="camino-tab-icon">🔥</span>
+                        <span class="camino-tab-label">SEXUALIDAD</span>
+                    </button>
+                    <button class="camino-tab-btn" data-subtab="piel" onclick="switchTrackingTab('piel', this)">
+                        <span class="camino-tab-icon">🧴</span>
+                        <span class="camino-tab-label">PIEL</span>
+                    </button>
+                    <button class="camino-tab-btn" data-subtab="cuerpo" onclick="switchTrackingTab('cuerpo', this)">
                         <span class="camino-tab-icon">💪</span>
-                        <span class="camino-tab-label">HEALTH</span>
+                        <span class="camino-tab-label">CUERPO</span>
                     </button>
-                    <button class="camino-tab-btn" data-subtab="work" onclick="switchTrackingTab('work', this)">
-                        <span class="camino-tab-icon">💼</span>
-                        <span class="camino-tab-label">WORK</span>
-                    </button>
-                    <button class="camino-tab-btn" data-subtab="loves" onclick="switchTrackingTab('loves', this)">
-                        <span class="camino-tab-icon">❤️</span>
-                        <span class="camino-tab-label">LOVES</span>
+                    <button class="camino-tab-btn" data-subtab="english" onclick="switchTrackingTab('english', this)">
+                        <span class="camino-tab-icon">🇬🇧</span>
+                        <span class="camino-tab-label">INGLÉS</span>
                     </button>
                     <button class="camino-tab-btn" data-subtab="sentimientos"
                         onclick="switchTrackingTab('sentimientos', this)">
                         <span class="camino-tab-icon">🧠</span>
                         <span class="camino-tab-label">SENTIMIENTOS</span>
                     </button>
-                    <button class="camino-tab-btn" data-subtab="otros" onclick="switchTrackingTab('otros', this)">
-                        <span class="camino-tab-icon">🗂️</span>
-                        <span class="camino-tab-label">OTROS</span>
+                    <button class="camino-tab-btn" data-subtab="dinero" onclick="switchTrackingTab('dinero', this)">
+                        <span class="camino-tab-icon">💰</span>
+                        <span class="camino-tab-label">DINERO</span>
                     </button>
-                    <button class="camino-tab-btn" data-subtab="english" onclick="switchTrackingTab('english', this)">
-                        <span class="camino-tab-icon">🇬🇧</span>
-                        <span class="camino-tab-label">INGLÉS</span>
+                    <button class="camino-tab-btn" data-subtab="saludemocional"
+                        onclick="switchTrackingTab('saludemocional', this)">
+                        <span class="camino-tab-icon">🕊️</span>
+                        <span class="camino-tab-label">SALUD EMOCIONAL</span>
                     </button>
                 </div>
 
-                <!-- ME -->
-                <div id="tracking-me" class="tracking-subview">
-                    <div class="quick-idea-card">
-                        <div class="quick-idea-header"><span>💡 Nota rápida (ME)</span></div>
-                        <div class="quick-idea-body">
-                            <textarea id="quick-idea-me" class="quick-idea-textarea" rows="2"
-                                placeholder="¿Qué se te ocurre para ME?"></textarea>
-                            <div class="quick-idea-actions">
-                                <button type="button" class="quick-idea-save-btn" onclick="saveQuickIdeaFor('me')"
-                                    style="width:100%;">Guardar en Brain Dump</button>
-                            </div>
-                        </div>
-                    </div>
+                <!-- CABELLO -->
+                <div id="tracking-cabello" class="tracking-subview">
                     <section class="category" style="border:none;">
                         <div
                             style="display:flex; justify-content:flex-end; align-items:center; padding: 8px 16px 4px;">
-                            <button type="button" class="icon-btn" onclick="addHabitForTag('ME')"
-                                aria-label="Agregar hábito ME" title="Agregar hábito ME">
+                            <button type="button" class="icon-btn" onclick="addHabitForTag('CABELLO')"
+                                aria-label="Agregar hábito de Cabello" title="Agregar hábito de Cabello">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -206,28 +206,17 @@
                                 </svg>
                             </button>
                         </div>
-                        <ul id="list-habits-me" style="list-style:none; padding: 0 16px 16px;"></ul>
+                        <ul id="list-habits-cabello" style="list-style:none; padding: 0 16px 16px;"></ul>
                     </section>
                 </div>
 
-                <!-- HEALTH -->
-                <div id="tracking-health" class="tracking-subview hidden">
-                    <div class="quick-idea-card">
-                        <div class="quick-idea-header"><span>💡 Nota rápida (Health)</span></div>
-                        <div class="quick-idea-body">
-                            <textarea id="quick-idea-health" class="quick-idea-textarea" rows="2"
-                                placeholder="¿Qué se te ocurre para Health?"></textarea>
-                            <div class="quick-idea-actions">
-                                <button type="button" class="quick-idea-save-btn" onclick="saveQuickIdeaFor('health')"
-                                    style="width:100%;">Guardar en Brain Dump</button>
-                            </div>
-                        </div>
-                    </div>
+                <!-- SEXUALIDAD -->
+                <div id="tracking-sexualidad" class="tracking-subview hidden">
                     <section class="category" style="border:none;">
                         <div
                             style="display:flex; justify-content:flex-end; align-items:center; padding: 8px 16px 4px;">
-                            <button type="button" class="icon-btn" onclick="addHabitForTag('SALUD')"
-                                aria-label="Agregar hábito Health" title="Agregar hábito Health">
+                            <button type="button" class="icon-btn" onclick="addHabitForTag('SEXUALIDAD')"
+                                aria-label="Agregar hábito de Sexualidad" title="Agregar hábito de Sexualidad">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -235,28 +224,17 @@
                                 </svg>
                             </button>
                         </div>
-                        <ul id="list-habits-health" style="list-style:none; padding: 0 16px 16px;"></ul>
+                        <ul id="list-habits-sexualidad" style="list-style:none; padding: 0 16px 16px;"></ul>
                     </section>
                 </div>
 
-                <!-- WORK -->
-                <div id="tracking-work" class="tracking-subview hidden">
-                    <div class="quick-idea-card">
-                        <div class="quick-idea-header"><span>💡 Nota rápida (Work)</span></div>
-                        <div class="quick-idea-body">
-                            <textarea id="quick-idea-work" class="quick-idea-textarea" rows="2"
-                                placeholder="¿Qué se te ocurre para Work?"></textarea>
-                            <div class="quick-idea-actions">
-                                <button type="button" class="quick-idea-save-btn" onclick="saveQuickIdeaFor('work')"
-                                    style="width:100%;">Guardar en Brain Dump</button>
-                            </div>
-                        </div>
-                    </div>
+                <!-- PIEL / ROSTRO -->
+                <div id="tracking-piel" class="tracking-subview hidden">
                     <section class="category" style="border:none;">
                         <div
                             style="display:flex; justify-content:flex-end; align-items:center; padding: 8px 16px 4px;">
-                            <button type="button" class="icon-btn" onclick="addHabitForTag('WORK')"
-                                aria-label="Agregar hábito Work" title="Agregar hábito Work">
+                            <button type="button" class="icon-btn" onclick="addHabitForTag('PIEL')"
+                                aria-label="Agregar hábito de Piel" title="Agregar hábito de Piel">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -264,16 +242,33 @@
                                 </svg>
                             </button>
                         </div>
-                        <ul id="list-habits-work" style="list-style:none; padding: 0 16px 16px;"></ul>
+                        <ul id="list-habits-piel" style="list-style:none; padding: 0 16px 16px;"></ul>
                     </section>
                 </div>
 
-                <!-- LOVES: ya no es un ranking de intensidad (eso se mudó a
-         Sentimientos › Positivos). Ahora es un "mapa" de cuánto haces
-         lo que amas: contador + barra de progreso mensual, con un
-         check diario por actividad. Ver Components/loves_counter/. -->
-                <div id="tracking-loves" class="tracking-subview hidden">
-                    <div id="loves-counter-container"></div>
+                <!-- CUERPO -->
+                <div id="tracking-cuerpo" class="tracking-subview hidden">
+                    <section class="category" style="border:none;">
+                        <div
+                            style="display:flex; justify-content:flex-end; align-items:center; padding: 8px 16px 4px;">
+                            <button type="button" class="icon-btn" onclick="addHabitForTag('CUERPO')"
+                                aria-label="Agregar hábito de Cuerpo" title="Agregar hábito de Cuerpo">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        <ul id="list-habits-cuerpo" style="list-style:none; padding: 0 16px 16px;"></ul>
+                    </section>
+                </div>
+
+                <!-- INGLÉS: aquí vive el componente completo de Components/english/english.js,
+                     que antes se generaba pero no tenía dónde mostrarse (no existía
+                     #english-section en ningún lado del HTML). -->
+                <div id="tracking-english" class="tracking-subview hidden">
+                    <div id="english-section"></div>
                 </div>
 
                 <!-- SENTIMIENTOS: fusiona Positivos (antes "Loves", ranking 1-10)
@@ -334,33 +329,40 @@
                     </div>
                 </div>
 
-                <!-- OTROS: hábitos cuyo hashtag no coincide con #ME/#SALUD/#WORK
-         (o que no tienen hashtag) — antes desaparecían silenciosamente
-         al dividir Hábitos en ME/HEALTH/WORK. Aquí puedes verlos y
-         reetiquetarlos (clic en el nombre) para moverlos al grupo
-         correcto. -->
-                <div id="tracking-otros" class="tracking-subview hidden">
-                    <div
-                        style="display:flex; justify-content:space-between; align-items:center; padding: 8px 16px 4px;">
-                        <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">Hábitos sin
-                            #ME/#SALUD/#WORK — edita el nombre para reubicarlos</span>
-                        <button type="button" class="icon-btn" onclick="addHabitForTag('OTROS')"
-                            aria-label="Agregar hábito en Otros" title="Agregar hábito en Otros">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
-                        </button>
-                    </div>
-                    <ul id="list-habits-otros" style="list-style:none; padding: 0 16px 16px;"></ul>
+                <!-- DINERO -->
+                <div id="tracking-dinero" class="tracking-subview hidden">
+                    <section class="category" style="border:none;">
+                        <div
+                            style="display:flex; justify-content:flex-end; align-items:center; padding: 8px 16px 4px;">
+                            <button type="button" class="icon-btn" onclick="addHabitForTag('DINERO')"
+                                aria-label="Agregar hábito de Dinero" title="Agregar hábito de Dinero">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        <ul id="list-habits-dinero" style="list-style:none; padding: 0 16px 16px;"></ul>
+                    </section>
                 </div>
 
-                <!-- INGLÉS: aquí vive el componente completo de Components/english/english.js,
-                     que antes se generaba pero no tenía dónde mostrarse (no existía
-                     #english-section en ningún lado del HTML). -->
-                <div id="tracking-english" class="tracking-subview hidden">
-                    <div id="english-section"></div>
+                <!-- SALUD EMOCIONAL -->
+                <div id="tracking-saludemocional" class="tracking-subview hidden">
+                    <section class="category" style="border:none;">
+                        <div
+                            style="display:flex; justify-content:flex-end; align-items:center; padding: 8px 16px 4px;">
+                            <button type="button" class="icon-btn" onclick="addHabitForTag('BIENESTAR')"
+                                aria-label="Agregar hábito de Salud emocional" title="Agregar hábito de Salud emocional">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        <ul id="list-habits-saludemocional" style="list-style:none; padding: 0 16px 16px;"></ul>
+                    </section>
                 </div>
             </div>
 
