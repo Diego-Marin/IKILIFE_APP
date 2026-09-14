@@ -176,16 +176,14 @@ header.main-header {
  * como las dos puertas de entrada principales de esta pestaña.
  */
 .camino-tabs {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
     gap: 10px;
     padding: 0 0 16px;
     margin-bottom: 8px;
 }
 
 .camino-tab-btn {
-    flex: 1 1 0;
-    min-width: 90px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -223,6 +221,17 @@ header.main-header {
 
 .camino-tab-active:hover {
     color: var(--bg-light);
+}
+
+.camino-tab-btn--add {
+    border-style: dashed;
+    color: var(--text-muted);
+    background-color: transparent;
+}
+
+.camino-tab-btn--add:hover {
+    border-color: var(--primary-green);
+    color: var(--primary-green);
 }
 
 /**
@@ -1498,6 +1507,18 @@ div.day-segment.future {
     margin: 0;
 }
 
+/* Listas de hábitos por categoría dentro de "Hábitos" (antes "Camino"):
+   sin padding lateral (ya lo aporta .container) y con gap entre
+   tarjetas en vez de depender de márgenes propios de cada card. */
+.habits-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 0;
+    margin: 0;
+}
+
 .top-habits-wrapper {
     border-top: 1px solid var(--border-color);
     margin-top: 16px;
@@ -2273,7 +2294,7 @@ div.day-segment.future {
  * y un renglón de detalle debajo.
  */
 .espejo-alma-card {
-    background: var(--bg-header);
+    background: linear-gradient(135deg, var(--bg-header) 0%, transparent 100%);
     border: 1px solid var(--border-color);
     border-radius: 18px;
     margin-bottom: 20px;
@@ -2282,17 +2303,6 @@ div.day-segment.future {
     flex-direction: column;
     gap: 20px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-}
-
-.espejo-alma-title {
-    font-size: 0.85rem;
-    font-weight: 800;
-    color: var(--text-dark);
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
 }
 
 /* ---------- Hábitos de hoy: título grande + contador + barra a la

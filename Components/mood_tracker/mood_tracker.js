@@ -643,8 +643,6 @@ async function loadEspejoDelAlma() {
 
     container.innerHTML = `
         <div class="espejo-alma-card">
-            <div class="espejo-alma-title">🪞 Espejo del Alma</div>
-
             <div class="espejo-emo-card">
                 <div class="espejo-emo-icon">❤️</div>
                 <div class="espejo-emo-body">

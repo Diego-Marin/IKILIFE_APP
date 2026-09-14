@@ -55,6 +55,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
  * 27. "GESTIÓN DE FINANZAS"                      → finanzas dinámicas/acumulativas
  * 28. "GESTIÓN DE COMPRAS"                       → Compras: CRUD + contador acumulativo (clon de Loves)
  * 29. "COMPONENTE STATE BAR"                     → tarjetas de "qué hacer ahora" según la hora del día
+ * 30. "CATEGORÍAS DE HÁBITOS PERSONALIZADAS"     → listas de hábitos creadas manualmente por el usuario
  */
 
 function loadAgradecimientos() {
@@ -95,6 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadOdios();
         loadPlanes();
         loadCompras();
+        loadCustomHabitCategories();
         loadMetrics(); // Esta ya ejecuta internamente renderYearWeeks(), renderEnglishCourseWeeks(), loadTopHabits(), loadTopLoves() y loadTopSentimientos()
         loadFinances();
         loadAgradecimientos();
@@ -411,14 +413,33 @@ function formatDateLocal(date) {
 
 /**
  * ==========================================
+ * REGISTRO DE CATEGORÍAS DE HÁBITOS (FIJAS + PERSONALIZADAS)
+ * ==========================================
+ * Única fuente de verdad para el mapeo subtab-id ↔ tag ↔ label/icon.
+ * Arranca con las categorías fijas de siempre; las personalizadas que
+ * el usuario crea desde "+ Nueva lista" se agregan aquí en caliente
+ * (ver loadCustomHabitCategories/addCustomHabitCategory más abajo).
+ * Todo el motor de hábitos (switchTrackingTab, refreshActiveHabitsList,
+ * addHabitForTag) lee de este único objeto en vez de mapas duplicados.
+ */
+const HABIT_CATEGORIES = {
+    cabello: { tag: 'CABELLO', label: 'CABELLO', icon: '✂️' },
+    sexualidad: { tag: 'SEXUALIDAD', label: 'SEXUALIDAD', icon: '🔥' },
+    piel: { tag: 'PIEL', label: 'PIEL', icon: '🧴' },
+    cuerpo: { tag: 'CUERPO', label: 'CUERPO', icon: '💪' },
+    dinero: { tag: 'DINERO', label: 'DINERO', icon: '💰' },
+    saludemocional: { tag: 'BIENESTAR', label: 'SALUD EMOCIONAL', icon: '🕊️' },
+};
+
+/**
+ * ==========================================
  * REFRESCO DE HÁBITOS (post add/edit/delete/toggle)
  * ==========================================
  * Antes existía loadHabits(), que renderizaba TODOS los hábitos juntos
  * en un contenedor #list-habits. Ese contenedor ya no existe en el HTML:
  * los hábitos viven en listas separadas por categoría dentro de la
- * pestaña "Hábitos" (antes "Camino"): #list-habits-cabello,
- * #list-habits-sexualidad, #list-habits-piel, #list-habits-cuerpo,
- * #list-habits-dinero y #list-habits-saludemocional.
+ * pestaña "Hábitos" (antes "Camino"), una por cada entrada de
+ * HABIT_CATEGORIES (fijas o personalizadas).
  *
  * refreshActiveHabitsList() detecta qué sub-tab de Hábitos está activa
  * y recarga solo esa lista.
@@ -426,17 +447,9 @@ function formatDateLocal(date) {
 function refreshActiveHabitsList() {
     const activeBtn = document.querySelector('#view-tracking .camino-tab-active');
     const sub = activeBtn ? activeBtn.dataset.subtab : null;
-    const groupMap = {
-        cabello: 'CABELLO',
-        sexualidad: 'SEXUALIDAD',
-        piel: 'PIEL',
-        cuerpo: 'CUERPO',
-        dinero: 'DINERO',
-        saludemocional: 'BIENESTAR',
-    };
 
-    if (sub && groupMap[sub]) {
-        loadHabitsGroup(groupMap[sub], 'list-habits-' + sub);
+    if (sub && HABIT_CATEGORIES[sub]) {
+        loadHabitsGroup(HABIT_CATEGORIES[sub].tag, 'list-habits-' + sub);
     }
     if (typeof loadEspejoDelAlma === 'function') loadEspejoDelAlma();
 }
@@ -1022,14 +1035,13 @@ function switchTrackingTab(subtab, btn) {
     const target = document.getElementById('tracking-' + subtab);
     if (target) target.classList.remove('hidden');
 
-    // Categorías de hábitos diarios (cada una trae una lista de hábitos
-    // por defecto la primera vez que se abre — ver DEFAULT_HABITS_BY_TAG).
-    if (subtab === 'cabello') loadHabitCategory('CABELLO', 'list-habits-cabello');
-    if (subtab === 'sexualidad') loadHabitCategory('SEXUALIDAD', 'list-habits-sexualidad');
-    if (subtab === 'piel') loadHabitCategory('PIEL', 'list-habits-piel');
-    if (subtab === 'cuerpo') loadHabitCategory('CUERPO', 'list-habits-cuerpo');
-    if (subtab === 'dinero') loadHabitCategory('DINERO', 'list-habits-dinero');
-    if (subtab === 'saludemocional') loadHabitCategory('BIENESTAR', 'list-habits-saludemocional');
+    // Categorías de hábitos diarios, fijas o personalizadas (cada una
+    // trae una lista de hábitos por defecto la primera vez que se abre
+    // — ver DEFAULT_HABITS_BY_TAG — salvo las personalizadas, que
+    // empiezan vacías).
+    if (HABIT_CATEGORIES[subtab]) {
+        loadHabitCategory(HABIT_CATEGORIES[subtab].tag, 'list-habits-' + subtab);
+    }
     // SENTIMIENTOS fusiona Positivos (antes Loves) y Negativos (antes
     // Odios) en sub-tabs internas — carga ambas listas de una vez para
     // que el cambio de sub-tab sea instantáneo.
@@ -1060,6 +1072,24 @@ function switchSentTab(which, btn) {
 
     if (which === 'positivos' && typeof loadLoves === 'function') loadLoves();
     if (which === 'negativos' && typeof loadOdios === 'function') loadOdios();
+}
+
+/**
+ * Alterna entre las sub-tabs "Finanzas" y "Compras" dentro de la
+ * pestaña Money — mismo patrón que switchSentTab en Sentimientos.
+ */
+function switchMoneyTab(which, btn) {
+    document.querySelectorAll('#view-money .sent-tab-btn').forEach(b => {
+        b.classList.remove('sent-tab-active');
+    });
+    if (btn) btn.classList.add('sent-tab-active');
+
+    document.querySelectorAll('#view-money .sent-subview').forEach(v => v.classList.add('hidden'));
+    const target = document.getElementById('money-' + which);
+    if (target) target.classList.remove('hidden');
+
+    if (which === 'finanzas' && typeof loadFinances === 'function') loadFinances();
+    if (which === 'compras' && typeof loadCompras === 'function') loadCompras();
 }
 
 
@@ -2699,72 +2729,6 @@ async function loadHabitsGroup(tag, containerId) {
     });
 }
 
-/**
- * OTROS: catch-all para hábitos cuyo primer hashtag NO es #ME/#SALUD/#WORK
- * (incluye los que tienen otro hashtag, ej. #FAMILIA, y los que no
- * tienen ningún hashtag). Antes de existir esta pestaña, esos hábitos
- * seguían vivos en "habit_logs" pero no aparecían en ningún lado
- * porque loadHabitsGroup solo buscaba ME/SALUD/WORK. Aquí se muestran
- * para poder reetiquetarlos (clic en el nombre → editHabit) y que así
- * aparezcan en el grupo correcto.
- */
-async function loadHabitsOtros() {
-    const RECONOCIDOS = ['ME', 'SALUD', 'WORK'];
-    const today = new Date();
-    let currentDay = today.getDay();
-    currentDay = currentDay === 0 ? 7 : currentDay;
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - currentDay + 1);
-    const datesOfWeek = [];
-    const dayLabels = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
-    for (let i = 0; i < 7; i++) {
-        const d = new Date(monday);
-        d.setDate(monday.getDate() + i);
-        datesOfWeek.push(formatDateLocal(d));
-    }
-
-    const { data: allHabitsData, error: err1 } = await _supabase
-        .from('habit_logs')
-        .select('habit_name, project_tag');
-    if (err1) return console.error(err1.message);
-
-    const uniqueHabits = [...new Set(
-        allHabitsData
-            .filter(h => {
-                const fromName = getProjectFromHabitName(h.habit_name);
-                const fromField = (h.project_tag || '').toUpperCase();
-                const tag = fromName || fromField || null;
-                return !tag || !RECONOCIDOS.includes(tag);
-            })
-            .map(h => h.habit_name)
-    )].sort();
-
-    const listContainer = document.getElementById('list-habits-otros');
-    if (!listContainer) return;
-    listContainer.innerHTML = '';
-
-    if (uniqueHabits.length === 0) {
-        listContainer.innerHTML = `<li style="padding:16px; color:var(--text-muted); text-align:center;">No hay hábitos sueltos — todo está en ME, HEALTH o WORK. 🎉</li>`;
-        return;
-    }
-
-    const { data: weekLogs, error: err2 } = await _supabase
-        .from('habit_logs')
-        .select('*')
-        .gte('log_date', datesOfWeek[0])
-        .lte('log_date', datesOfWeek[6]);
-    if (err2) return console.error(err2.message);
-
-    const { data: habitImagesData } = await _supabase
-        .from('habit_images')
-        .select('habit_name, image_filename');
-    const habitImages = Object.fromEntries((habitImagesData || []).map(h => [h.habit_name, h.image_filename]));
-
-    uniqueHabits.forEach(habitName => {
-        renderHabitCard(habitName, listContainer, datesOfWeek, currentDay, dayLabels, weekLogs, habitImages);
-    });
-}
-
 function renderHabitCard(habitName, listContainer, datesOfWeek, currentDay, dayLabels, weekLogs, habitImages) {
     let daysHTML = '';
     let streakCount = 0;
@@ -2821,32 +2785,150 @@ async function addHabitForTag(tag) {
     if (error) {
         alert("Error al guardar: " + error.message);
     } else {
-        const map = {
-            'CABELLO': 'cabello',
-            'SEXUALIDAD': 'sexualidad',
-            'PIEL': 'piel',
-            'CUERPO': 'cuerpo',
-            'DINERO': 'dinero',
-            'BIENESTAR': 'saludemocional',
-        };
-        const sub = map[upperTag];
+        const sub = Object.keys(HABIT_CATEGORIES).find(key => HABIT_CATEGORIES[key].tag === upperTag);
         if (sub) loadHabitsGroup(upperTag, 'list-habits-' + sub);
     }
 }
 
-async function saveQuickIdeaFor(tag) {
-    const input = document.getElementById('quick-idea-' + tag);
-    if (!input) return;
-    const content = input.value.trim();
-    if (!content) return;
-    const taggedContent = `[${tag.toUpperCase()}] ${content}`;
-    const { error } = await _supabase.from('ideas_logs').insert([{ content: taggedContent }]);
+/**
+ * ==========================================
+ * CATEGORÍAS DE HÁBITOS PERSONALIZADAS
+ * ==========================================
+ * Además de las categorías fijas (CABELLO, SEXUALIDAD, PIEL, CUERPO,
+ * DINERO, SALUD EMOCIONAL), el usuario puede crear sus propias listas
+ * de hábitos desde el botón "+ Nueva lista" en la pestaña Hábitos.
+ * Cada una se guarda en Supabase, se agrega a HABIT_CATEGORIES y se
+ * renderiza como una sub-tab más — reutilizando exactamente el mismo
+ * motor (loadHabitCategory/addHabitForTag) que las categorías fijas.
+ *
+ * TABLA REQUERIDA EN SUPABASE:
+ *   CREATE TABLE habit_categories (
+ *     id bigint generated always as identity PRIMARY KEY,
+ *     tag text UNIQUE NOT NULL,
+ *     label text NOT NULL,
+ *     icon text DEFAULT '📌',
+ *     created_at timestamptz DEFAULT now()
+ *   );
+ */
+function slugifyHabitTag(text) {
+    return text
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+}
+
+async function loadCustomHabitCategories() {
+    const { data, error } = await _supabase
+        .from('habit_categories')
+        .select('*')
+        .order('created_at', { ascending: true });
+    if (error) return console.error('Error cargando categorías personalizadas:', error.message);
+
+    (data || []).forEach(cat => {
+        const subtabId = cat.tag.toLowerCase();
+        HABIT_CATEGORIES[subtabId] = { tag: cat.tag, label: cat.label, icon: cat.icon || '📌' };
+        renderCustomHabitCategoryUI(subtabId, HABIT_CATEGORIES[subtabId]);
+    });
+}
+
+function renderCustomHabitCategoryUI(subtabId, category) {
+    if (document.getElementById('tracking-' + subtabId)) return; // ya renderizada
+
+    const tabsBar = document.querySelector('.camino-tabs');
+    const addBtn = document.getElementById('camino-add-category-btn');
+    if (tabsBar) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'camino-tab-btn';
+        btn.dataset.subtab = subtabId;
+        btn.title = 'Clic derecho para eliminar esta lista';
+        btn.innerHTML = `<span class="camino-tab-icon">${category.icon}</span><span class="camino-tab-label">${category.label}</span>`;
+        btn.addEventListener('click', () => switchTrackingTab(subtabId, btn));
+        btn.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            deleteCustomHabitCategory(category.tag, subtabId);
+        });
+        tabsBar.insertBefore(btn, addBtn || null);
+    }
+
+    const viewTracking = document.getElementById('view-tracking');
+    if (viewTracking) {
+        const panel = document.createElement('div');
+        panel.id = 'tracking-' + subtabId;
+        panel.className = 'tracking-subview hidden';
+        panel.innerHTML = `
+            <section class="category" style="border:none;">
+                <div style="display:flex; justify-content:flex-end; align-items:center; padding: 8px 16px 4px;">
+                    <button type="button" class="icon-btn" onclick="addHabitForTag('${category.tag}')"
+                        aria-label="Agregar hábito de ${category.label}" title="Agregar hábito de ${category.label}">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                    </button>
+                </div>
+                <ul id="list-habits-${subtabId}" class="habits-list"></ul>
+            </section>
+        `;
+        viewTracking.appendChild(panel);
+    }
+}
+
+async function addCustomHabitCategory() {
+    const name = prompt('Nombre de la nueva lista de hábitos (ej: Lectura, Guitarra):');
+    if (!name || name.trim() === '') return;
+
+    const tag = slugifyHabitTag(name);
+    if (!tag) {
+        alert('Nombre inválido: usa letras o números.');
+        return;
+    }
+    if (HABIT_CATEGORIES[tag.toLowerCase()]) {
+        alert('Ya existe una lista con ese nombre.');
+        return;
+    }
+
+    const icon = (prompt('Emoji para la lista (opcional):', '📌') || '📌').trim() || '📌';
+    const label = name.trim().toUpperCase();
+
+    const { error } = await _supabase.from('habit_categories').insert([{ tag, label, icon }]);
     if (error) {
-        alert("Error al guardar: " + error.message);
-    } else {
-        input.value = '';
-        randomIdeaCache = [];
-        if (typeof loadIdeas === 'function') loadIdeas();
+        alert('Error al crear la lista: ' + error.message);
+        return;
+    }
+
+    const subtabId = tag.toLowerCase();
+    const category = { tag, label, icon };
+    HABIT_CATEGORIES[subtabId] = category;
+    renderCustomHabitCategoryUI(subtabId, category);
+
+    const btn = document.querySelector(`.camino-tab-btn[data-subtab="${subtabId}"]`);
+    switchTrackingTab(subtabId, btn);
+}
+
+async function deleteCustomHabitCategory(tag, subtabId) {
+    const category = HABIT_CATEGORIES[subtabId];
+    const ok = confirm(`¿Eliminar la lista "${category ? category.label : tag}" y todos sus hábitos? Esta acción no se puede deshacer.`);
+    if (!ok) return;
+
+    const { error: errCat } = await _supabase.from('habit_categories').delete().eq('tag', tag);
+    if (errCat) {
+        alert('Error al eliminar la lista: ' + errCat.message);
+        return;
+    }
+    await _supabase.from('habit_logs').delete().eq('project_tag', tag);
+
+    delete HABIT_CATEGORIES[subtabId];
+    const btnToRemove = document.querySelector(`.camino-tab-btn[data-subtab="${subtabId}"]`);
+    const wasActive = btnToRemove ? btnToRemove.classList.contains('camino-tab-active') : false;
+    btnToRemove?.remove();
+    document.getElementById('tracking-' + subtabId)?.remove();
+
+    if (wasActive) {
+        const firstBtn = document.querySelector('.camino-tabs .camino-tab-btn[data-subtab]');
+        if (firstBtn) switchTrackingTab(firstBtn.dataset.subtab, firstBtn);
     }
 }
 

@@ -190,6 +190,11 @@
                         <span class="camino-tab-icon">🕊️</span>
                         <span class="camino-tab-label">SALUD EMOCIONAL</span>
                     </button>
+                    <button type="button" class="camino-tab-btn camino-tab-btn--add" id="camino-add-category-btn"
+                        onclick="addCustomHabitCategory()" title="Crear una nueva lista de hábitos">
+                        <span class="camino-tab-icon">➕</span>
+                        <span class="camino-tab-label">NUEVA LISTA</span>
+                    </button>
                 </div>
 
                 <!-- CABELLO -->
@@ -206,7 +211,7 @@
                                 </svg>
                             </button>
                         </div>
-                        <ul id="list-habits-cabello" style="list-style:none; padding: 0 16px 16px;"></ul>
+                        <ul id="list-habits-cabello" class="habits-list"></ul>
                     </section>
                 </div>
 
@@ -224,7 +229,7 @@
                                 </svg>
                             </button>
                         </div>
-                        <ul id="list-habits-sexualidad" style="list-style:none; padding: 0 16px 16px;"></ul>
+                        <ul id="list-habits-sexualidad" class="habits-list"></ul>
                     </section>
                 </div>
 
@@ -242,7 +247,7 @@
                                 </svg>
                             </button>
                         </div>
-                        <ul id="list-habits-piel" style="list-style:none; padding: 0 16px 16px;"></ul>
+                        <ul id="list-habits-piel" class="habits-list"></ul>
                     </section>
                 </div>
 
@@ -260,7 +265,7 @@
                                 </svg>
                             </button>
                         </div>
-                        <ul id="list-habits-cuerpo" style="list-style:none; padding: 0 16px 16px;"></ul>
+                        <ul id="list-habits-cuerpo" class="habits-list"></ul>
                     </section>
                 </div>
 
@@ -343,7 +348,7 @@
                                 </svg>
                             </button>
                         </div>
-                        <ul id="list-habits-dinero" style="list-style:none; padding: 0 16px 16px;"></ul>
+                        <ul id="list-habits-dinero" class="habits-list"></ul>
                     </section>
                 </div>
 
@@ -361,7 +366,7 @@
                                 </svg>
                             </button>
                         </div>
-                        <ul id="list-habits-saludemocional" style="list-style:none; padding: 0 16px 16px;"></ul>
+                        <ul id="list-habits-saludemocional" class="habits-list"></ul>
                     </section>
                 </div>
             </div>
@@ -491,6 +496,14 @@
 
             <!-- 💰 FINANZAS -->
             <div id="view-money" class="bottom-view">
+                <div class="sent-tabs">
+                    <button type="button" class="sent-tab-btn sent-tab-active" data-money-tab="finanzas"
+                        onclick="switchMoneyTab('finanzas', this)">💰 Finanzas</button>
+                    <button type="button" class="sent-tab-btn" data-money-tab="compras"
+                        onclick="switchMoneyTab('compras', this)">🛒 Compras</button>
+                </div>
+
+                <div id="money-finanzas" class="sent-subview">
                 <div id="finance-main">
 
                     <!-- KPIs -->
@@ -543,20 +556,6 @@
                         <button class="sql-btn-compact" onclick="exportFinanceSQL()"
                             style="width:100%; justify-content:center;">💾 Exportar SQL</button>
                     </div>
-
-                    <!-- 🛒 COMPRAS: ahorro por item, vive dentro de Finanzas -->
-                    <section class="category" style="border-top: 1px solid var(--border-color);">
-                        <div class="category-header" style="border-bottom: none;">🛒 Compras (ahorro por item)</div>
-                        <div id="list-compras"></div>
-                        <div style="padding: 0 16px 16px;">
-                            <button class="add-habit-btn" onclick="addCompra()" style="width:100%;">+ Nueva
-                                Compra</button>
-                        </div>
-                        <div style="padding: 0 16px 16px;">
-                            <button class="sql-btn-compact" onclick="exportComprasSQL()"
-                                style="width:100%; justify-content:center;">💾 Exportar SQL de Compras</button>
-                        </div>
-                    </section>
                 </div>
 
                 <!-- Vista Ingresos -->
@@ -599,6 +598,23 @@
                             Agregar Deuda</button>
                     </div>
 
+                </div>
+                </div>
+
+                <!-- 🛒 COMPRAS: ahorro por item -->
+                <div id="money-compras" class="sent-subview hidden">
+                    <section class="category">
+                        <div class="category-header" style="border-bottom: none;">🛒 Compras (ahorro por item)</div>
+                        <div id="list-compras"></div>
+                        <div style="padding: 0 16px 16px;">
+                            <button class="add-habit-btn" onclick="addCompra()" style="width:100%;">+ Nueva
+                                Compra</button>
+                        </div>
+                        <div style="padding: 0 16px 16px;">
+                            <button class="sql-btn-compact" onclick="exportComprasSQL()"
+                                style="width:100%; justify-content:center;">💾 Exportar SQL de Compras</button>
+                        </div>
+                    </section>
                 </div>
 
             </div>
