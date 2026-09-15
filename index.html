@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="./Components/english/english.css">
     <link rel="stylesheet" href="./Components/bottom_nav/bottom_nav.css">
     <link rel="stylesheet" href="./Components/loves_counter/loves_counter.css">
+    <link rel="stylesheet" href="./Components/vision_board/vision_board.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <base target="_blank">
     <base target="_blank">
@@ -23,6 +24,7 @@
 
 <body>
     <div id="auth-lock-overlay"></div>
+    <div id="vision-board-overlay"></div>
 
     <div class="container">
 
@@ -56,6 +58,16 @@
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                         <polyline points="7 10 12 15 17 10"></polyline>
                         <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                </button>
+
+                <button id="vision-header-btn" class="icon-btn" onclick="openVisionBoard()" aria-label="Mi Propósito"
+                    title="Mi Propósito">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="9"></circle>
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <circle cx="12" cy="12" r="1"></circle>
                     </svg>
                 </button>
 
@@ -305,11 +317,7 @@
                         </div>
                         <ul id="list-loves" style="list-style:none;"></ul>
                         <div class="item-list-header mood-header-row"
-                            style="display: flex; gap: 6px; padding: 8px 16px;">
-                            <button class="add-habit-btn" onclick="exportLovesSQL()"
-                                aria-label="Exportar histórico de Positivos"
-                                style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-dark);">📊
-                                Historial</button>
+                            style="display: flex; justify-content: flex-end; padding: 8px 16px;">
                             <div class="mood-save-slot" data-save-slot="loves"></div>
                         </div>
                     </div>
@@ -328,11 +336,7 @@
                         </div>
                         <ul id="list-odios" style="list-style:none;"></ul>
                         <div class="item-list-header mood-header-row"
-                            style="display: flex; gap: 6px; padding: 8px 16px;">
-                            <button class="add-habit-btn" onclick="exportOdiosSQL()"
-                                aria-label="Exportar histórico de Negativos"
-                                style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-dark);">📊
-                                Historial</button>
+                            style="display: flex; justify-content: flex-end; padding: 8px 16px;">
                             <div class="mood-save-slot" data-save-slot="odios"></div>
                         </div>
                     </div>
@@ -497,14 +501,8 @@
 
                     <!-- Agregar categoría -->
                     <div style="padding: 16px;">
-                        <button class="add-habit-btn" onclick="addFinanceCategory()" style="width:100%;">+ Nueva
-                            Categoría de Gasto</button>
-                    </div>
-
-                    <!-- Exportar -->
-                    <div style="padding: 0 16px 16px;">
-                        <button class="sql-btn-compact" onclick="exportFinanceSQL()"
-                            style="width:100%; justify-content:center;">💾 Exportar SQL</button>
+                        <button class="sql-btn-compact" onclick="addFinanceCategory()"
+                            style="width:100%; justify-content:center;">+ Nueva Categoría de Gasto</button>
                     </div>
                 </div>
 
@@ -554,16 +552,17 @@
                 <!-- 🛒 COMPRAS: ahorro por item -->
                 <div id="money-compras" class="sent-subview hidden">
                     <section class="category">
-                        <div class="category-header" style="border-bottom: none;">🛒 Compras (ahorro por item)</div>
+                        <div class="mood-minimal-header">
+                            <button type="button" class="icon-btn" onclick="addCompra()"
+                                aria-label="Agregar nueva compra" title="Agregar nueva compra">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                            </button>
+                        </div>
                         <div id="list-compras"></div>
-                        <div style="padding: 0 16px 16px;">
-                            <button class="add-habit-btn" onclick="addCompra()" style="width:100%;">+ Nueva
-                                Compra</button>
-                        </div>
-                        <div style="padding: 0 16px 16px;">
-                            <button class="sql-btn-compact" onclick="exportComprasSQL()"
-                                style="width:100%; justify-content:center;">💾 Exportar SQL de Compras</button>
-                        </div>
                     </section>
                 </div>
 
@@ -579,6 +578,7 @@
     <script src="./Components/english/english.js"></script>
     <script src="./Components/bottom_nav/bottom_nav.js"></script>
     <script src="./Components/loves_counter/loves_counter.js"></script>
+    <script src="./Components/vision_board/vision_board.js"></script>
 </body>
 
 </html>

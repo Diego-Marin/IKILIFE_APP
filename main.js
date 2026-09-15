@@ -1289,92 +1289,16 @@ async function exportIdeasSQL() {
  * fue eliminado el 2026-08-16 por ser código muerto: no tenía vista
  * en index.html (#inversiones-container no existe) y solo generaba
  * una consulta innecesaria a Supabase en cada carga de la app.
+ *
+ * NOTA (actualización): también se eliminaron exportLovesSQL(),
+ * exportOdiosSQL() y exportComprasSQL() — eran los botones "📊
+ * Historial" de Positivos/Negativos (Sentimientos) y "💾 Exportar SQL
+ * de Compras", ya no existen en el HTML ni se necesitan por ahora.
+ * Loves y Odios usan el motor de Components/mood_tracker/mood_tracker.js
+ * (MOOD_CONFIGS.loves / MOOD_CONFIGS.odios); Compras sigue viviendo
+ * aquí mismo, más abajo (loadCompras/addCompra/etc.), solo sin su
+ * exportador.
  */
-/**
- * ==========================================
- * GESTIÓN DE COSAS QUE AMO (LOVES)
- * ==========================================
- * Loves ahora usa el mismo motor que Odios/Sentimientos (barra de
- * intensidad 1-5 por día): loadLoves()/addLove() están definidos en
- * Components/mood_tracker/mood_tracker.js (MOOD_CONFIGS.loves). Aquí
- * solo queda el exportador SQL, que sigue leyendo la misma tabla
- * "loves_logs".
- */
-
-// ======================================================
-// EXPORTAR LOVES
-// ======================================================
-async function exportLovesSQL() {
-    try {
-        const { data, error } = await _supabase
-            .from('loves_logs')
-            .select('*')
-            .order('created_at', { ascending: true });
-
-        if (error) throw error;
-
-        if (!data || data.length === 0) {
-            alert("No hay registros para exportar.");
-            return;
-        }
-
-        const sql = buildSQLInsert('loves_logs', data);
-        descargarArchivo(sql, 'loves_logs.sql', 'text/sql');
-
-    } catch (err) {
-        console.error(err);
-        alert("Error exportando Loves: " + err.message);
-    }
-}
-
-async function exportOdiosSQL() {
-    try {
-        const { data, error } = await _supabase
-            .from('odios_logs')
-            .select('*')
-            .order('created_at', { ascending: true });
-
-        if (error) throw error;
-
-        if (!data || data.length === 0) {
-            alert("No hay registros para exportar.");
-            return;
-        }
-
-        const sql = buildSQLInsert('odios_logs', data);
-        descargarArchivo(sql, 'odios_logs.sql', 'text/sql');
-
-    } catch (err) {
-        console.error(err);
-        alert("Error exportando Odios: " + err.message);
-    }
-}
-
-// ======================================================
-// EXPORTAR COMPRAS (ahora visible dentro de Finanzas)
-// ======================================================
-async function exportComprasSQL() {
-    try {
-        const { data, error } = await _supabase
-            .from('compras_logs')
-            .select('*')
-            .order('created_at', { ascending: true });
-
-        if (error) throw error;
-
-        if (!data || data.length === 0) {
-            alert("No hay registros para exportar.");
-            return;
-        }
-
-        const sql = buildSQLInsert('compras_logs', data);
-        descargarArchivo(sql, 'compras_logs.sql', 'text/sql');
-
-    } catch (err) {
-        console.error(err);
-        alert("Error exportando Compras: " + err.message);
-    }
-}
 
 
 

@@ -251,7 +251,7 @@ function renderMoodToolbar(toolbar, key, config, bloqueo) {
     }
 
     toolbar.innerHTML = `
-        <button type="button" class="add-habit-btn mood-save-btn" title="Guardar registro de hoy">💾 Guardar</button>
+        <button type="button" class="sql-btn-compact mood-save-btn" title="Guardar registro de hoy">💾 Guardar</button>
     `;
 
     toolbar.querySelector('.mood-save-btn').addEventListener('click', () => guardarRegistroSeccion(key));

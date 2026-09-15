@@ -1,0 +1,120 @@
+/**
+ * ==========================================
+ * COMPONENTE: VISION BOARD — ESTILOS
+ * ==========================================
+ */
+#vision-board-overlay {
+    display: none;
+}
+
+#vision-board-overlay.vision-board-active {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    inset: 0;
+    z-index: 9500;
+    background-color: var(--bg-light);
+    overflow-y: auto;
+}
+
+.vision-board-header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background-color: var(--bg-light);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.vision-board-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--text-dark);
+}
+
+.vision-board-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.vision-board-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom, 0));
+}
+
+.vision-board-empty {
+    padding: 40px 16px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+/* Tarjeta grande: la imagen manda (es la que "inspira"), el nombre va
+   como una leyenda tipo póster sobre un degradado para que siempre
+   se lea bien encima de cualquier foto. */
+.vision-meta-card {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    border-radius: 18px;
+    overflow: hidden;
+    background-color: var(--bg-header);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.vision-meta-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.vision-meta-photo-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background-color: rgba(0, 0, 0, 0.45);
+    color: var(--white);
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(2px);
+}
+
+.vision-meta-caption {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 40px 16px 16px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0) 100%);
+}
+
+.vision-meta-name {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--white);
+    cursor: pointer;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* En pantallas más anchas (tablet/desktop), evita tarjetas
+   absurdamente altas — limita el alto máximo y centra el ancho. */
+@media (min-width: 520px) {
+    .vision-meta-card {
+        aspect-ratio: 16 / 9;
+    }
+}

@@ -302,19 +302,10 @@ async function deleteFinanceItem(id, concept) {
     else loadFinances();
 }
 
-/* ==========================================
-   EXPORTAR HISTORIAL (SQL)
-   ========================================== */
-async function exportFinanceSQL() {
-    const { data, error } = await _supabase.from('finance_logs').select('*').order('id', { ascending: true });
-    if (error) {
-        alert('Error al exportar: ' + error.message);
-        return;
-    }
-
-    const sql = buildSQLInsert('finance_logs', data);
-    descargarArchivo(sql, `ikilife_finance_${getFechaHoyISO ? getFechaHoyISO() : Date.now()}.sql`, 'text/plain;charset=utf-8;');
-}
+/* NOTA: se eliminó exportFinanceSQL() — era el botón "💾 Exportar SQL"
+   al final de Finanzas, ya no existe en el HTML. El botón "📊
+   Historial" (toggleFinanceHistory, más abajo) es una función
+   distinta — el historial mensual guardado — y se mantiene. */
 
 /* ==========================================
    REINICIO MENSUAL DE FINANZAS
