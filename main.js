@@ -36,9 +36,9 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
  *  8. "UTILIDADES DE EXPORTACIÓN (SQL)"          → sqlValue/buildSQLInsert/descargarArchivo (usados por TODOS los exportadores)
  *  9. "EXPORTAR TODO (JSON PARA IA / NOTEBOOKLM)"→ exportAllDataJSON + TABLAS_EXPORTABLES
  * 10. "EXPORTAR HÁBITOS A SQL"                   → exportAllHistorySQL
- * 11. "MEJORES HÁBITOS (TOP 3 HISTÓRICO)"        → loadTopHabits
- * 12. "NUEVO: MEJORES LOVES (TOP 3 RANKING)"     → loadTopLoves
- * 13. "NUEVO: TOP 3 DE SENTIMIENTOS"              → loadTopSentimientos (por intensidad actual)
+ * 11. (eliminada: "Mejores Hábitos (Top 3 histórico)" era parte de la vista Estadísticas, ahora eliminada)
+ * 12. (eliminada: "Mejores Loves (Top 3 ranking)" era parte de la vista Estadísticas, ahora eliminada)
+ * 13. (eliminada: "Top 3 de Sentimientos" era parte de la vista Estadísticas, ahora eliminada)
  * 14. "NUEVO: EVOLUCIÓN EMOCIONAL"               → gráfico de barras de promedio diario (Sentimientos/Odios, últimos 14 días)
  * 15. "INTERFAZ DE USUARIO (TABS Y OTROS)"       → switchTab, saveLearning, toggleFinanceView
  * 16. "GESTIÓN DE IDEAS (BRAIN DUMP)"            → Brain Dump: CRUD de ideas
@@ -50,7 +50,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
  * 22. "UTILIDADES COMPARTIDAS: TRACKERS DE BARRA 1-10" → helpers usados por Odios Y Sentimientos (fechas, guardado, relleno visual)
  * 23. "GESTIÓN DE SENTIMIENTOS"                  → Sentimientos: CRUD + barra de intensidad 1-10
  * 24. "PLANES"                                   → planes futuros + clima (Open-Meteo)
- * 25. "GESTIÓN DE MÉTRICAS"                      → loadMetrics() orquesta TODOS los Top 3 + gráficos de la pestaña Métricas
+ * 25. (eliminada: la vista "Estadísticas"/Métricas y sus Top 3 se quitaron; el progreso de Inglés vive en Hábitos → Inglés, ver "PROGRESO DEL CURSO DE INGLÉS")
  * 26. "PROGRESO DEL CURSO DE INGLÉS"             → renderEnglishCourseWeeks
  * 27. "GESTIÓN DE FINANZAS"                      → finanzas dinámicas/acumulativas
  * 28. "GESTIÓN DE COMPRAS"                       → Compras: CRUD + contador acumulativo (clon de Loves)
@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadPlanes();
         loadCompras();
         loadCustomHabitCategories();
-        loadMetrics(); // Esta ya ejecuta internamente renderYearWeeks(), renderEnglishCourseWeeks(), loadTopHabits(), loadTopLoves() y loadTopSentimientos()
+        if (typeof renderYearWeeks === 'function') renderYearWeeks(); // Progreso del Año (Home)
         loadFinances();
         loadAgradecimientos();
         // loadEnglish() ya no se llama aquí: apuntaba a #english-section, que
@@ -227,15 +227,19 @@ function updateWeeklyProgress() {
         dateElement.textContent = fullDate;
     }
 
-    // Semana del año (header izquierda)
+    let currentDay = today.getDay();
+    currentDay = currentDay === 0 ? 7 : currentDay;
+
+    // Semana del año + día actual + semanas restantes (header izquierda)
     const weekOfYear = getWeekOfYear(today);
     const weekElement = document.getElementById('fusion-week-text');
     if (weekElement) {
-        weekElement.textContent = `Semana ${weekOfYear}`;
+        const dayLetters = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+        const totalWeeksInYear = 52;
+        const weeksRemaining = Math.max(0, totalWeeksInYear - weekOfYear);
+        const dayLetter = dayLetters[currentDay - 1] || '';
+        weekElement.textContent = `Semana ${weekOfYear} · ${dayLetter} · ${weeksRemaining} semanas restantes`;
     }
-
-    let currentDay = today.getDay();
-    currentDay = currentDay === 0 ? 7 : currentDay;
 
     const monday = new Date(today);
     monday.setDate(today.getDate() - currentDay + 1);
@@ -589,7 +593,6 @@ async function toggleHabit(habitName, dateStr, currentState) {
     }
 
     refreshActiveHabitsList();
-    if (typeof loadMetrics === 'function') loadMetrics();
 }
 
 async function editHabit(oldName) {
@@ -751,17 +754,6 @@ const TABLAS_EXPORTABLES = [
 ];
 
 
-function showMetricsView() {
-    document.querySelectorAll('.bottom-view').forEach(v => v.classList.remove('active'));
-    const target = document.getElementById('view-metrics');
-    if (target) {
-        target.classList.add('active');
-        if (typeof loadMetrics === 'function') loadMetrics();
-        if (typeof renderEnglishCourseWeeks === 'function') renderEnglishCourseWeeks();
-    }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
 async function exportAllDataJSON() {
     try {
         const tablas = {};
@@ -856,174 +848,6 @@ async function exportHabitsJSON() {
         console.error('Error exportando hábitos:', err);
         alert('Error: ' + err.message);
     }
-}
-
-/**
- * ==========================================
- * MEJORES HÁBITOS (TOP 3 HISTÓRICO)
- * ==========================================
- * Recorre TODO el historial de habit_logs y cuenta cuántas veces
- * cada hábito fue marcado como completado, mostrando el top 3.
- */
-async function loadTopHabits() {
-    const { data: allLogs, error } = await _supabase
-        .from('habit_logs')
-        .select('habit_name, is_completed');
-
-    const container = document.getElementById('top-habits-list');
-    if (!container) return;
-
-    if (error) {
-        console.error("Error cargando top de hábitos:", error.message);
-        container.innerHTML = '';
-        return;
-    }
-
-    const counts = {};
-    allLogs.forEach(log => {
-        if (!log.is_completed) return;
-        const name = log.habit_name;
-        counts[name] = (counts[name] || 0) + 1;
-    });
-
-    const ranking = Object.entries(counts)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 3);
-
-    container.innerHTML = '';
-
-    if (ranking.length === 0) {
-        container.innerHTML = `<div class="top-habit-empty">Aún no hay hábitos completados para mostrar.</div>`;
-        return;
-    }
-
-    const medals = ['🥇', '🥈', '🥉'];
-
-    ranking.forEach(([name, count], index) => {
-        const row = `
-            <div class="top-habit-row">
-                <span class="top-habit-medal">${medals[index]}</span>
-                <span class="top-habit-name">${cleanHabitName(name)}</span>
-                <span class="top-habit-count">${count}x</span>
-            </div>
-        `;
-        container.insertAdjacentHTML('beforeend', row);
-    });
-}
-
-
-/**
- * ==========================================
- * NUEVO: MEJORES LOVES (TOP 3 RANKING)
- * ==========================================
- * Loves dejó de ser un contador acumulativo: ahora usa el mismo
- * motor de intensidad 1-5 que Odios/Sentimientos. El Top 3 se calcula
- * igual que loadTopSentimientos, con el ÚLTIMO valor registrado de
- * cada item (ver cargarUltimosRegistros en mood_tracker.js).
- */
-async function loadTopLoves() {
-    const { data: loves, error } = await _supabase
-        .from('loves_logs')
-        .select('id, name');
-
-    const container = document.getElementById('top-loves-list');
-    if (!container) return;
-
-    if (error) {
-        console.error("Error cargando top de loves:", error.message);
-        container.innerHTML = '';
-        return;
-    }
-
-    const ultimos = await cargarUltimosRegistros('loves_registros', 'love_id');
-
-    const top3 = (loves || [])
-        .filter(l => ultimos[l.id])
-        .map(l => ({ name: l.name, valor: ultimos[l.id].valor }))
-        .sort((a, b) => b.valor - a.valor)
-        .slice(0, 3);
-
-    container.innerHTML = '';
-
-    if (top3.length === 0) {
-        container.innerHTML = `<div class="top-habit-empty">Aún no hay Loves registrados para mostrar.</div>`;
-        return;
-    }
-
-    const medals = ['🥇', '🥈', '🥉'];
-
-    top3.forEach((item, index) => {
-        const row = `
-            <div class="top-habit-row">
-                <span class="top-habit-medal">${medals[index]}</span>
-                <span class="top-habit-name">${item.name}</span>
-                <span class="top-habit-count">${item.valor}/5</span>
-            </div>
-        `;
-        container.insertAdjacentHTML('beforeend', row);
-    });
-}
-
-/**
- * ==========================================
- * NUEVO: TOP 3 DE SENTIMIENTOS Y ODIOS (POR INTENSIDAD ACTUAL)
- * ==========================================
- * Desde la reestructuración a barras 1-10, "count" ya no existe para
- * estos dos componentes. El Top 3 ahora se calcula con el ÚLTIMO
- * valor registrado (más reciente por fecha) de cada item, usando
- * cargarUltimosRegistros() (ver más abajo, junto a loadOdios).
- */
-async function loadTopSentimientos() {
-    const { data: sentimientos, error } = await _supabase
-        .from('sentimientos_logs')
-        .select('id, name');
-
-    const container = document.getElementById('top-sentimientos-list');
-    if (!container) return;
-
-    if (error) {
-        console.error("Error cargando top de sentimientos:", error.message);
-        container.innerHTML = '';
-        return;
-    }
-
-    const ultimos = await cargarUltimosRegistros('sentimientos_registros', 'sentimiento_id');
-
-    const top3 = (sentimientos || [])
-        .filter(s => ultimos[s.id])
-        .map(s => ({ name: s.name, valor: ultimos[s.id].valor }))
-        .sort((a, b) => b.valor - a.valor)
-        .slice(0, 3);
-
-    container.innerHTML = '';
-
-    if (top3.length === 0) {
-        container.innerHTML = `<div class="top-habit-empty">Aún no hay Sentimientos registrados para mostrar.</div>`;
-        return;
-    }
-
-    const medals = ['🥇', '🥈', '🥉'];
-
-    top3.forEach((item, index) => {
-        const row = `
-            <div class="top-habit-row">
-                <span class="top-habit-medal">${medals[index]}</span>
-                <span class="top-habit-name">${item.name}</span>
-                <span class="top-habit-count">${item.valor}/10</span>
-            </div>
-        `;
-        container.insertAdjacentHTML('beforeend', row);
-    });
-}
-
-
-
-
-
-
-function loadAgradecimientos() {
-    // Placeholder: evita que el DOMContentLoaded se rompa.
-    // Si en el futuro agregas un diario de gratitud, implementa aquí.
 }
 
 function switchTrackingTab(subtab, btn) {
@@ -1233,9 +1057,6 @@ async function addIdea() {
     }
 }
 
-function loadAgradecimientos() {
-    // Pendiente de implementación
-}
 async function editIdea(id, oldContent) {
     const newContent = prompt("Editar idea:", oldContent);
     if (!newContent || newContent.trim() === "" || newContent === oldContent) return;
@@ -2089,33 +1910,6 @@ async function loadHomeUpcomingPlans() {
 function cleanHabitName(name) {
     if (!name) return '';
     return name.replace(/#[a-zA-Z0-9_&]+/gi, '').trim();
-}
-
-async function loadMetrics() {
-    // 1. Renderizar Semanas del Año
-    if (typeof renderYearWeeks === 'function') {
-        renderYearWeeks();
-    }
-
-    // 2. Renderizar el progreso del curso de inglés
-    if (typeof renderEnglishCourseWeeks === 'function') {
-        renderEnglishCourseWeeks();
-    }
-
-    // 3. Renderizar el Top 3 de mejores hábitos históricos
-    if (typeof loadTopHabits === 'function') {
-        loadTopHabits();
-    }
-
-    // 4. Renderizar el Top 3 de Loves favoritos
-    if (typeof loadTopLoves === 'function') {
-        loadTopLoves();
-    }
-
-    // 5. Renderizar el Top 3 de Sentimientos
-    if (typeof loadTopSentimientos === 'function') {
-        loadTopSentimientos();
-    }
 }
 
 function renderYearWeeks() {

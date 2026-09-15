@@ -32,16 +32,6 @@
             </div>
 
             <div class="header-actions">
-                <button id="metrics-btn" class="icon-btn" onclick="showMetricsView()" aria-label="Ver métricas"
-                    title="Métricas">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" y1="20" x2="12" y2="10"></line>
-                        <line x1="18" y1="20" x2="18" y2="4"></line>
-                        <line x1="6" y1="20" x2="6" y2="16"></line>
-                    </svg>
-                </button>
-
                 <button id="theme-toggle" class="icon-btn" onclick="toggleTheme()" aria-label="Cambiar modo">
                     <svg class="sun-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                         stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -120,8 +110,6 @@
 
                 <div id="habit-legend-yesterday"></div>
 
-                <div id="espejo-alma-container"></div>
-
                 <!-- Dashboard del Día: Estado + Planes próximos -->
                 <div class="today-dashboard">
                     <div class="today-dashboard-header">
@@ -131,6 +119,8 @@
                     <div id="state-bar-container"></div>
                     <div id="home-upcoming-plans"></div>
                 </div>
+
+                <div id="espejo-alma-container"></div>
 
                 <!-- 💡 Idea Rápida (texto o voz) -->
                 <div class="quick-idea-card" id="quick-idea-card">
@@ -142,7 +132,7 @@
                             placeholder="Se me acaba de ocurrir..."></textarea>
                         <div class="quick-idea-actions">
                             <button type="button" id="quick-idea-save-btn" class="quick-idea-save-btn"
-                                onclick="saveQuickIdea()" style="width:100%;">Guardar</button>
+                                onclick="saveQuickIdea()">Guardar</button>
                         </div>
                     </div>
                 </div>
@@ -273,6 +263,14 @@
                      que antes se generaba pero no tenía dónde mostrarse (no existía
                      #english-section en ningún lado del HTML). -->
                 <div id="tracking-english" class="tracking-subview hidden">
+                    <div style="padding: 16px 16px 0;">
+                        <div class="category-header year-progress-title" id="english-progress-title"
+                            style="border-bottom: none; padding-left: 0; padding-right: 0;">
+                            Curso de Inglés · Semana -- de --
+                            <span class="year-progress-subtitle">Calculando semanas restantes...</span>
+                        </div>
+                        <div id="english-weeks-grid" class="weeks-grid"></div>
+                    </div>
                     <div id="english-section"></div>
                 </div>
 
@@ -452,46 +450,6 @@
                         <ul id="list-ideas" style="list-style:none;"></ul>
                     </section>
                 </div>
-            </div>
-
-
-            <!-- 📊 MÉTRICAS -->
-            <div id="view-metrics" class="bottom-view">
-                <div style="display:flex; justify-content:flex-end; padding: 0 16px 8px;">
-                    <button class="icon-btn" onclick="switchBottomTab('home')" title="Cerrar métricas"
-                        style="padding:6px;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                    </button>
-                </div>
-                <section class="category">
-                    <div class="top-habits-wrapper" style="border-top: 1px solid var(--border-color);">
-                        <div class="category-header" style="border-bottom: none;">Tus 3 Mejores Hábitos</div>
-                        <div id="top-habits-list" class="top-habits-list"></div>
-                    </div>
-                    <div class="top-habits-wrapper" id="top-loves-wrapper"
-                        style="border-top: 1px solid var(--border-color);">
-                        <div class="category-header" style="border-bottom: none;">Tus 3 Loves Favoritos</div>
-                        <div id="top-loves-list" class="top-habits-list"></div>
-                    </div>
-                    <div class="top-habits-wrapper" id="top-sentimientos-wrapper"
-                        style="border-top: 1px solid var(--border-color);">
-                        <div class="category-header" style="border-bottom: none;">Tus 3 Sentimientos Más Fuertes Hoy
-                        </div>
-                        <div id="top-sentimientos-list" class="top-habits-list"></div>
-                    </div>
-                    <div style="padding: 16px 16px 0;">
-                        <div class="category-header year-progress-title" id="english-progress-title"
-                            style="border-bottom: none; padding-left: 0; padding-right: 0; margin-top: 20px;">
-                            Curso de Inglés · Semana -- de --
-                            <span class="year-progress-subtitle">Calculando semanas restantes...</span>
-                        </div>
-                        <div id="english-weeks-grid" class="weeks-grid"></div>
-                    </div>
-                </section>
             </div>
 
             <!-- 💰 FINANZAS -->

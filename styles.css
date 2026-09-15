@@ -71,8 +71,8 @@ header.main-header {
 }
 
 .brand-name {
-    font-size: 2.2rem; 
-    font-weight: 700;
+    font-size: 2.8rem;
+    font-weight: 800;
     letter-spacing: -0.5px;
 }
 
@@ -1333,24 +1333,28 @@ div.day-segment.future {
  * ==========================================
  */
 .progress-fusion-card {
-    background-color: transparent;
+    background: linear-gradient(135deg, var(--bg-header) 0%, transparent 100%);
     border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 16px;
-    margin-bottom: 24px;
+    border-radius: 18px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
 }
 
 .progress-fusion-header {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    margin-bottom: 14px;
+    flex-wrap: wrap;
+    row-gap: 4px;
+    margin-bottom: 16px;
 }
 
 .progress-fusion-header span:first-child {
-    font-size: 0.9rem;
-    font-weight: 700;
+    font-size: 0.85rem;
+    font-weight: 800;
     color: var(--text-dark);
+    letter-spacing: 0.2px;
 }
 
 .progress-fusion-date {
@@ -1358,6 +1362,7 @@ div.day-segment.future {
     font-weight: 500;
     color: var(--text-muted);
     text-transform: capitalize;
+    white-space: nowrap;
 }
 
 .progress-fusion-divider {
@@ -2133,24 +2138,24 @@ div.day-segment.future {
 .quick-idea-actions {
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: flex-end;
 }
 
 .quick-idea-save-btn {
-    flex: 1;
-    padding: 10px 0;
-    border-radius: 10px;
-    border: none;
-    background-color: var(--text-dark);
-    color: var(--bg-light);
+    padding: 6px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background-color: transparent;
+    color: var(--text-dark);
     font-weight: 700;
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     cursor: pointer;
     transition: opacity var(--transition);
 }
 
 .quick-idea-save-btn:hover {
-    opacity: 0.85;
+    border-color: var(--primary-green);
+    color: var(--primary-green);
 }
 
 /**

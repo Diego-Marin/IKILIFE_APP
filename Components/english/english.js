@@ -196,6 +196,8 @@ function generateEnglishCurriculum() {
 
 /* ---------- Carga inicial ---------- */
 async function loadEnglish() {
+    if (typeof renderEnglishCourseWeeks === 'function') renderEnglishCourseWeeks();
+
     const { data, error } = await _supabase.from('english_classes').select('*').order('class_number', { ascending: true });
     if (error) { console.error('Error cargando english_classes:', error.message); return; }
 
