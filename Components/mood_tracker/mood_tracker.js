@@ -500,21 +500,48 @@ async function calcularBalanceMensualLovesOdios() {
 
 /**
  * Progreso de HÁBITOS del DÍA DE HOY.
- * Consulta TODOS los hábitos únicos de la app y verifica cuántos
- * están marcados como completados hoy (independientemente de si
- * tienen fila creada o no: sin fila = pendiente).
+ * Consulta los hábitos únicos de la app y verifica cuántos están
+ * marcados como completados hoy (independientemente de si tienen
+ * fila creada o no: sin fila = pendiente).
+ *
+ * IMPORTANTE: solo cuentan los hábitos que pertenecen a una
+ * categoría ACTIVA de la pestaña "Hábitos" (las 6 fijas — Cabello,
+ * Sexualidad, Piel, Cuerpo, Dinero, Salud Emocional — más las
+ * personalizadas que el usuario haya creado, ver HABIT_CATEGORIES en
+ * main.js). Inglés y Sentimientos viven bajo esa misma barra de tabs
+ * pero NO son categorías de hábitos (tienen su propio progreso —
+ * "Balance emocional del mes" ya cubre Sentimientos aquí mismo — y
+ * no guardan registros en "habit_logs"), así que nunca deben sumar
+ * en este total. Este filtro también evita que registros viejos de
+ * una categoría ya renombrada/eliminada infl​en el conteo.
  */
 async function calcularHabitosHoy() {
     const { data: allHabits, error: err1 } = await _supabase
         .from('habit_logs')
-        .select('habit_name');
+        .select('habit_name, project_tag');
 
     if (err1) {
         console.error('Error cargando hábitos:', err1.message);
         return { pct: 0, total: 0, done: 0, pending: 0 };
     }
 
-    const uniqueHabits = [...new Set((allHabits || []).map(h => h.habit_name))];
+    // Tags de las categorías vigentes en la pestaña Hábitos (fijas +
+    // personalizadas). Si por alguna razón HABIT_CATEGORIES aún no
+    // está disponible, no se filtra (fallback seguro).
+    const validTags = (typeof HABIT_CATEGORIES === 'object' && HABIT_CATEGORIES)
+        ? new Set(Object.values(HABIT_CATEGORIES).map(c => c.tag))
+        : null;
+
+    const habitsDeCategoriasActivas = (allHabits || []).filter(h => {
+        if (!validTags) return true;
+        const fromName = (typeof getProjectFromHabitName === 'function')
+            ? getProjectFromHabitName(h.habit_name)
+            : null;
+        const fromField = (h.project_tag || '').toUpperCase();
+        return validTags.has(fromName) || validTags.has(fromField);
+    });
+
+    const uniqueHabits = [...new Set(habitsDeCategoriasActivas.map(h => h.habit_name))];
     const total = uniqueHabits.length;
     if (total === 0) return { pct: 0, total: 0, done: 0, pending: 0 };
 

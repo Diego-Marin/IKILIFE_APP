@@ -550,7 +550,7 @@ div.day-segment.future {
  */
 .escuela-header,
 .idea-header,
-.tarea-header,
+.plan-list-header,
 .love-header {
     display: flex;
     justify-content: space-between;
@@ -571,7 +571,6 @@ div.day-segment.future {
  * ==========================================
  */
 .escuela-grid,
-.tarea-row,
 .love-row {
     display: grid;
     align-items: center;
@@ -579,7 +578,7 @@ div.day-segment.future {
     border-bottom: 1px solid var(--border-color);
 }
 
-.tarea-row, .love-row {
+.love-row {
     display: flex;
     justify-content: space-between;
     gap: 12px;
@@ -599,7 +598,6 @@ div.day-segment.future {
 }
 
 .escuela-grid:last-child,
-.tarea-row:last-child,
 .love-row:last-child,
 .idea-row:last-child {
     border-bottom: none;
@@ -649,7 +647,7 @@ div.day-segment.future {
     text-align: right;
 }
 
-.idea-content, .tarea-content, .love-content {
+.idea-content, .love-content {
     font-size: 0.85rem;
     color: var(--text-dark);
     line-height: 1.4;
@@ -658,67 +656,12 @@ div.day-segment.future {
 }
 
 .idea-content { cursor: pointer; }
-.tarea-content, .love-content { flex-grow: 1; cursor: pointer; }
+.love-content { flex-grow: 1; cursor: pointer; }
 
 .idea-date {
     font-size: 0.65rem;
     color: var(--text-muted);
     text-transform: uppercase;
-}
-
-/*
-    NUEVO: semáforo de importancia para cada tarea. Punto de color
-    que rota entre baja (verde), media (amarillo) y alta (rojo) al
-    hacer clic. flex-shrink:0 asegura que nunca se achique ni
-    deforme, sin importar cuán largo sea el nombre de la tarea.
-*/
-.tarea-importance-dot {
-    width: 14px;
-    height: 14px;
-    min-width: 14px;
-    flex-shrink: 0;
-    border-radius: 50%;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    transition: transform var(--transition);
-}
-
-.tarea-importance-dot:hover {
-    transform: scale(1.2);
-}
-
-.tarea-importance-dot.importance-baja {
-    background-color: #2ecc71;
-}
-
-.tarea-importance-dot.importance-media {
-    background-color: #f1c40f;
-}
-
-.tarea-importance-dot.importance-alta {
-    background-color: #e74c3c;
-}
-
-.delete-btn {
-    background-color: transparent;
-    border: 1px solid var(--border-color);
-    color: var(--text-muted);
-    width: 28px;
-    height: 28px;
-    flex-shrink: 0;
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color var(--transition), border-color var(--transition), color var(--transition);
-}
-
-.delete-btn:hover {
-    background-color: var(--primary-green);
-    border-color: var(--primary-green);
-    color: var(--bg-light);
 }
 
 .love-counter-btn {

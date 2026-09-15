@@ -43,7 +43,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
  * 15. "INTERFAZ DE USUARIO (TABS Y OTROS)"       → switchTab, saveLearning, toggleFinanceView
  * 16. "GESTIÓN DE IDEAS (BRAIN DUMP)"            → Brain Dump: CRUD de ideas
  * 17. "PENSAMIENTO ALEATORIO (BRAIN DUMP)"       → showRandomIdea + exportIdeasSQL
- * 18. "GESTIÓN DE TAREAS"                        → lista única de tareas del día
+ * 18. (eliminada: "Gestión de Tareas" — lista única de tareas del día, quitada por completo)
  * 19. (eliminada 2026-08-16: "Gestión de Inversiones y Deudas" era código muerto, sin vista en el HTML)
  * 20. "GESTIÓN DE COSAS QUE AMO (LOVES)"         → Loves: CRUD + contador acumulativo (dblclick)
  * 21. "GESTIÓN DE COSAS QUE ODIO (ODIOS)"        → Odios: CRUD + barra de intensidad 1-10
@@ -100,7 +100,6 @@ document.addEventListener('DOMContentLoaded', () => {
         loadHomeUpcomingPlans();
         loadIdeas();
         showRandomIdea();
-        loadTareas();
         loadOdios();
         loadPlanes();
         loadCompras();
@@ -853,7 +852,7 @@ function descargarArchivo(content, filename, mimeType) {
  * Si agregas una tabla nueva a la app, súmala también aquí.
  */
 const TABLAS_EXPORTABLES = [
-    'habit_logs', 'tareas_logs', 'loves_logs', 'odios_logs',
+    'habit_logs', 'loves_logs', 'odios_logs',
     'odios_registros', 'sentimientos_logs', 'sentimientos_registros',
     'ideas_logs', 'compras_logs', 'finance_logs',
     'inversiones_logs', 'journal_logs', 'bloques_logs', 'planes_logs','english_classes'
@@ -1045,10 +1044,12 @@ function switchMoneyTab(which, btn) {
  */
 
 /**
- * Planes y Tareas ahora viven juntos en "planes-main" (una sola
- * pestaña, sin sub-tabs). "planes-ideas" (Brain Dump) es la única
- * subvista alterna, y solo se muestra al abrirla desde el botón de
- * ideas del header (ver openIdeasFromHeader / closeIdeasView).
+ * "planes-main" muestra la lista de Planes. "planes-ideas" (Brain
+ * Dump) es la única subvista alterna, y solo se muestra al abrirla
+ * desde el botón de ideas del header (ver openIdeasFromHeader /
+ * closeIdeasView). Antes "Tareas" también vivía aquí como una
+ * segunda sección dentro de "planes-main"; se eliminó por completo
+ * (UI, CSS y lógica) junto con la tabla "tareas_logs".
  */
 function showPlanesMain() {
     const main = document.getElementById('planes-main');
@@ -1273,133 +1274,6 @@ async function exportIdeasSQL() {
         alert("Error exportando Ideas: " + err.message);
     }
 }
-
-
-
-
-
-
-
-
-
-
-/**
- * ==========================================
- * GESTIÓN DE TAREAS (Única Lista)
- * ==========================================
- * Ahora soporta, igual que Brain Dump: editar (clic) y eliminar
- * (clic derecho), conservando también el check para "completar".
- *
- * NUEVO: semáforo de importancia. Cada tarea tiene un punto de color
- * (verde/amarillo/rojo) que, al hacer clic, va rotando entre los 3
- * niveles: baja -> media -> alta -> baja. No interfiere con el clic
- * sobre el texto (editar) ni con el clic derecho (eliminar), porque
- * es un elemento aparte dentro de la fila.
- *
- * IMPORTANTE: requiere agregar en Supabase, a la tabla existente
- * "tareas_logs", la columna "importance" (text, default 'media').
- * Valores esperados: 'baja', 'media', 'alta'.
- */
-
-// Orden cíclico de importancia: al hacer clic pasa al siguiente nivel.
-const ORDEN_IMPORTANCIA = ['baja', 'media', 'alta'];
-
-function siguienteImportancia(actual) {
-    const idx = ORDEN_IMPORTANCIA.indexOf(actual);
-    return ORDEN_IMPORTANCIA[(idx + 1) % ORDEN_IMPORTANCIA.length];
-}
-
-async function loadTareas() {
-    const { data: tareas, error } = await _supabase.from('tareas_logs').select('*').order('id', { ascending: true });
-    if (error) return console.error("Error cargando tareas:", error.message);
-
-    const listDia = document.getElementById('list-tareas-dia');
-    if (listDia) listDia.innerHTML = '';
-
-    tareas.forEach(tarea => {
-        const safeName = String(tarea.name || '').replace(/'/g, "\\'");
-        const importancia = ORDEN_IMPORTANCIA.includes(tarea.importance) ? tarea.importance : 'media';
-        const importanciaLabel = { baja: 'Baja', media: 'Media', alta: 'Alta' }[importancia];
-
-        const row = `
-            <li class="tarea-row">
-                <button class="tarea-importance-dot importance-${importancia}"
-                        onclick="cycleImportanciaTarea(${tarea.id}, '${importancia}')"
-                        aria-label="Importancia: ${importanciaLabel}"
-                        title="Importancia: ${importanciaLabel} (clic para cambiar)">
-                </button>
-                <div class="tarea-content"
-                     onclick="editTarea(${tarea.id}, '${safeName}')"
-                     oncontextmenu="event.preventDefault(); deleteTarea(${tarea.id})"
-                     style="cursor: pointer;"
-                     title="Clic: Editar | Clic Derecho: Eliminar">
-                     ${tarea.name}
-                </div>
-                <button class="delete-btn" onclick="completeTarea(${tarea.id})" aria-label="Completar" title="Completar tarea">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                </button>
-            </li>
-        `;
-        if (listDia) listDia.insertAdjacentHTML('beforeend', row);
-    });
-}
-
-// Cambia la importancia de una tarea al siguiente nivel del semáforo.
-async function cycleImportanciaTarea(id, actual) {
-    const nueva = siguienteImportancia(actual);
-
-    const { error } = await _supabase
-        .from('tareas_logs')
-        .update({ importance: nueva })
-        .eq('id', id);
-
-    if (error) {
-        alert("Error al actualizar importancia: " + error.message);
-    } else {
-        loadTareas();
-    }
-}
-
-async function addTarea() {
-    const name = prompt("Nueva obligación:");
-    if (!name || name.trim() === "") return;
-    const { error } = await _supabase.from('tareas_logs').insert([{ name: name.trim(), type: 'dia', importance: 'media' }]);
-    if (error) alert("Error al guardar: " + error.message);
-    else loadTareas();
-}
-
-// Editar el texto de una tarea (igual que en Brain Dump)
-async function editTarea(id, oldName) {
-    const newName = prompt("Editar tarea:", oldName);
-    if (!newName || newName.trim() === "" || newName === oldName) return;
-
-    const { error } = await _supabase
-        .from('tareas_logs')
-        .update({ name: newName.trim() })
-        .eq('id', id);
-
-    if (error) alert("Error al editar: " + error.message);
-    else loadTareas();
-}
-
-// Eliminar la tarea de forma definitiva (clic derecho), con confirmación
-async function deleteTarea(id) {
-    const confirmDelete = confirm("¿Deseas eliminar esta tarea de forma permanente?");
-    if (!confirmDelete) return;
-
-    const { error } = await _supabase.from('tareas_logs').delete().eq('id', id);
-    if (error) alert("Error al eliminar: " + error.message);
-    else loadTareas();
-}
-
-// Completar tarea: mantiene el comportamiento original del botón check
-// (al completarla, se elimina de la lista de pendientes)
-async function completeTarea(id) {
-    const { error } = await _supabase.from('tareas_logs').delete().eq('id', id);
-    if (error) console.error("Error al completar tarea:", error.message);
-    else loadTareas();
-}
-
 
 
 
