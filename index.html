@@ -145,20 +145,24 @@
             <div id="view-tracking" class="bottom-view">
                 <div class="camino-tabs">
                     <button class="camino-tab-btn camino-tab-active" data-subtab="cabello"
-                        onclick="switchTrackingTab('cabello', this)">
+                        onclick="switchTrackingTab('cabello', this)" ondblclick="editHabitCategory('cabello')"
+                        title="Doble clic para editar nombre/emoji">
                         <span class="camino-tab-icon">✂️</span>
                         <span class="camino-tab-label">CABELLO</span>
                     </button>
                     <button class="camino-tab-btn" data-subtab="sexualidad"
-                        onclick="switchTrackingTab('sexualidad', this)">
+                        onclick="switchTrackingTab('sexualidad', this)" ondblclick="editHabitCategory('sexualidad')"
+                        title="Doble clic para editar nombre/emoji">
                         <span class="camino-tab-icon">🔥</span>
                         <span class="camino-tab-label">SEXUALIDAD</span>
                     </button>
-                    <button class="camino-tab-btn" data-subtab="piel" onclick="switchTrackingTab('piel', this)">
+                    <button class="camino-tab-btn" data-subtab="piel" onclick="switchTrackingTab('piel', this)"
+                        ondblclick="editHabitCategory('piel')" title="Doble clic para editar nombre/emoji">
                         <span class="camino-tab-icon">🧴</span>
                         <span class="camino-tab-label">PIEL</span>
                     </button>
-                    <button class="camino-tab-btn" data-subtab="cuerpo" onclick="switchTrackingTab('cuerpo', this)">
+                    <button class="camino-tab-btn" data-subtab="cuerpo" onclick="switchTrackingTab('cuerpo', this)"
+                        ondblclick="editHabitCategory('cuerpo')" title="Doble clic para editar nombre/emoji">
                         <span class="camino-tab-icon">💪</span>
                         <span class="camino-tab-label">CUERPO</span>
                     </button>
@@ -171,12 +175,14 @@
                         <span class="camino-tab-icon">🧠</span>
                         <span class="camino-tab-label">SENTIMIENTOS</span>
                     </button>
-                    <button class="camino-tab-btn" data-subtab="dinero" onclick="switchTrackingTab('dinero', this)">
+                    <button class="camino-tab-btn" data-subtab="dinero" onclick="switchTrackingTab('dinero', this)"
+                        ondblclick="editHabitCategory('dinero')" title="Doble clic para editar nombre/emoji">
                         <span class="camino-tab-icon">💰</span>
                         <span class="camino-tab-label">DINERO</span>
                     </button>
                     <button class="camino-tab-btn" data-subtab="saludemocional"
-                        onclick="switchTrackingTab('saludemocional', this)">
+                        onclick="switchTrackingTab('saludemocional', this)" ondblclick="editHabitCategory('saludemocional')"
+                        title="Doble clic para editar nombre/emoji">
                         <span class="camino-tab-icon">🕊️</span>
                         <span class="camino-tab-label">SALUD EMOCIONAL</span>
                     </button>
@@ -191,7 +197,7 @@
                 <div id="tracking-cabello" class="tracking-subview">
                     <section class="category" style="border:none;">
                         <div
-                            style="display:flex; justify-content:flex-end; align-items:center; padding: 8px 16px 4px;">
+                            style="display:flex; justify-content:flex-start; align-items:center; padding: 8px 16px 4px;">
                             <button type="button" class="icon-btn" onclick="addHabitForTag('CABELLO')"
                                 aria-label="Agregar hábito de Cabello" title="Agregar hábito de Cabello">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -209,7 +215,7 @@
                 <div id="tracking-sexualidad" class="tracking-subview hidden">
                     <section class="category" style="border:none;">
                         <div
-                            style="display:flex; justify-content:flex-end; align-items:center; padding: 8px 16px 4px;">
+                            style="display:flex; justify-content:flex-start; align-items:center; padding: 8px 16px 4px;">
                             <button type="button" class="icon-btn" onclick="addHabitForTag('SEXUALIDAD')"
                                 aria-label="Agregar hábito de Sexualidad" title="Agregar hábito de Sexualidad">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -227,7 +233,7 @@
                 <div id="tracking-piel" class="tracking-subview hidden">
                     <section class="category" style="border:none;">
                         <div
-                            style="display:flex; justify-content:flex-end; align-items:center; padding: 8px 16px 4px;">
+                            style="display:flex; justify-content:flex-start; align-items:center; padding: 8px 16px 4px;">
                             <button type="button" class="icon-btn" onclick="addHabitForTag('PIEL')"
                                 aria-label="Agregar hábito de Piel" title="Agregar hábito de Piel">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -245,7 +251,7 @@
                 <div id="tracking-cuerpo" class="tracking-subview hidden">
                     <section class="category" style="border:none;">
                         <div
-                            style="display:flex; justify-content:flex-end; align-items:center; padding: 8px 16px 4px;">
+                            style="display:flex; justify-content:flex-start; align-items:center; padding: 8px 16px 4px;">
                             <button type="button" class="icon-btn" onclick="addHabitForTag('CUERPO')"
                                 aria-label="Agregar hábito de Cuerpo" title="Agregar hábito de Cuerpo">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -336,7 +342,7 @@
                 <div id="tracking-dinero" class="tracking-subview hidden">
                     <section class="category" style="border:none;">
                         <div
-                            style="display:flex; justify-content:flex-end; align-items:center; padding: 8px 16px 4px;">
+                            style="display:flex; justify-content:flex-start; align-items:center; padding: 8px 16px 4px;">
                             <button type="button" class="icon-btn" onclick="addHabitForTag('DINERO')"
                                 aria-label="Agregar hábito de Dinero" title="Agregar hábito de Dinero">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -354,7 +360,7 @@
                 <div id="tracking-saludemocional" class="tracking-subview hidden">
                     <section class="category" style="border:none;">
                         <div
-                            style="display:flex; justify-content:flex-end; align-items:center; padding: 8px 16px 4px;">
+                            style="display:flex; justify-content:flex-start; align-items:center; padding: 8px 16px 4px;">
                             <button type="button" class="icon-btn" onclick="addHabitForTag('BIENESTAR')"
                                 aria-label="Agregar hábito de Salud emocional" title="Agregar hábito de Salud emocional">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"

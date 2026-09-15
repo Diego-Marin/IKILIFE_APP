@@ -32,7 +32,7 @@
 const HORAS_BLOQUEO_REGISTRO = 5;
 
 /* ==========================================
-   UTILIDADES DE FECHA (usadas también por loadTopSentimientos en main.js)
+   UTILIDADES DE FECHA (usadas también por El Espejo del Alma en main.js)
    ========================================== */
 function getFechaHoyISO() {
     const hoy = new Date();
@@ -127,7 +127,7 @@ const MOOD_CONFIGS = {
         cssClass: 'mood-card--sentimiento',
         promptNew: 'Nuevo sentimiento a registrar:',
         maxValue: 10,
-        afterSave: () => { if (typeof loadTopSentimientos === 'function') loadTopSentimientos(); },
+        afterSave: () => { if (typeof loadEspejoDelAlma === 'function') loadEspejoDelAlma(); },
     },
     loves: {
         logsTable: 'loves_logs',
@@ -140,7 +140,6 @@ const MOOD_CONFIGS = {
         promptNew: 'Nueva pasión o actividad que amas:',
         maxValue: 5,
         afterSave: () => {
-            if (typeof loadTopLoves === 'function') loadTopLoves();
             if (typeof loadEspejoDelAlma === 'function') loadEspejoDelAlma();
         },
     },
@@ -467,12 +466,24 @@ async function calcularBalanceMensualLovesOdios() {
     const yyyy = hoy.getFullYear();
     const mm = String(hoy.getMonth() + 1).padStart(2, '0');
     const inicioMes = `${yyyy}-${mm}-01`;
-    const finMes = `${yyyy}-${mm}-31`;
+    // Antes esto era un "31" fijo, lo cual genera una fecha inválida
+    // (ej. 2026-09-31) en cualquier mes con menos de 31 días — Supabase
+    // rechaza esa fecha y la consulta vuelve vacía en silencio, por lo
+    // que los registros nuevos de ese mes (Positivos/Negativos) nunca
+    // se contaban. Ahora se calcula el último día real del mes.
+    const ultimoDiaMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
+    const finMes = `${yyyy}-${mm}-${String(ultimoDiaMes).padStart(2, '0')}`;
 
-    const [{ data: loves }, { data: odios }] = await Promise.all([
+    const [lovesRes, odiosRes] = await Promise.all([
         _supabase.from('loves_registros').select('valor').gte('fecha', inicioMes).lte('fecha', finMes),
         _supabase.from('odios_registros').select('valor').gte('fecha', inicioMes).lte('fecha', finMes)
     ]);
+
+    if (lovesRes.error) console.error('Error leyendo loves_registros del mes:', lovesRes.error.message);
+    if (odiosRes.error) console.error('Error leyendo odios_registros del mes:', odiosRes.error.message);
+
+    const loves = lovesRes.data;
+    const odios = odiosRes.data;
 
     const sumLoves = (loves || []).reduce((a, r) => a + (Number(r.valor) || 0), 0);
     const sumOdios = (odios || []).reduce((a, r) => a + (Number(r.valor) || 0), 0);

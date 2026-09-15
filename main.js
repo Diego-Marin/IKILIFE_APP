@@ -49,7 +49,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
  * 21. "GESTIÓN DE COSAS QUE ODIO (ODIOS)"        → Odios: CRUD + barra de intensidad 1-10
  * 22. "UTILIDADES COMPARTIDAS: TRACKERS DE BARRA 1-10" → helpers usados por Odios Y Sentimientos (fechas, guardado, relleno visual)
  * 23. "GESTIÓN DE SENTIMIENTOS"                  → Sentimientos: CRUD + barra de intensidad 1-10
- * 24. "PLANES"                                   → planes futuros + clima (Open-Meteo)
+ * 24. "PLANES"                                   → planes futuros (fecha + checklist)
  * 25. (eliminada: la vista "Estadísticas"/Métricas y sus Top 3 se quitaron; el progreso de Inglés vive en Hábitos → Inglés, ver "PROGRESO DEL CURSO DE INGLÉS")
  * 26. "PROGRESO DEL CURSO DE INGLÉS"             → renderEnglishCourseWeeks
  * 27. "GESTIÓN DE FINANZAS"                      → finanzas dinámicas/acumulativas
@@ -78,6 +78,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     } catch (error) {
         console.error("Error al renderizar State Bar:", error);
+    }
+
+    // 1b. Aplica nombre/emoji personalizados guardados para las
+    // categorías fijas de Hábitos (ver editHabitCategory más abajo).
+    try {
+        applyFixedHabitCategoryOverrides();
+    } catch (error) {
+        console.error("Error aplicando nombres personalizados de categorías:", error);
     }
 
     // 2. Carga de datos y estado
@@ -434,6 +442,104 @@ const HABIT_CATEGORIES = {
     dinero: { tag: 'DINERO', label: 'DINERO', icon: '💰' },
     saludemocional: { tag: 'BIENESTAR', label: 'SALUD EMOCIONAL', icon: '🕊️' },
 };
+
+/**
+ * ==========================================
+ * NOMBRE / EMOJI EDITABLES POR CATEGORÍA
+ * ==========================================
+ * Las 6 categorías fijas de arriba no tienen fila propia en Supabase
+ * (a diferencia de las personalizadas, que viven en "habit_categories").
+ * Para permitir renombrarlas/cambiarles el emoji sin tocar su tag
+ * interno (el tag sigue usándose para filtrar habit_logs), el override
+ * de label/icon se guarda en localStorage y se aplica encima de los
+ * valores por defecto al arrancar.
+ *
+ * Las categorías personalizadas, en cambio, sí tienen fila en
+ * Supabase: para ellas, editar label/icon actualiza esa fila.
+ */
+const FIXED_HABIT_CATEGORY_IDS = Object.keys(HABIT_CATEGORIES);
+const HABIT_CATEGORY_OVERRIDE_PREFIX = 'ikilife_habit_category_override_';
+
+function applyFixedHabitCategoryOverrides() {
+    FIXED_HABIT_CATEGORY_IDS.forEach(subtabId => {
+        const raw = localStorage.getItem(HABIT_CATEGORY_OVERRIDE_PREFIX + subtabId);
+        if (!raw) return;
+        try {
+            const override = JSON.parse(raw);
+            if (override && HABIT_CATEGORIES[subtabId]) {
+                if (override.label) HABIT_CATEGORIES[subtabId].label = override.label;
+                if (override.icon) HABIT_CATEGORIES[subtabId].icon = override.icon;
+            }
+        } catch (e) {
+            console.warn('Override de categoría corrupto para', subtabId, e.message);
+        }
+        applyHabitCategoryUIUpdate(subtabId, HABIT_CATEGORIES[subtabId]);
+    });
+}
+
+/**
+ * Refleja en el DOM el label/icon actual de una categoría: el botón
+ * de la tab (icono + texto) y, si existen, el aria-label/title del
+ * botón de "agregar hábito" dentro de su panel.
+ */
+function applyHabitCategoryUIUpdate(subtabId, category) {
+    const tabBtn = document.querySelector(`.camino-tab-btn[data-subtab="${subtabId}"]`);
+    if (tabBtn) {
+        const iconEl = tabBtn.querySelector('.camino-tab-icon');
+        const labelEl = tabBtn.querySelector('.camino-tab-label');
+        if (iconEl) iconEl.textContent = category.icon;
+        if (labelEl) labelEl.textContent = category.label;
+    }
+
+    const panel = document.getElementById('tracking-' + subtabId);
+    if (panel) {
+        const addBtn = panel.querySelector('.icon-btn');
+        if (addBtn) {
+            const niceLabel = category.label.charAt(0) + category.label.slice(1).toLowerCase();
+            addBtn.setAttribute('aria-label', `Agregar hábito de ${niceLabel}`);
+            addBtn.setAttribute('title', `Agregar hábito de ${niceLabel}`);
+        }
+    }
+}
+
+/**
+ * Permite editar nombre y emoji de CUALQUIER categoría de Hábitos
+ * (fijas o personalizadas). Se dispara con doble clic sobre la tab.
+ */
+async function editHabitCategory(subtabId) {
+    const category = HABIT_CATEGORIES[subtabId];
+    if (!category) return;
+
+    const newLabelInput = prompt('Nuevo nombre para esta categoría:', category.label);
+    if (newLabelInput === null) return; // cancelado
+    const newIconInput = prompt('Nuevo emoji para esta categoría:', category.icon);
+    if (newIconInput === null) return; // cancelado
+
+    const newLabel = newLabelInput.trim() ? newLabelInput.trim().toUpperCase() : category.label;
+    const newIcon = newIconInput.trim() ? newIconInput.trim() : category.icon;
+
+    if (newLabel === category.label && newIcon === category.icon) return;
+
+    category.label = newLabel;
+    category.icon = newIcon;
+
+    if (FIXED_HABIT_CATEGORY_IDS.includes(subtabId)) {
+        localStorage.setItem(
+            HABIT_CATEGORY_OVERRIDE_PREFIX + subtabId,
+            JSON.stringify({ label: newLabel, icon: newIcon })
+        );
+    } else {
+        const { error } = await _supabase
+            .from('habit_categories')
+            .update({ label: newLabel, icon: newIcon })
+            .eq('tag', category.tag);
+        if (error) {
+            alert('Error al guardar los cambios: ' + error.message);
+        }
+    }
+
+    applyHabitCategoryUIUpdate(subtabId, category);
+}
 
 /**
  * ==========================================
@@ -1420,11 +1526,7 @@ async function exportComprasSQL() {
  * PLANES
  * ==========================================
  * Guarda planes futuros con fecha (ej. "Caminata de senderismo" el
- * 9 de agosto), muestra en GRANDE los días que faltan, y consulta
- * en vivo el clima real esperado ese día en el lugar del plan (vía
- * Open-Meteo, gratuito y sin API key). El pronóstico diario solo
- * existe hasta 16 días antes del evento; fuera de ese rango se
- * muestra solo el conteo de días.
+ * 9 de agosto) y muestra en GRANDE los días que faltan.
  *
  * NUEVO: cada plan se puede expandir/contraer tocando la tarjeta
  * (misma interacción que las cards del State Bar) para agregar
@@ -1432,81 +1534,14 @@ async function exportComprasSQL() {
  * como hecho y eliminar. Solo un plan puede estar expandido a la vez.
  *
  * IMPORTANTE: requiere crear en Supabase la tabla "planes_logs" con
- * columnas (id, title, plan_date [date], location_name [text,
- * nullable], lat [float8, nullable], lng [float8, nullable],
- * created_at), y ADEMÁS una tabla nueva "planes_items" con:
+ * columnas (id, title, plan_date [date], created_at), y ADEMÁS una
+ * tabla nueva "planes_items" con:
  *   id          bigint, PK, identity
  *   plan_id     bigint, FK -> planes_logs(id) ON DELETE CASCADE
  *   text        text
  *   done        boolean (default false)
  *   created_at  timestamptz (default now())
  */
-
-// Traduce el código WMO de Open-Meteo a un emoji + descripción corta.
-function weatherCodeInfo(code) {
-    const map = {
-        0: ['☀️', 'Despejado'],
-        1: ['🌤️', 'Mayormente despejado'],
-        2: ['⛅', 'Parcialmente nublado'],
-        3: ['☁️', 'Nublado'],
-        45: ['🌫️', 'Niebla'],
-        48: ['🌫️', 'Niebla escarchada'],
-        51: ['🌦️', 'Llovizna ligera'],
-        53: ['🌦️', 'Llovizna'],
-        55: ['🌧️', 'Llovizna densa'],
-        61: ['🌧️', 'Lluvia ligera'],
-        63: ['🌧️', 'Lluvia'],
-        65: ['🌧️', 'Lluvia fuerte'],
-        71: ['🌨️', 'Nieve ligera'],
-        73: ['🌨️', 'Nieve'],
-        75: ['❄️', 'Nieve fuerte'],
-        80: ['🌦️', 'Chubascos ligeros'],
-        81: ['🌧️', 'Chubascos'],
-        82: ['⛈️', 'Chubascos fuertes'],
-        95: ['⛈️', 'Tormenta'],
-        96: ['⛈️', 'Tormenta con granizo'],
-        99: ['⛈️', 'Tormenta fuerte con granizo'],
-    };
-    return map[code] || ['🌡️', 'Clima variable'];
-}
-
-// Busca coordenadas para un nombre de lugar (ciudad, municipio, etc.)
-async function geocodeLocation(name) {
-    try {
-        const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1&language=es&format=json`;
-        const res = await fetch(url);
-        const data = await res.json();
-        if (data && data.results && data.results.length > 0) {
-            const r = data.results[0];
-            const parts = [r.name, r.admin1, r.country].filter(Boolean);
-            return { lat: r.latitude, lng: r.longitude, display: parts.join(', ') };
-        }
-    } catch (err) {
-        console.error("Error geocodificando ubicación:", err.message);
-    }
-    return null;
-}
-
-// Trae el pronóstico del día exacto del plan (si cae dentro de los
-// próximos 16 días, que es el límite del pronóstico diario gratuito).
-async function fetchWeatherForPlan(lat, lng, planDateStr) {
-    try {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=16`;
-        const res = await fetch(url);
-        const data = await res.json();
-        if (!data.daily || !data.daily.time) return null;
-        const idx = data.daily.time.indexOf(planDateStr);
-        if (idx === -1) return null;
-        return {
-            code: data.daily.weathercode[idx],
-            tmax: Math.round(data.daily.temperature_2m_max[idx]),
-            tmin: Math.round(data.daily.temperature_2m_min[idx]),
-        };
-    } catch (err) {
-        console.error("Error consultando el clima:", err.message);
-        return null;
-    }
-}
 
 // Calcula los días que faltan (o han pasado) entre hoy y la fecha del plan.
 function diasRestantes(planDateStr) {
@@ -1589,8 +1624,7 @@ function renderPlanesCards() {
                             <span class="plan-card-title" title="Clic para editar">${plan.title}</span>
                             <span class="plan-card-caret">${isOpen ? '▾' : '▸'}</span>
                         </div>
-                        <div class="plan-card-date">${formatearFechaPlan(plan.plan_date)}${plan.location_name ? ' · ' + plan.location_name : ''}</div>
-                        <div class="plan-card-weather" id="plan-weather-${plan.id}">${plan.lat ? 'Consultando clima…' : ''}</div>
+                        <div class="plan-card-date">${formatearFechaPlan(plan.plan_date)}</div>
                     </div>
                     <div class="${contadorClase}">${contadorHtml}</div>
                 </div>
@@ -1604,27 +1638,8 @@ function renderPlanesCards() {
         if (titleEl) {
             titleEl.addEventListener('click', (e) => {
                 e.stopPropagation();
-                editPlan(plan.id, safeTitle, plan.plan_date, plan.location_name || null);
+                editPlan(plan.id, safeTitle, plan.plan_date);
             });
-        }
-
-        // El clima se consulta aparte para no bloquear el render de la lista.
-        if (plan.lat && plan.lng && dias >= 0) {
-            fetchWeatherForPlan(plan.lat, plan.lng, plan.plan_date).then(w => {
-                const el = document.getElementById(`plan-weather-${plan.id}`);
-                if (!el) return;
-                if (w) {
-                    const [emoji, label] = weatherCodeInfo(w.code);
-                    el.textContent = `${emoji} ${label} · ${w.tmin}° - ${w.tmax}°`;
-                } else if (dias > 15) {
-                    el.textContent = `El pronóstico estará disponible cuando falten 16 días o menos`;
-                } else {
-                    el.textContent = '';
-                }
-            });
-        } else if (plan.lat && dias < 0) {
-            const el = document.getElementById(`plan-weather-${plan.id}`);
-            if (el) el.textContent = '';
         }
 
         if (isOpen) {
@@ -1752,23 +1767,9 @@ async function addPlan() {
         return;
     }
 
-    const locationInput = prompt("¿Dónde será? (Ej: Antioquia, Colombia) — deja vacío si no aplica:");
-    let lat = null, lng = null, locationName = locationInput && locationInput.trim() ? locationInput.trim() : null;
-
-    if (locationName) {
-        const geo = await geocodeLocation(locationName);
-        if (geo) {
-            lat = geo.lat;
-            lng = geo.lng;
-            locationName = geo.display;
-        } else {
-            alert("No se encontró esa ubicación. Se guardará el plan sin datos de clima.");
-        }
-    }
-
     const { error } = await _supabase
         .from('planes_logs')
-        .insert([{ title: title.trim(), plan_date: dateStr.trim(), location_name: locationName, lat, lng }]);
+        .insert([{ title: title.trim(), plan_date: dateStr.trim() }]);
 
     if (error) {
         alert("Error al guardar el plan: " + error.message);
@@ -1777,7 +1778,7 @@ async function addPlan() {
     }
 }
 
-async function editPlan(id, oldTitle, oldDateStr, oldLocationName) {
+async function editPlan(id, oldTitle, oldDateStr) {
     const newTitle = prompt("Editar plan:", oldTitle);
     if (!newTitle || newTitle.trim() === "") return;
 
@@ -1787,27 +1788,9 @@ async function editPlan(id, oldTitle, oldDateStr, oldLocationName) {
         return;
     }
 
-    const newLocationInput = prompt("¿Dónde será? — deja vacío si no aplica:", oldLocationName || "");
-    let lat = null, lng = null, locationName = newLocationInput && newLocationInput.trim() ? newLocationInput.trim() : null;
-
-    if (locationName && locationName !== oldLocationName) {
-        const geo = await geocodeLocation(locationName);
-        if (geo) {
-            lat = geo.lat;
-            lng = geo.lng;
-            locationName = geo.display;
-        } else {
-            alert("No se encontró esa ubicación. Se guardará el plan sin datos de clima.");
-        }
-    } else if (locationName === oldLocationName) {
-        // No cambió la ubicación: se conservan las coordenadas ya guardadas.
-        const { data } = await _supabase.from('planes_logs').select('lat, lng').eq('id', id).single();
-        if (data) { lat = data.lat; lng = data.lng; }
-    }
-
     const { error } = await _supabase
         .from('planes_logs')
-        .update({ title: newTitle.trim(), plan_date: newDateStr.trim(), location_name: locationName, lat, lng })
+        .update({ title: newTitle.trim(), plan_date: newDateStr.trim() })
         .eq('id', id);
 
     if (error) {
@@ -1882,7 +1865,7 @@ async function loadHomeUpcomingPlans() {
             <div class="home-plan-item" onclick="switchBottomTab('planes')" title="Ver en Planes">
                 <div class="home-plan-info">
                     <div class="home-plan-title">${plan.title}</div>
-                    <div class="home-plan-date">${formatearFechaPlan(plan.plan_date)}${plan.location_name ? ' · ' + plan.location_name : ''}</div>
+                    <div class="home-plan-date">${formatearFechaPlan(plan.plan_date)}</div>
                 </div>
                 <span class="home-plan-badge ${badgeClass}">${badgeText}</span>
             </div>
@@ -2636,9 +2619,13 @@ function renderCustomHabitCategoryUI(subtabId, category) {
         btn.type = 'button';
         btn.className = 'camino-tab-btn';
         btn.dataset.subtab = subtabId;
-        btn.title = 'Clic derecho para eliminar esta lista';
+        btn.title = 'Doble clic: editar nombre/emoji · Clic derecho: eliminar esta lista';
         btn.innerHTML = `<span class="camino-tab-icon">${category.icon}</span><span class="camino-tab-label">${category.label}</span>`;
         btn.addEventListener('click', () => switchTrackingTab(subtabId, btn));
+        btn.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+            editHabitCategory(subtabId);
+        });
         btn.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             deleteCustomHabitCategory(category.tag, subtabId);
@@ -2653,7 +2640,7 @@ function renderCustomHabitCategoryUI(subtabId, category) {
         panel.className = 'tracking-subview hidden';
         panel.innerHTML = `
             <section class="category" style="border:none;">
-                <div style="display:flex; justify-content:flex-end; align-items:center; padding: 8px 16px 4px;">
+                <div style="display:flex; justify-content:flex-start; align-items:center; padding: 8px 16px 4px;">
                     <button type="button" class="icon-btn" onclick="addHabitForTag('${category.tag}')"
                         aria-label="Agregar hábito de ${category.label}" title="Agregar hábito de ${category.label}">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"

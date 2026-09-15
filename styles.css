@@ -189,6 +189,7 @@ header.main-header {
     align-items: center;
     justify-content: center;
     gap: 6px;
+    min-width: 0;
     padding: 16px 12px;
     border-radius: 14px;
     border: 1px solid var(--border-color);
@@ -206,6 +207,42 @@ header.main-header {
 .camino-tab-label {
     font-size: 0.85rem;
     font-weight: 700;
+    text-align: center;
+    line-height: 1.2;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
+}
+
+/*
+    NUEVO: mobile fix. Con 4 columnas fijas, etiquetas largas como
+    "SALUD EMOCIONAL" o "SENTIMIENTOS" no cabían en pantallas angostas
+    y rompían el grid (texto desbordado/superpuesto). Se reduce a 3 y
+    luego a 2 columnas, con tipografía e íconos más chicos, antes de
+    que eso pase.
+*/
+@media (max-width: 480px) {
+    .camino-tabs {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+    .camino-tab-btn {
+        padding: 12px 6px;
+        gap: 4px;
+    }
+    .camino-tab-icon {
+        font-size: 1.3rem;
+    }
+    .camino-tab-label {
+        font-size: 0.66rem;
+        letter-spacing: 0.1px;
+    }
+}
+
+@media (max-width: 340px) {
+    .camino-tabs {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 .camino-tab-btn:hover {
@@ -1088,9 +1125,8 @@ div.day-segment.future {
 }
 
 /*
-    NUEVO: tarjetas de "Planes". Cada tarjeta muestra el plan, su fecha/lugar, el clima
-    real esperado (cuando está disponible) y, en grande, los días
-    que faltan para el evento.
+    NUEVO: tarjetas de "Planes". Cada tarjeta muestra el plan, su
+    fecha y, en grande, los días que faltan para el evento.
 */
 .plan-card {
     border-bottom: 1px solid var(--border-color);
@@ -1144,13 +1180,6 @@ div.day-segment.future {
     font-size: 0.8rem;
     color: var(--text-muted);
     margin-top: 2px;
-}
-
-.plan-card-weather {
-    font-size: 0.85rem;
-    color: var(--text-dark);
-    margin-top: 6px;
-    min-height: 1.1em;
 }
 
 /* Panel expandible con la checklist de "cosas" del plan */
@@ -1884,19 +1913,24 @@ div.day-segment.future {
  * Cada habito es una card con imagen a la izquierda,
  * nombre arriba y chips de dias debajo.
  */
+/*
+    Mismo radio de borde y grosor que .camino-tab-btn (14px / 1px)
+    para que pasar de las tabs a la lista de hábitos se sienta como
+    una única vista coherente en vez de dos estilos distintos.
+*/
 .habit-card {
     display: flex;
     align-items: center;
     gap: 14px;
     padding: 12px;
-    border-radius: 12px;
-    border: 2px solid var(--border-color);
+    border-radius: 14px;
+    border: 1px solid var(--border-color);
     background-color: var(--white);
-    transition: opacity var(--transition);
+    transition: opacity var(--transition), border-color var(--transition);
 }
 
 .habit-card--pendiente {
-    border-color: rgba(231, 76, 60, 0.35);
+    border-color: #e74c3c;
 }
 
 .habit-card-img {
@@ -2395,14 +2429,15 @@ div.day-segment.future {
     gap: 8px;
 }
 
-/* La sección de Hábitos siempre va después del balance emocional en
-   la tarjeta: en vez de depender del combinador de hermanos (que
-   exigía que AMBAS secciones compartieran clase .espejo-section),
-   el separador se declara directamente aquí para no acoplarse al
-   marcado de la sección anterior. */
+/* La sección de Hábitos ahora es su propia tarjeta (mismo tratamiento
+   visual que .espejo-emo-card, en verde en vez de rosa) en lugar de
+   un simple separador con border-top, para que las dos métricas se
+   vean como un único par de tarjetas coherente. */
 .espejo-section--habitos.espejo-section--ring {
-    padding-top: 18px;
-    border-top: 1px solid var(--border-color);
+    padding: 16px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(22, 163, 74, 0.10) 0%, rgba(116, 192, 138, 0.05) 100%);
+    border: 1px solid rgba(22, 163, 74, 0.22);
 }
 
 .espejo-bar-track {
