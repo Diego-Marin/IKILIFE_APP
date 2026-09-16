@@ -22,7 +22,7 @@
  */
 
 const ENGLISH_END_DATE = '2027-06-19';
-let _englishFilter = 'all';
+let _englishFilter = 'INGA1';
 
 /* ---------- Generador del plan de estudios (388 clases) ---------- */
 function generateEnglishCurriculum() {
@@ -299,9 +299,8 @@ function renderEnglish(data) {
             </div>
         </div>
 
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:0 16px; margin-bottom:12px;">
+        <div class="english-toolbar">
             <div class="english-level-tabs">
-                <button class="english-tab-btn ${_englishFilter==='all'?'english-tab-active':''}" onclick="setEnglishFilter('all')">Todos</button>
                 <button class="english-tab-btn ${_englishFilter==='INGA1'?'english-tab-active':''}" onclick="setEnglishFilter('INGA1')">A1</button>
                 <button class="english-tab-btn ${_englishFilter==='INGA2'?'english-tab-active':''}" onclick="setEnglishFilter('INGA2')">A2</button>
                 <button class="english-tab-btn ${_englishFilter==='INGB1'?'english-tab-active':''}" onclick="setEnglishFilter('INGB1')">B1</button>
@@ -324,48 +323,40 @@ function renderEnglish(data) {
 }
 
 function renderEnglishList(data) {
-    let filtered = data;
-    if (_englishFilter !== 'all') filtered = data.filter(c => c.level === _englishFilter);
+    const filtered = data.filter(c => c.level === _englishFilter);
 
-    const grouped = filtered.reduce((acc, c) => {
-        if (!acc[c.level]) acc[c.level] = [];
-        acc[c.level].push(c);
-        return acc;
-    }, {});
+    if (!filtered.length) {
+        return `<div class="english-empty">No hay clases registradas en este nivel.</div>`;
+    }
 
-    return Object.entries(grouped).map(([level, classes]) => {
-        const levelPct = Math.round((classes.filter(c => c.status === 'Tomada').length / classes.length) * 100);
+    const levelPct = Math.round((filtered.filter(c => c.status === 'Tomada').length / filtered.length) * 100);
+
+    const rows = filtered.map(c => {
+        const isTaken = c.status === 'Tomada';
         return `
-            <div class="english-level-group">
-                <div class="english-level-header">
-                    <span>${level}</span>
-                    <div class="english-level-bar-track">
-                        <div class="english-level-bar-fill" style="width:${levelPct}%;"></div>
-                    </div>
-                    <span class="english-level-pct">${levelPct}%</span>
+            <div class="english-row ${isTaken ? 'english-row--taken' : ''}">
+                <div class="english-row-main" onclick="toggleEnglishStatus(${c.id}, '${isTaken ? 'Pendiente' : 'Tomada'}')">
+                    <span class="english-row-check">${isTaken ? '✓' : ''}</span>
+                    <span class="english-row-num">${c.class_number}</span>
+                    <span class="english-row-name">${c.class_name}</span>
                 </div>
-                ${classes.map(c => {
-                    const isTaken = c.status === 'Tomada';
-                    const safeName = String(c.class_name || '').replace(/'/g, "\\'");
-                    return `
-                    <div class="english-row ${isTaken ? 'english-row--taken' : ''}">
-                        <div class="english-row-main" onclick="toggleEnglishStatus(${c.id}, '${isTaken ? 'Pendiente' : 'Tomada'}')">
-                            <span class="english-row-num">${c.class_number}</span>
-                            <span class="english-row-name">${c.class_name}</span>
-                            <span class="english-row-badge ${isTaken ? 'english-badge--taken' : 'english-badge--pending'}">${isTaken ? '✅ Tomada' : '⏳ Pendiente'}</span>
-                        </div>
-                        <div class="english-row-meta">
-                            ${c.grade > 0 ? `<span class="english-row-grade" onclick="editEnglishGrade(${c.id}, ${c.grade})" title="Clic para editar nota">Nota: ${c.grade}</span>` : ''}
-                            ${c.class_date ? `<span class="english-row-date">${c.class_date}</span>` : ''}
-                            ${c.notes ? `<span class="english-row-note" title="${c.notes.replace(/"/g, '&quot;')}">📝</span>` : ''}
-                            <button class="english-row-btn" onclick="editEnglishNotes(${c.id}, '${safeName}')" title="Notas">📝</button>
-                            <button class="english-row-btn" onclick="deleteEnglishClass(${c.id}, '${safeName}')" title="Eliminar">🗑</button>
-                        </div>
-                    </div>`;
-                }).join('')}
-            </div>
-        `;
+                <div class="english-row-meta">
+                    ${c.grade > 0 ? `<span class="english-row-grade" onclick="editEnglishGrade(${c.id}, ${c.grade})" title="Clic para editar nota">${c.grade}</span>` : ''}
+                    ${c.class_date ? `<span class="english-row-date">${c.class_date}</span>` : ''}
+                </div>
+            </div>`;
     }).join('');
+
+    return `
+        <div class="english-level-progress">
+            <span class="english-level-progress-label">${_englishFilter}</span>
+            <div class="english-level-bar-track">
+                <div class="english-level-bar-fill" style="width:${levelPct}%;"></div>
+            </div>
+            <span class="english-level-pct">${levelPct}%</span>
+        </div>
+        <div class="english-rows">${rows}</div>
+    `;
 }
 
 /* ---------- Filtros ---------- */
@@ -422,15 +413,6 @@ async function editEnglishGrade(id, current) {
     else loadEnglish();
 }
 
-async function editEnglishNotes(id, name) {
-    const { data } = await _supabase.from('english_classes').select('notes').eq('id', id).single();
-    const val = prompt(`Notas para "${name}":`, data?.notes || '');
-    if (val === null) return;
-    const { error } = await _supabase.from('english_classes').update({ notes: val }).eq('id', id);
-    if (error) alert('Error: ' + error.message);
-    else loadEnglish();
-}
-
 async function addEnglishClass() {
     const name = prompt('Nombre de la clase:');
     if (!name) return;
@@ -440,13 +422,6 @@ async function addEnglishClass() {
     const { error } = await _supabase.from('english_classes').insert([{
         level, class_number: parseFloat(num) || 1, class_name: name, status: 'Pendiente'
     }]);
-    if (error) alert('Error: ' + error.message);
-    else loadEnglish();
-}
-
-async function deleteEnglishClass(id, name) {
-    if (!confirm(`¿Eliminar "${name}"?`)) return;
-    const { error } = await _supabase.from('english_classes').delete().eq('id', id);
     if (error) alert('Error: ' + error.message);
     else loadEnglish();
 }
