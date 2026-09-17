@@ -195,7 +195,7 @@ async function loadMoodSection(key) {
         card.className = 'mood-card ' + config.cssClass + (bloqueo.locked ? ' mood-card--locked' : '');
 
         card.innerHTML = `
-            <img src="${localImagePath}" class="mood-img" onerror="this.src='assets/images/default.jpg'">
+            <img src="${localImagePath}" class="mood-img" onerror="handleImgFallback(this)">
             <div class="mood-info">
                 <div class="mood-top-row">
                     <span class="mood-name" title="Clic para editar nombre">${item.name}</span>
@@ -251,7 +251,7 @@ function renderMoodToolbar(toolbar, key, config, bloqueo) {
     }
 
     toolbar.innerHTML = `
-        <button type="button" class="sql-btn-compact mood-save-btn" title="Guardar registro de hoy">💾 Guardar</button>
+        <button type="button" class="mood-save-btn" title="Guardar registro de hoy">💾 Guardar</button>
     `;
 
     toolbar.querySelector('.mood-save-btn').addEventListener('click', () => guardarRegistroSeccion(key));
@@ -659,7 +659,8 @@ function calcularFocoAtencion({ lovesPct, odiosPct, hayDatosEmocionales, habitos
  * ==========================================
  * EL ESPEJO DEL ALMA — RENDER
  * ==========================================
- * · Balance Mes: barra split ❤️ Loves (rosa) vs 💢 Odios (rojo)
+ * · Balance Mes: barra split ❤️ Positivos vs 💢 Negativos, como una
+ *   competencia (ambos % suman 100, se ve quién va ganando)
  * · Hábitos Hoy: barra split ✅ Hechos (verde) vs ⬜ Pendientes (rojo)
  */
 async function loadEspejoDelAlma() {
@@ -679,24 +680,43 @@ async function loadEspejoDelAlma() {
     const CIRCUNFERENCIA = 2 * Math.PI * RADIO;
     const offsetHabitos = CIRCUNFERENCIA - (hPctDone / 100) * CIRCUNFERENCIA;
 
+    // Veredicto de la "competencia" del mes: quién va ganando entre
+    // positivos y negativos, en palabras simples (no solo un %).
+    let veredicto;
+    if (balanceMes.total === 0) {
+        veredicto = 'Aún no hay registros este mes.';
+    } else if (balanceMes.lovesPct > balanceMes.odiosPct) {
+        veredicto = `Van ganando los positivos (${balanceMes.lovesPct}% vs ${balanceMes.odiosPct}%).`;
+    } else if (balanceMes.odiosPct > balanceMes.lovesPct) {
+        veredicto = `Van ganando los negativos (${balanceMes.odiosPct}% vs ${balanceMes.lovesPct}%).`;
+    } else {
+        veredicto = `Vas empatado este mes (${balanceMes.lovesPct}% y ${balanceMes.odiosPct}%).`;
+    }
+
     container.innerHTML = `
         <div class="espejo-alma-card">
             <div class="espejo-emo-card">
-                <div class="espejo-emo-icon">❤️</div>
                 <div class="espejo-emo-body">
-                    <div class="espejo-emo-top">
-                        <span class="espejo-emo-label">Balance emocional del mes</span>
-                        <span class="espejo-emo-pct">${balanceMes.lovesPct}%</span>
+                    <div class="espejo-emo-label">Balance emocional del mes</div>
+
+                    <div class="espejo-emo-vs-row">
+                        <span class="espejo-emo-vs-side espejo-emo-vs-side--love">❤️ Positivos <strong>${balanceMes.lovesPct}%</strong></span>
+                        <span class="espejo-emo-vs-side espejo-emo-vs-side--odio">Negativos <strong>${balanceMes.odiosPct}%</strong> 💢</span>
                     </div>
-                    <div class="espejo-emo-bar-track">
-                        <div class="espejo-emo-bar-fill" style="width:${balanceMes.lovesPct}%;"></div>
+
+                    <div class="espejo-emo-bar-track espejo-emo-bar-track--split">
+                        <div class="espejo-emo-bar-fill espejo-emo-bar-fill--love" style="width:${balanceMes.lovesPct}%;"></div>
+                        <div class="espejo-emo-bar-fill espejo-emo-bar-fill--odio" style="width:${balanceMes.odiosPct}%;"></div>
                     </div>
+
+                    <div class="espejo-emo-verdict">${veredicto}</div>
+
                     <div class="espejo-emo-stats">
                         ${balanceMes.total > 0
                             ? `<span class="espejo-emo-chip espejo-emo-chip--love">❤️ ${balanceMes.sumLoves} pts</span>
                                <span class="espejo-emo-chip espejo-emo-chip--odio">💢 ${balanceMes.sumOdios} pts</span>
                                <span class="espejo-emo-chip">${balanceMes.total} registros</span>`
-                            : '<span class="espejo-emo-chip">Sin registros este mes</span>'}
+                            : ''}
                     </div>
                 </div>
             </div>

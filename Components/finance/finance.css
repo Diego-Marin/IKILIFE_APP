@@ -3,6 +3,43 @@
  * SECCIÓN FINANZAS (MONEY)
  * ==========================================
  */
+/**
+ * ==========================================
+ * BOTÓN "NUEVA CATEGORÍA DE GASTO"
+ * ==========================================
+ * Antes era .sql-btn-compact estirado a width:100% — se veía como
+ * una barra pesada y fuera de lugar. Ahora es una píldora discreta,
+ * centrada y del tamaño de su contenido, en línea con el resto de
+ * botones "+" de la app (dashed, dscreto, se resalta en hover).
+ */
+.finance-add-category-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 0 16px 16px;
+}
+
+.finance-add-category-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background-color: transparent;
+    border: 1px dashed var(--border-color);
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.finance-add-category-btn:hover {
+    border-style: solid;
+    border-color: var(--primary-green);
+    color: var(--primary-green);
+    background-color: rgba(116, 192, 138, 0.08);
+}
+
 .finance-top-bar {
     display: flex;
     align-items: center;
@@ -318,71 +355,6 @@
     margin-top: 8px;
     font-size: 0.7rem;
     font-weight: 700;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-/* --- Botón "Reiniciar Mes" --- */
-/* --- Fila de acciones al inicio de Finanzas: Historial + Reiniciar Mes ---
-   Compacta y en una sola fila (no se rompe en mobile), mismo patrón
-   que el botón SQL de Hábitos (.sql-btn-compact). */
-.finance-actions-row {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 14px;
-}
-
-.finance-actions-row .sql-btn-compact {
-    flex: 1 1 0;
-    min-width: 0;
-    justify-content: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.finance-reset-btn {
-    background-color: transparent;
-    border: 1px solid #e74c3c;
-    color: #e74c3c;
-}
-
-.finance-reset-btn:hover {
-    background-color: #e74c3c;
-    color: var(--white);
-}
-
-.finance-history-row {
-    border: 1px solid var(--border-color);
-    border-radius: 10px;
-    padding: 12px;
-    background: var(--white);
-}
-
-.finance-history-mes {
-    font-size: 0.9rem;
-    font-weight: 800;
-    color: var(--text-dark);
-    margin-bottom: 8px;
-    letter-spacing: 0.3px;
-}
-
-.finance-history-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 6px 12px;
-}
-
-.finance-history-grid > div {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.finance-history-label {
-    font-size: 0.65rem;
-    font-weight: 600;
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;

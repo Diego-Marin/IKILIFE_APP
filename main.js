@@ -13,6 +13,46 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /**
  * ==========================================
+ * FALLBACK COMPARTIDO DE IMÁGENES (habit_images, compras, mood,
+ * loves, vision_board — cualquier <img onerror="handleImgFallback(this)">)
+ * ==========================================
+ * Antes cada onerror apuntaba directo a "assets/images/default.jpg".
+ * Si ese archivo tampoco existe en el repo (o el nombre guardado está
+ * mal escrito), el navegador dispara OTRO 404 — y como el atributo
+ * onerror queda fijo, algunos navegadores repiten la petición cada
+ * vez que se reasigna el mismo src, generando varias peticiones 404
+ * en consola por una sola imagen rota.
+ *
+ * Ahora el fallback tiene 2 pasos y SIEMPRE termina en un placeholder
+ * que nunca falla (un SVG embebido, sin red de por medio):
+ *   1) intenta "assets/images/default.jpg" una sola vez
+ *   2) si también falla, usa el SVG embebido y desactiva onerror para
+ *      no volver a intentar nada más.
+ * Aun así, sigue siendo buena idea subir un assets/images/default.jpg
+ * real al repo para que el placeholder casi nunca se vea.
+ */
+const IKILIFE_IMG_PLACEHOLDER =
+    "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
+        '<rect width="100" height="100" fill="#EAECEF"/>' +
+        '<path d="M30 65 L45 45 L58 58 L70 40 L80 65 Z" fill="#C7CCD1"/>' +
+        '<circle cx="38" cy="35" r="7" fill="#C7CCD1"/>' +
+        '</svg>'
+    );
+
+function handleImgFallback(img) {
+    if (!img.dataset.fallbackStage) {
+        img.dataset.fallbackStage = '1';
+        img.src = 'assets/images/default.jpg';
+    } else {
+        img.onerror = null;
+        img.dataset.fallbackStage = '2';
+        img.src = IKILIFE_IMG_PLACEHOLDER;
+    }
+}
+
+/**
+ * ==========================================
  * ÍNDICE DEL ARCHIVO (TABLA DE CONTENIDO)
  * ==========================================
  * main.js está organizado por COMPONENTE, cada uno con su propio
@@ -552,8 +592,31 @@ async function editHabitCategory(subtabId) {
  *
  * refreshActiveHabitsList() detecta qué sub-tab de Hábitos está activa
  * y recarga solo esa lista.
+ *
+ * OPTIMIZACIÓN: cada toggle/alta/edición/borrado de hábito llama esto
+ * de forma explícita, pero la suscripción en tiempo real de Supabase
+ * (más abajo) TAMBIÉN dispara esta misma función al detectar el
+ * cambio que acabamos de hacer nosotros mismos — antes eso causaba
+ * una recarga doble (dos round-trips completos a la base de datos,
+ * lista que se reconstruye dos veces = lag + sensación de "reinicio").
+ * Ahora se agrupan con un debounce: varias llamadas seguidas en una
+ * ventana corta de tiempo terminan ejecutando un solo refresco real.
  */
+let _refreshHabitsTimer = null;
 function refreshActiveHabitsList() {
+    // Los datos ya cambiaron en Supabase en cuanto se llama esto —
+    // invalidamos la caché YA (no dentro del debounce) para que
+    // cualquier refresco, propio o disparado por la suscripción en
+    // tiempo real, siempre traiga datos frescos.
+    invalidateHabitsCache();
+    if (_refreshHabitsTimer) clearTimeout(_refreshHabitsTimer);
+    _refreshHabitsTimer = setTimeout(() => {
+        _refreshHabitsTimer = null;
+        _doRefreshActiveHabitsList();
+    }, 220);
+}
+
+function _doRefreshActiveHabitsList() {
     const activeBtn = document.querySelector('#view-tracking .camino-tab-active');
     const sub = activeBtn ? activeBtn.dataset.subtab : null;
 
@@ -603,6 +666,7 @@ async function seedDefaultHabitsOnce(tag) {
         console.error(`Error sembrando hábitos por defecto de ${tag}:`, error.message);
         return; // no marcar como sembrado: se reintentará la próxima vez
     }
+    invalidateHabitsCache();
     localStorage.setItem(seedKey, '1');
 }
 
@@ -662,7 +726,16 @@ async function addHabit() {
     }
 }
 
-async function toggleHabit(habitName, dateStr, currentState) {
+async function toggleHabit(btnEl, habitName, dateStr, currentState) {
+    // Feedback optimista: refleja el cambio en el botón AL INSTANTE
+    // (sin esperar la red) y lo bloquea brevemente para evitar doble
+    // clic mientras se sincroniza. El refresco completo (debounced)
+    // llega después a reconciliar streaks y el resto de la fila.
+    if (btnEl) {
+        btnEl.classList.toggle('habit-day-chip--done', !currentState);
+        btnEl.disabled = true;
+    }
+
     const { data, error: fetchError } = await _supabase
         .from('habit_logs')
         .select('id')
@@ -671,9 +744,10 @@ async function toggleHabit(habitName, dateStr, currentState) {
         .maybeSingle();
 
     if (fetchError) {
-    console.error("Error buscando registro:", fetchError.message);
-    return;
-}
+        console.error("Error buscando registro:", fetchError.message);
+        if (btnEl) { btnEl.classList.toggle('habit-day-chip--done', currentState); btnEl.disabled = false; }
+        return;
+    }
 
     if (data) {
         const { error: updateError } = await _supabase
@@ -1843,7 +1917,7 @@ async function loadCompras() {
 
         card.innerHTML = `
     <img src="${localImagePath}" class="compra-img"
-         onerror="this.src='assets/images/default.jpg'">
+         onerror="handleImgFallback(this)">
     <div class="compra-info">
         <div class="compra-top-row">
             <span class="compra-name" title="Clic para editar nombre">${compra.name}</span>
@@ -2220,6 +2294,63 @@ function renderStateBar(containerId) {
     setInterval(update, 60000);
 }
 
+/**
+ * ---------- Caché de datos crudos de Hábitos ----------
+ * ANTES: cada vez que se abría/cambiaba de sub-pestaña de Hábitos se
+ * hacían 3 consultas a Supabase, UNA DETRÁS DE OTRA (secuenciales), y
+ * la primera traía el historial COMPLETO de habit_logs (todas las
+ * filas desde siempre) solo para sacar los nombres únicos de hábito.
+ * Con meses de uso eso son miles de filas descargadas cada vez que se
+ * cambiaba de pestaña — y como las 3 consultas NO dependen entre sí,
+ * esperar a que termine una para lanzar la siguiente solo sumaba
+ * latencia de red sin necesidad.
+ *
+ * AHORA:
+ *  1) Las 3 consultas se lanzan EN PARALELO (Promise.all) en vez de
+ *     en cadena → hasta ~3x menos tiempo de espera por switch de tab.
+ *  2) El resultado se cachea en memoria por unos segundos: cambiar
+ *     entre CABELLO/SEXUALIDAD/PIEL/CUERPO/etc. reutiliza los mismos
+ *     datos (son las mismas 3 tablas completas, filtradas distinto
+ *     en el cliente) en vez de volver a pedirlos a la red cada vez.
+ *  3) Cualquier escritura (marcar hábito, crear/editar/borrar,
+ *     cambiar imagen) invalida la caché de inmediato con
+ *     invalidateHabitsCache(), así que nunca se muestra data vieja.
+ */
+let _habitsRawCache = null; // { allHabitsData, weekLogs, habitImages, weekKey, ts }
+const HABITS_CACHE_TTL_MS = 20000; // 20s: suficiente para navegar entre tabs sin re-pedir
+
+function invalidateHabitsCache() {
+    _habitsRawCache = null;
+}
+
+async function fetchHabitsRawData(datesOfWeek) {
+    const weekKey = datesOfWeek[0] + '_' + datesOfWeek[6];
+    const now = Date.now();
+    if (_habitsRawCache && _habitsRawCache.weekKey === weekKey && (now - _habitsRawCache.ts) < HABITS_CACHE_TTL_MS) {
+        return _habitsRawCache;
+    }
+
+    const [allHabitsRes, weekLogsRes, habitImagesRes] = await Promise.all([
+        _supabase.from('habit_logs').select('habit_name, project_tag'),
+        _supabase.from('habit_logs').select('*').gte('log_date', datesOfWeek[0]).lte('log_date', datesOfWeek[6]),
+        _supabase.from('habit_images').select('habit_name, image_filename'),
+    ]);
+
+    if (allHabitsRes.error) { console.error(allHabitsRes.error.message); return null; }
+    if (weekLogsRes.error) { console.error(weekLogsRes.error.message); return null; }
+    if (habitImagesRes.error) console.error(habitImagesRes.error.message);
+
+    const result = {
+        allHabitsData: allHabitsRes.data || [],
+        weekLogs: weekLogsRes.data || [],
+        habitImages: habitImagesRes.data || [],
+        weekKey,
+        ts: now,
+    };
+    _habitsRawCache = result;
+    return result;
+}
+
 /* ---------- NUEVO: Hábitos por Grupo (ME / HEALTH / WORK / LOVES) ---------- */
 async function loadHabitsGroup(tag, containerId) {
     const today = new Date();
@@ -2235,10 +2366,9 @@ async function loadHabitsGroup(tag, containerId) {
         datesOfWeek.push(formatDateLocal(d));
     }
 
-    const { data: allHabitsData, error: err1 } = await _supabase
-        .from('habit_logs')
-        .select('habit_name, project_tag');
-    if (err1) return console.error(err1.message);
+    const raw = await fetchHabitsRawData(datesOfWeek);
+    if (!raw) return;
+    const { allHabitsData, weekLogs } = raw;
 
     const uniqueHabits = [...new Set(
         allHabitsData
@@ -2259,17 +2389,7 @@ async function loadHabitsGroup(tag, containerId) {
         return;
     }
 
-    const { data: weekLogs, error: err2 } = await _supabase
-        .from('habit_logs')
-        .select('*')
-        .gte('log_date', datesOfWeek[0])
-        .lte('log_date', datesOfWeek[6]);
-    if (err2) return console.error(err2.message);
-
-    const { data: habitImagesData, error: err3 } = await _supabase
-        .from('habit_images')
-        .select('habit_name, image_filename');
-    const habitImages = Object.fromEntries((habitImagesData || []).map(h => [h.habit_name, h.image_filename]));
+    const habitImages = Object.fromEntries(raw.habitImages.map(h => [h.habit_name, h.image_filename]));
 
     uniqueHabits.sort((a, b) => {
         const ga = getSubgroupFromHabitName(a) || '';
@@ -2315,17 +2435,16 @@ function renderHabitCard(habitName, listContainer, datesOfWeek, currentDay, dayL
         const isToday = idx + 1 === currentDay;
         const isFuture = idx + 1 > currentDay;
         if (isToday) isDoneToday = isDone;
-        daysHTML += `<button type="button" class="habit-day-chip${isDone ? ' habit-day-chip--done' : ''}${isToday ? ' habit-day-chip--today' : ''}${isFuture ? ' habit-day-chip--future' : ''}" ${isFuture ? 'disabled' : `onclick="toggleHabit('${habitName.replace(/'/g, "\\'")}', '${dateStr}', ${isDone})"`}>${dayLabels[idx]}</button>`;
+        daysHTML += `<button type="button" class="habit-day-chip${isDone ? ' habit-day-chip--done' : ''}${isToday ? ' habit-day-chip--today' : ''}${isFuture ? ' habit-day-chip--future' : ''}" ${isFuture ? 'disabled' : `onclick="toggleHabit(this, '${habitName.replace(/'/g, "\\'")}', '${dateStr}', ${isDone})"`}>${dayLabels[idx]}</button>`;
     });
 
     const imageFilename = habitImages[habitName] || 'default.jpg';
     const localImagePath = `assets/images/${imageFilename}`;
     const habitNameEscaped = habitName.replace(/'/g, "\\'");
-    const pendienteClass = !isDoneToday ? ' habit-card--pendiente' : '';
 
     const card = `
-        <li class="habit-card${pendienteClass}" oncontextmenu="event.preventDefault(); deleteHabit('${habitNameEscaped}')" title="Clic derecho para eliminar">
-            <img src="${localImagePath}" class="habit-card-img" onerror="this.src='assets/images/default.jpg'" onclick="event.stopPropagation(); setHabitImage('${habitNameEscaped}')" title="Clic para cambiar la imagen">
+        <li class="habit-card" oncontextmenu="event.preventDefault(); deleteHabit('${habitNameEscaped}')" title="Clic derecho para eliminar">
+            <img src="${localImagePath}" class="habit-card-img" onerror="handleImgFallback(this)" onclick="event.stopPropagation(); setHabitImage('${habitNameEscaped}')" title="Clic para cambiar la imagen">
             <div class="habit-card-info">
                 <div class="habit-card-top">
                     <span class="habit-card-name" onclick="editHabit('${habitNameEscaped}')" title="Clic para editar">${cleanHabitName(habitName)}</span>
@@ -2360,6 +2479,7 @@ async function addHabitForTag(tag) {
     if (error) {
         alert("Error al guardar: " + error.message);
     } else {
+        invalidateHabitsCache();
         const sub = Object.keys(HABIT_CATEGORIES).find(key => HABIT_CATEGORIES[key].tag === upperTag);
         if (sub) loadHabitsGroup(upperTag, 'list-habits-' + sub);
     }
@@ -2498,6 +2618,7 @@ async function deleteCustomHabitCategory(tag, subtabId) {
         return;
     }
     await _supabase.from('habit_logs').delete().eq('project_tag', tag);
+    invalidateHabitsCache();
 
     delete HABIT_CATEGORIES[subtabId];
     const btnToRemove = document.querySelector(`.camino-tab-btn[data-subtab="${subtabId}"]`);

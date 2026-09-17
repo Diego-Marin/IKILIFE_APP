@@ -1872,10 +1872,6 @@ div.day-segment.future {
     transition: opacity var(--transition), border-color var(--transition);
 }
 
-.habit-card--pendiente {
-    border-color: #e74c3c;
-}
-
 .habit-card-img {
     width: 92px;
     height: 92px;
@@ -2141,18 +2137,19 @@ div.day-segment.future {
  * ==========================================
  */
 .today-dashboard {
-    background: transparent;
+    background: linear-gradient(135deg, var(--bg-header) 0%, transparent 100%);
     border: 1px solid var(--border-color);
-    border-radius: 12px;
+    border-radius: 18px;
     margin-bottom: 20px;
     overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
 }
 
 .today-dashboard-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 16px;
+    padding: 14px 16px;
     border-bottom: 1px solid var(--border-color);
     font-size: 0.9rem;
     font-weight: 700;
@@ -2161,9 +2158,10 @@ div.day-segment.future {
 
 #today-clock {
     font-family: monospace;
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    font-weight: 600;
+    font-size: 1.3rem;
+    color: var(--text-dark);
+    font-weight: 800;
+    letter-spacing: 0.3px;
 }
 
 /* State Bar dentro del dashboard */
@@ -2400,46 +2398,22 @@ div.day-segment.future {
 .espejo-bar-fill--habitos { background: linear-gradient(90deg, #74C08A, #16a34a); }
 
 /**
- * ---------- Balance emocional del mes: rediseño ----------
- * Tarjeta independiente con badge circular, % grande junto al
- * título, barra en forma de píldora con más presencia visual y
- * chips de detalle (en vez del bloque de texto plano anterior).
+ * ---------- Balance emocional del mes: competencia Positivos vs Negativos ----------
+ * En vez de un solo % sin contexto, se ve como una barra partida en
+ * dos (igual patrón que Hábitos de hoy): un lado para Positivos y
+ * otro para Negativos, ambos suman 100%, así se nota de un vistazo
+ * quién va ganando.
  */
 .espejo-emo-card {
-    display: flex;
-    align-items: flex-start;
-    gap: 14px;
     padding: 16px;
     border-radius: 16px;
     background: linear-gradient(135deg, rgba(224, 71, 158, 0.10) 0%, rgba(242, 140, 192, 0.05) 100%);
     border: 1px solid rgba(224, 71, 158, 0.22);
 }
 
-.espejo-emo-icon {
-    flex-shrink: 0;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.3rem;
-    background: var(--white);
-    box-shadow: 0 2px 6px rgba(224, 71, 158, 0.25);
-}
-
 .espejo-emo-body {
-    flex: 1;
-    min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-}
-
-.espejo-emo-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
     gap: 10px;
 }
 
@@ -2449,27 +2423,55 @@ div.day-segment.future {
     color: var(--text-dark);
 }
 
-.espejo-emo-pct {
-    font-size: 1.5rem;
-    font-weight: 800;
-    line-height: 1;
-    color: #e0479e;
-    flex-shrink: 0;
+.espejo-emo-vs-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-muted);
 }
+
+.espejo-emo-vs-side strong {
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.espejo-emo-vs-side--love strong { color: #e0479e; }
+.espejo-emo-vs-side--odio strong { color: #e74c3c; }
 
 .espejo-emo-bar-track {
     width: 100%;
     height: 10px;
     border-radius: 999px;
     overflow: hidden;
-    background: rgba(224, 71, 158, 0.15);
+    background: var(--border-color);
+}
+
+.espejo-emo-bar-track--split {
+    display: flex;
 }
 
 .espejo-emo-bar-fill {
     height: 100%;
-    border-radius: 999px;
-    background: linear-gradient(90deg, #f28cc0, #e0479e);
     transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.espejo-emo-bar-fill--love {
+    background: linear-gradient(90deg, #f28cc0, #e0479e);
+    border-radius: 999px 0 0 999px;
+}
+
+.espejo-emo-bar-fill--odio {
+    background: linear-gradient(90deg, #e74c3c, #c0392b);
+    border-radius: 0 999px 999px 0;
+}
+
+.espejo-emo-verdict {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-dark);
 }
 
 .espejo-emo-stats {

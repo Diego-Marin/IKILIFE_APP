@@ -314,12 +314,9 @@
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                 </svg>
                             </button>
-                        </div>
-                        <ul id="list-loves" style="list-style:none;"></ul>
-                        <div class="item-list-header mood-header-row"
-                            style="display: flex; justify-content: flex-end; padding: 8px 16px;">
                             <div class="mood-save-slot" data-save-slot="loves"></div>
                         </div>
+                        <ul id="list-loves" style="list-style:none;"></ul>
                     </div>
 
                     <!-- NEGATIVOS (antes "Odios") -->
@@ -333,12 +330,9 @@
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                 </svg>
                             </button>
-                        </div>
-                        <ul id="list-odios" style="list-style:none;"></ul>
-                        <div class="item-list-header mood-header-row"
-                            style="display: flex; justify-content: flex-end; padding: 8px 16px;">
                             <div class="mood-save-slot" data-save-slot="odios"></div>
                         </div>
+                        <ul id="list-odios" style="list-style:none;"></ul>
                     </div>
                 </div>
 
@@ -484,26 +478,24 @@
                         </div>
                     </div>
 
-                    <!-- Acciones -->
-                    <div class="finance-actions-row">
-                        <button class="sql-btn-compact" onclick="toggleFinanceHistory()">📊 Historial</button>
-                        <button class="sql-btn-compact finance-reset-btn" onclick="resetFinanceMonth()">🔄 Reiniciar
-                            Mes</button>
-                    </div>
-
-                    <!-- Historial de Meses Guardados (oculto hasta que se presiona "Historial") -->
-                    <div id="finance-history-section" class="hidden" style="padding: 0 16px 16px;">
-                        <div id="finance-history-list"></div>
+                    <!-- Agregar categoría (antes vivía al final, después de las
+                         categorías dinámicas; ahora va arriba, justo donde estaba
+                         la fila de acciones Historial/Reiniciar Mes — esa fila se
+                         eliminó porque el registro mensual ahora es automático,
+                         ver autoRegisterFinanceMonthIfNeeded() en finance.js). -->
+                    <div class="finance-add-category-wrap">
+                        <button type="button" class="finance-add-category-btn" onclick="addFinanceCategory()">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            Nueva Categoría de Gasto
+                        </button>
                     </div>
 
                     <!-- Categorías dinámicas -->
                     <div id="dynamic-expense-categories"></div>
-
-                    <!-- Agregar categoría -->
-                    <div style="padding: 16px;">
-                        <button class="sql-btn-compact" onclick="addFinanceCategory()"
-                            style="width:100%; justify-content:center;">+ Nueva Categoría de Gasto</button>
-                    </div>
                 </div>
 
                 <!-- Vista Ingresos -->

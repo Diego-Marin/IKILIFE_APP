@@ -7,14 +7,17 @@
  * herramientas de sección (botón "Guardar" o banner de bloqueo).
  */
 
-/* --- Fila unificada: Add + Historial (SQL) + Guardar registro de hoy ---
-   Compacta y en una sola fila (no se rompe en mobile): los 2-3
-   botones se reparten el ancho disponible a partes iguales y el
-   texto se trunca con ellipsis si no cabe. */
+/* --- Fila unificada: Add + Guardar registro de hoy ---
+   Ambos botones viven en la misma fila de cabecera (Add a la
+   izquierda, Guardar/estado de bloqueo a la derecha), SIN padding
+   horizontal propio: el mismo ancho que .sent-tabs y el resto de la
+   pestaña (que ya reciben su aire de .container), para que todo se
+   vea alineado y armónico. */
 .mood-minimal-header {
     display: flex;
-    justify-content: flex-end;
-    padding: 8px 16px 4px;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0 12px;
 }
 
 .mood-header-row {
@@ -26,35 +29,50 @@
 .mood-save-slot {
     flex: 0 0 auto;
     display: flex;
+    align-items: center;
 }
 
-/* Botón "Guardar" — antes compartía fila con "Historial" (eliminado);
-   ahora vive solo, así que se deja pequeño y minimalista (mismo
-   lenguaje visual que .sql-btn-compact) en vez de ocupar toda la
-   fila. */
+/* Botón "Guardar" — minimalista: sin caja ni borde, mismo lenguaje
+   visual que .icon-btn (transparente, solo resalta en hover), para
+   que no se sienta como una barra completa con un botón perdido. */
 .mood-save-slot .mood-save-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     width: auto;
-    padding: 5px 10px;
-    font-size: 0.72rem;
+    background: transparent;
+    border: none;
+    color: var(--primary-green);
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 700;
     white-space: nowrap;
+    cursor: pointer;
+    transition: background-color var(--transition);
+}
+
+.mood-save-slot .mood-save-btn:hover {
+    background-color: var(--bg-header);
 }
 
 .mood-lock-banner {
-    width: 100%;
+    width: auto;
     text-align: center;
-    padding: 10px 12px;
-    border-radius: 8px;
+    padding: 6px 12px;
+    border-radius: 20px;
     background-color: var(--bg-header);
     color: var(--text-muted);
-    font-size: 0.8rem;
+    font-size: 0.72rem;
     font-weight: 700;
+    white-space: nowrap;
 }
 
 .mood-grid {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    padding: 16px;
+    padding: 4px 0 16px;
 }
 
 .mood-card {
@@ -196,7 +214,7 @@
 .sent-tabs {
     display: flex;
     gap: 8px;
-    padding: 16px 16px 12px;
+    padding: 16px 0 12px;
 }
 
 .sent-tab-btn {
