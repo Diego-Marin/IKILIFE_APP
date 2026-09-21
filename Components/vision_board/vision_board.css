@@ -30,6 +30,15 @@
     padding: 14px 16px;
     background-color: var(--bg-light);
     border-bottom: 1px solid var(--border-color);
+    /* FIX escritorio: el resto de la app vive en una columna
+       centrada de max 600px (ver .container en styles.css). Antes
+       este header no tenía tope de ancho, así que en pantallas
+       anchas se estiraba de borde a borde del navegador — rompiendo
+       la arquitectura de la app (que en mobile no se nota porque el
+       viewport YA mide ~esos 600px o menos). */
+    max-width: 600px;
+    margin: 0 auto;
+    box-sizing: border-box;
 }
 
 .vision-board-title {
@@ -66,6 +75,9 @@
     z-index: 2;
     background-color: var(--bg-light);
     border-bottom: 1px solid var(--border-color);
+    max-width: 600px;
+    margin: 0 auto;
+    box-sizing: border-box;
 }
 
 .vision-tabs {
@@ -123,7 +135,14 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 14px 16px 4px;
+    padding: 16px 16px calc(24px + env(safe-area-inset-bottom, 0));
+    max-width: 600px;
+    margin: 8px auto 0;
+    box-sizing: border-box;
+    /* Ahora vive AL FINAL de cada tab (después del feed), así que
+       lleva su propia línea separadora arriba en vez de heredar la
+       de la barra de tabs. */
+    border-top: 1px solid var(--border-color);
 }
 
 .vision-meta-top {
@@ -192,7 +211,10 @@
 .vision-feed {
     column-count: 2;
     column-gap: 10px;
-    padding: 12px 16px calc(24px + env(safe-area-inset-bottom, 0));
+    padding: 12px 16px;
+    max-width: 600px;
+    margin: 0 auto;
+    box-sizing: border-box;
 }
 
 .vision-feed-item {

@@ -168,9 +168,9 @@
     text-align: right;
 }
 
-/* ---------- Lista de clases: filas planas, sin tarjeta anidada ---------- */
+/* ---------- Lista de clases ---------- */
 .english-list {
-    padding: 0 16px 16px;
+    padding: 0 0 16px;
 }
 
 .english-empty {
@@ -180,91 +180,353 @@
     font-size: 0.85rem;
 }
 
-.english-rows {
+/**
+ * ==========================================
+ * ACORDEÓN DE UNIDADES (basado en tracker_a1_mobile.html)
+ * ==========================================
+ * Cada unidad del plan A1 es una tarjeta plegable: cabecera con
+ * badge de tarea + progreso + chevron, y cuerpo con una grilla de
+ * chips numerados (clases) y filas de evaluación (quiz, smart
+ * zone). Las entregas de escritura y el examen final van fuera de
+ * este acordeón, como tarjetas "milestone" independientes — igual
+ * que en la planilla original.
+ */
+.english-accordion-list {
     display: flex;
     flex-direction: column;
+    gap: 10px;
+    padding: 0 0 4px;
 }
 
-.english-row {
-    display: flex;
-    flex-direction: column;
-    padding: 9px 0;
-    border-bottom: 1px solid var(--border-color);
+.english-acc {
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    margin: 0 16px;
+    overflow: hidden;
+    background: var(--white);
 }
 
-.english-row:last-child {
-    border-bottom: none;
-}
-
-.english-row-main {
+.english-acc-hd {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
+    padding: 14px 16px;
     cursor: pointer;
-    min-width: 0;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
 }
 
-.english-row-check {
-    width: 18px;
-    height: 18px;
+.english-acc-hd:active {
+    background: var(--bg-header);
+}
+
+.english-acc-badge {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
     flex-shrink: 0;
-    border-radius: 50%;
-    border: 1.5px solid var(--border-color);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.7rem;
+    font-size: 0.66rem;
     font-weight: 800;
-    color: var(--white);
-    transition: all var(--transition);
+    background: rgba(116, 192, 138, 0.14);
+    color: var(--primary-green);
+    letter-spacing: 0.2px;
 }
 
-.english-row--taken .english-row-check {
+.english-acc-badge.done {
+    background: var(--primary-green);
+    color: var(--white);
+}
+
+.english-acc-txt {
+    flex: 1;
+    min-width: 0;
+}
+
+.english-acc-task {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: var(--text-dark);
+    letter-spacing: 0.02em;
+}
+
+.english-acc-und {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.english-acc-prog {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    background: var(--bg-header);
+    border-radius: 99px;
+    padding: 4px 9px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.english-acc-chev {
+    color: var(--text-muted);
+    transition: transform 0.25s ease;
+    flex-shrink: 0;
+}
+
+.english-acc.open .english-acc-chev {
+    transform: rotate(180deg);
+}
+
+.english-acc-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.english-acc-pad {
+    padding: 2px 16px 16px;
+}
+
+.english-acc-lbl {
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 700;
+    margin: 10px 2px 8px;
+}
+
+/* ---------- Chips de clase (grilla 3 columnas) ---------- */
+.english-chip-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.english-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-header);
+    border: 1px solid transparent;
+    border-radius: 10px;
+    padding: 9px 10px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.15s ease;
+}
+
+.english-chip:active {
+    transform: scale(0.96);
+}
+
+.english-chip-dot {
+    width: 17px;
+    height: 17px;
+    border-radius: 6px;
+    border: 2px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--white);
+    transition: all 0.15s ease;
+}
+
+.english-chip.on {
+    color: var(--text-dark);
+    border-color: rgba(116, 192, 138, 0.4);
+    background: rgba(116, 192, 138, 0.1);
+}
+
+.english-chip.on .english-chip-dot {
     background: var(--primary-green);
     border-color: var(--primary-green);
 }
 
-.english-row-num {
-    font-size: 0.68rem;
-    font-weight: 700;
-    color: var(--text-muted);
-    min-width: 20px;
-    flex-shrink: 0;
-}
-
-.english-row-name {
-    flex: 1;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text-dark);
-    word-break: break-word;
-    line-height: 1.3;
-}
-
-.english-row--taken .english-row-name {
-    color: var(--text-muted);
-}
-
-.english-row-meta {
+/* ---------- Filas de evaluación (quiz, smart zone) ---------- */
+.english-eval-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-top: 4px;
-    margin-left: 28px;
-    flex-wrap: wrap;
-}
-
-.english-row-grade {
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: #e67e22;
+    gap: 12px;
+    background: var(--bg-header);
+    border-radius: 10px;
+    padding: 11px 13px;
+    margin-bottom: 8px;
     cursor: pointer;
-    padding: 1px 6px;
-    background: rgba(230, 126, 34, 0.1);
-    border-radius: 4px;
+    -webkit-tap-highlight-color: transparent;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-dark);
 }
 
-.english-row-date {
+.english-eval-row:last-child {
+    margin-bottom: 0;
+}
+
+.english-eval-row:active {
+    transform: scale(0.98);
+}
+
+.english-eval-dot {
+    width: 19px;
+    height: 19px;
+    border-radius: 6px;
+    border: 2px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--white);
+    transition: all 0.15s ease;
+}
+
+.english-eval-row.on .english-eval-dot {
+    background: var(--primary-green);
+    border-color: var(--primary-green);
+}
+
+.english-eval-sub {
     font-size: 0.68rem;
     color: var(--text-muted);
+    font-weight: 600;
+    margin-top: 2px;
+}
+
+.english-row-txt {
+    flex: 1;
+    min-width: 0;
+}
+
+/**
+ * ==========================================
+ * TARJETAS MILESTONE (entregas de escritura + examen final)
+ * ==========================================
+ * Fuera de cualquier acordeón, igual que en la planilla original.
+ * Se usa el verde de marca para las entregas parciales y el naranja
+ * ya establecido en la app (mismo tono de "Gastos" en Finanzas) para
+ * distinguir el examen final como el hito más importante.
+ */
+.english-milestone {
+    margin: 0 16px 10px;
+    border-radius: 14px;
+    padding: 15px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    border: 1px solid rgba(116, 192, 138, 0.35);
+    background: linear-gradient(135deg, rgba(116, 192, 138, 0.14), rgba(116, 192, 138, 0.03));
+}
+
+.english-milestone:last-child {
+    margin-bottom: 0;
+}
+
+.english-milestone:active {
+    transform: scale(0.98);
+}
+
+.english-milestone-ic {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(116, 192, 138, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--primary-green);
+}
+
+.english-milestone.on .english-milestone-ic {
+    background: var(--primary-green);
+    color: var(--white);
+}
+
+.english-milestone-dot {
+    width: 21px;
+    height: 21px;
+    border-radius: 50%;
+    border: 2px solid var(--primary-green);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--white);
+    transition: all 0.15s ease;
+}
+
+.english-milestone.on .english-milestone-dot {
+    background: var(--primary-green);
+    border-color: var(--primary-green);
+}
+
+.english-milestone-title {
+    font-size: 0.8rem;
+    font-weight: 800;
+    line-height: 1.3;
+    color: var(--text-dark);
+}
+
+.english-milestone-sub {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.english-milestone--final {
+    border-color: rgba(230, 126, 34, 0.4);
+    background: linear-gradient(135deg, rgba(230, 126, 34, 0.16), rgba(230, 126, 34, 0.03));
+}
+
+.english-milestone--final .english-milestone-ic {
+    background: rgba(230, 126, 34, 0.2);
+    color: #e67e22;
+}
+
+.english-milestone--final .english-milestone-dot {
+    border-color: #e67e22;
+}
+
+.english-milestone--final.on .english-milestone-dot {
+    background: #e67e22;
+    border-color: #e67e22;
+}
+
+.english-milestone--final .english-milestone-title {
+    color: #e67e22;
+}
+
+/* En pantallas muy angostas (iPhone SE y similares) se ajustan
+   márgenes/tipografía para que la grilla de 3 chips siga siendo
+   cómoda de tocar. */
+@media (max-width: 380px) {
+    .english-acc,
+    .english-milestone {
+        margin-left: 10px;
+        margin-right: 10px;
+    }
+    .english-chip-grid {
+        gap: 6px;
+    }
+    .english-chip {
+        padding: 8px 6px;
+        font-size: 0.72rem;
+    }
+    .english-acc-task {
+        font-size: 0.72rem;
+    }
+    .english-acc-und {
+        font-size: 0.66rem;
+    }
 }

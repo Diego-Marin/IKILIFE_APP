@@ -534,11 +534,14 @@ async function calcularHabitosHoy() {
 
     const habitsDeCategoriasActivas = (allHabits || []).filter(h => {
         if (!validTags) return true;
-        const fromName = (typeof getProjectFromHabitName === 'function')
-            ? getProjectFromHabitName(h.habit_name)
-            : null;
-        const fromField = (h.project_tag || '').toUpperCase();
-        return validTags.has(fromName) || validTags.has(fromField);
+        // Fuente única de verdad (ver resolveHabitTag en main.js): antes
+        // un OR entre nombre y campo project_tag podía hacer que el
+        // mismo hábito contara en dos categorías a la vez ("hábito
+        // fantasma"). Ahora cada hábito resuelve a UNA sola categoría.
+        const tag = (typeof resolveHabitTag === 'function')
+            ? resolveHabitTag(h.habit_name, h.project_tag)
+            : (h.project_tag || '').toUpperCase();
+        return validTags.has(tag);
     });
 
     const uniqueHabits = [...new Set(habitsDeCategoriasActivas.map(h => h.habit_name))];
@@ -556,11 +559,15 @@ async function calcularHabitosHoy() {
         return { pct: 0, total, done: 0, pending: total };
     }
 
-    const doneMap = {};
-    (todayLogs || []).forEach(l => { doneMap[l.habit_name] = l.is_completed; });
+    // Si por alguna razón hay más de una fila para el mismo hábito de
+    // hoy (ver el fix de seedDefaultHabitsOnce en main.js), se cuenta
+    // como completado si CUALQUIERA de esas filas lo está — nunca se
+    // "desmarca" algo que el usuario ya había cumplido.
+    const doneSet = new Set();
+    (todayLogs || []).forEach(l => { if (l.is_completed) doneSet.add(l.habit_name); });
 
     let done = 0;
-    uniqueHabits.forEach(name => { if (doneMap[name] === true) done++; });
+    uniqueHabits.forEach(name => { if (doneSet.has(name)) done++; });
     const pending = total - done;
     const pct = Math.round((done / total) * 100);
 

@@ -2,14 +2,48 @@
  * ==========================================
  * COMPONENTE: ENGLISH COURSE TRACKER
  * ==========================================
- * Curso de Inglés: 704 horas | Inicio: 2025-04-12 | Fin: 2027-06-19
- * 
- * Tabla requerida en Supabase:
+ * Estructura de datos y plan oficial de A1: sin cambios respecto a
+ * la versión anterior (ver A1_CURRICULUM_BLOCKS más abajo). Lo que
+ * cambia en esta versión es la PRESENTACIÓN de la lista de clases:
+ * en vez de una tabla (difícil de leer en pantallas angostas), cada
+ * unidad es una tarjeta plegable (acordeón) con un badge de tarea,
+ * una grilla de "chips" numerados para las clases y filas para sus
+ * evaluaciones (quiz escrito/online, smart zone). Las entregas de
+ * escritura y el examen final se muestran como tarjetas destacadas
+ * ("milestones"), igual que en el mockup de referencia
+ * (tracker_a1_mobile.html), pero con los tokens visuales de IKILIFE
+ * (--primary-green, --text-dark, --bg-header, --border-color, etc.)
+ * en vez de la paleta oscura fija del mockup, para que respete el
+ * modo claro/oscuro del resto de la app.
+ *
+ * Se respeta también el ESTADO real de la planilla: las clases 1 a 9
+ * ya aparecían marcadas (✓) en la hoja oficial, así que el plan se
+ * siembra con esas 9 clases en estado "Tomada".
+ *
+ * Estructura de la planilla oficial (8 bloques, 72 clases + checkpoints):
+ *   UND 1&2   (TASK 1)        → clases 1-9   + Quiz escrito/online + Smart Zone
+ *   UND 3&4   (TASK 2)        → clases 10-18 + Quiz escrito/online + Smart Zone
+ *   UND 5&6   (TASK 3&4)      → clases 19-27 + Quiz escrito/online + Smart Zone
+ *                                + ENTREGA ACTIVIDADES ESCRITURA 1 TO 4
+ *   UND 7&8   (TASK 5)        → clases 28-36 + Quiz escrito/online + Smart Zone
+ *   UND 9&10  (TASK 6)        → clases 37-45 + Quiz escrito/online + Smart Zone
+ *   UND 11&12 (TASK 7)        → clases 46-54 + Quiz escrito/online + Smart Zone
+ *   UND 13    (TASK 8)        → clases 55-63 + Quiz escrito/online + Smart Zone
+ *                                + ENTREGA ACTIVIDADES ESCRITURA 5 TO 8
+ *   UND 14,15&16 (TASK 9,10&11) → clases 64-72 + Quiz escrito/online + Smart Zone
+ *                                + ENTREGA ACTIVIDADES ESCRITURA 9 TO 11
+ *                                + EXAMEN FINAL A1
+ *
+ * Tabla requerida en Supabase (con las columnas NUEVAS marcadas):
  * CREATE TABLE english_classes (
  *   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
  *   level text NOT NULL,
- *   class_number numeric NOT NULL,
+ *   sort_order integer NOT NULL,        -- orden real del plan
+ *   class_number numeric,               -- 0 en checkpoints/extras (no tienen número real)
  *   class_name text NOT NULL,
+ *   kind text DEFAULT 'clase',          -- 'clase' | 'checkpoint' | 'extra'
+ *   unit_label text,                    -- ej. "UND 1 & 2" ('' en las filas "extra")
+ *   unit_task text,                     -- entrega de la unidad, ej. "TASK 1"
  *   grade numeric DEFAULT 0,
  *   status text DEFAULT 'Pendiente',
  *   assigned_date text,
@@ -19,210 +53,156 @@
  *   created_at timestamptz DEFAULT now(),
  *   updated_at timestamptz DEFAULT now()
  * );
+ *
+ * Si la tabla ya existía de una versión anterior, agrega las columnas
+ * nuevas así:
+ *   ALTER TABLE english_classes ADD COLUMN IF NOT EXISTS sort_order integer;
+ *   ALTER TABLE english_classes ADD COLUMN IF NOT EXISTS kind text DEFAULT 'clase';
+ *   ALTER TABLE english_classes ADD COLUMN IF NOT EXISTS unit_label text;
+ *   ALTER TABLE english_classes ADD COLUMN IF NOT EXISTS unit_task text;
+ * El botón "↻ Reimportar plan A1" de la barra de herramientas limpia
+ * los datos anteriores y vuelve a cargar el plan oficial real,
+ * incluyendo el estado (✓) que ya traía la planilla.
  */
 
 const ENGLISH_END_DATE = '2027-06-19';
-let _englishFilter = 'INGA1';
 
-/* ---------- Generador del plan de estudios (388 clases) ---------- */
-function generateEnglishCurriculum() {
+/* Niveles disponibles en el tracker. Por ahora solo A1 — agregar acá
+   el siguiente nivel (con su propio generador) quedará reflejado
+   automáticamente en los tabs y en todos los cálculos por nivel. */
+const ENGLISH_LEVELS = [
+    { key: 'A1', label: 'A1' },
+];
+let _englishFilter = 'A1';
+
+/* Caché en memoria de la última carga de Supabase. Permite re-renderizar
+   (por ejemplo al abrir/cerrar un acordeón, o al marcar una clase) sin
+   tener que volver a pedir los datos cada vez. */
+let _englishData = [];
+
+/* Qué tarjetas de unidad están abiertas ahora mismo. Se guarda por
+   índice de bloque (0, 1, 2...) para que sobreviva a los re-renders
+   provocados por marcar/desmarcar una clase. */
+let _englishOpenSections = new Set();
+let _englishSectionsInitialized = false;
+
+/* ---------- Estructura real del plan oficial de A1 ----------
+   Extraída celda por celda de la planilla oficial: cada bloque son
+   las clases numeradas de esa unidad + sus 3 checkpoints (quiz
+   escrito, quiz online, smart zone). Las filas "extra" (ENTREGA
+   ACTIVIDADES ESCRITURA / EXAMEN FINAL) no pertenecen a ninguna
+   unidad — en la planilla original son filas propias, de ancho
+   completo, y aquí se muestran como tarjetas "milestone" fuera de
+   cualquier acordeón. */
+const A1_CURRICULUM_BLOCKS = [
+    { unit: 'UND 1 & 2', task: 'TASK 1', start: 1, end: 9, checkpoints: ['QUIZ ESCRITO 1 & 2', 'QUIZ ONLINE 1 & 2', 'SMART ZONE'] },
+    { unit: 'UND 3 & 4', task: 'TASK 2', start: 10, end: 18, checkpoints: ['QUIZ ESCRITO 3 & 4', 'QUIZ ONLINE 3 & 4', 'SMART ZONE'] },
+    { unit: 'UND 5 & 6', task: 'TASK 3 & 4', start: 19, end: 27, checkpoints: ['QUIZ ESCRITO 5 & 6', 'QUIZ ONLINE 5 & 6', 'SMART ZONE'], extra: ['ENTREGA ACTIVIDADES ESCRITURA 1 TO 4'] },
+    { unit: 'UND 7 & 8', task: 'TASK 5', start: 28, end: 36, checkpoints: ['QUIZ ESCRITO 7 & 8', 'QUIZ ONLINE 7 & 8', 'SMART ZONE'] },
+    { unit: 'UND 9 & 10', task: 'TASK 6', start: 37, end: 45, checkpoints: ['QUIZ ESCRITO 9 & 10', 'QUIZ ONLINE 9 & 10', 'SMART ZONE'] },
+    { unit: 'UND 11 & 12', task: 'TASK 7', start: 46, end: 54, checkpoints: ['QUIZ ESCRITO 11 & 12', 'QUIZ ONLINE 11 & 12', 'SMART ZONE'] },
+    { unit: 'UND 13', task: 'TASK 8', start: 55, end: 63, checkpoints: ['QUIZ ESCRITO 13 & 14', 'QUIZ ONLINE 13 & 14', 'SMART ZONE'], extra: ['ENTREGA ACTIVIDADES ESCRITURA 5 TO 8'] },
+    { unit: 'UND 14, 15 & 16', task: 'TASK 9, 10 & 11', start: 64, end: 72, checkpoints: ['QUIZ ESCRITO 15 & 16', 'QUIZ ONLINE 15 & 16', 'SMART ZONE'], extra: ['ENTREGA ACTIVIDADES ESCRITURA 9 TO 11', 'EXAMEN FINAL A1'] },
+];
+
+/* En la planilla oficial las clases 1 a 9 ya estaban marcadas (✓).
+   Se siembra el plan respetando ese estado real. */
+const A1_ALREADY_TAKEN = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+function generateA1Curriculum() {
     const items = [];
-    let n = 1;
-    function add(level, name, patch) {
-        const it = { level, num: n, name, grade: 0, status: 'Pendiente', assigned: '', classDate: '', group: '', notes: '' };
-        if (patch) Object.assign(it, patch);
-        items.push(it);
-        n++;
-    }
+    let order = 1;
 
-    /* ===== INGA1 (items 1–98) ===== */
-    for (let i = 1; i <= 9; i++) add('INGA1', `INTRO ${i}`);
-    for (let i = 2; i <= 9; i++) add('INGA1', `CLASE ${i}`);
-    add('INGA1', 'QUIZ UNITS 1*2 - A1');
-    add('INGA1', 'TUTORÍA UNITS 1*2 - A1');
-    add('INGA1', 'REPETITION QUIZ UNITS 1*2 - A1');
-    add('INGA1', 'SMART ZONE - A1');
-    for (let i = 10; i <= 18; i++) add('INGA1', `CLASE ${i}`);
-    add('INGA1', 'QUIZ UNITS 3*4 - A1');
-    add('INGA1', 'SMART ZONE - A1');
-    for (let i = 19; i <= 27; i++) add('INGA1', `CLASE ${i}`);
-    add('INGA1', 'QUIZ UNITS 5*6 - A1');
-    add('INGA1', 'SMART ZONE - A1');
-    for (let i = 28; i <= 36; i++) add('INGA1', `CLASE ${i}`);
-    add('INGA1', 'QUIZ UNITS 7*8 - A1');
-    add('INGA1', 'SMART ZONE - A1');
-    for (let i = 37; i <= 45; i++) add('INGA1', `CLASE ${i}`);
-    add('INGA1', 'QUIZ UNITS 9*10 - A1');
-    add('INGA1', 'SMART ZONE - A1');
-    for (let i = 46; i <= 54; i++) add('INGA1', `CLASE ${i}`);
-    add('INGA1', 'QUIZ UNITS 11*12 - A1');
-    add('INGA1', 'SMART ZONE - A1');
-    for (let i = 55; i <= 63; i++) add('INGA1', `CLASE ${i}`);
-    add('INGA1', 'QUIZ UNITS 13*14 - A1');
-    add('INGA1', 'SMART ZONE - A1');
-    for (let i = 64; i <= 72; i++) add('INGA1', `CLASE ${i}`);
-    add('INGA1', 'QUIZ UNITS 15*16 - A1');
-    add('INGA1', 'SMART ZONE - A1');
-    add('INGA1', 'PREPARACIÓN EXAMEN FINAL - A1');
-    add('INGA1', 'EXAMEN FINAL - A1');
-
-    /* ===== INGA2 (items 99–188) ===== */
-    for (let i = 1; i <= 9; i++) add('INGA2', `CLASE ${i}`);
-    add('INGA2', 'QUIZ UNITS 1*2 - A2');
-    add('INGA2', 'SMART ZONE - A2');
-    for (let i = 10; i <= 18; i++) add('INGA2', `CLASE ${i}`);
-    add('INGA2', 'QUIZ UNITS 3*4 - A2');
-    add('INGA2', 'SMART ZONE - A2');
-    for (let i = 19; i <= 27; i++) add('INGA2', `CLASE ${i}`);
-    add('INGA2', 'QUIZ UNITS 5*6 - A2');
-    add('INGA2', 'SMART ZONE - A2');
-    for (let i = 28; i <= 36; i++) add('INGA2', `CLASE ${i}`);
-    add('INGA2', 'QUIZ UNITS 7*8 - A2');
-    add('INGA2', 'SMART ZONE - A2');
-    for (let i = 37; i <= 45; i++) add('INGA2', `CLASE ${i}`);
-    add('INGA2', 'QUIZ UNITS 9*10 - A2');
-    add('INGA2', 'SMART ZONE - A2');
-    for (let i = 46; i <= 54; i++) add('INGA2', `CLASE ${i}`);
-    add('INGA2', 'QUIZ UNITS 11*12 - A2');
-    add('INGA2', 'SMART ZONE - A2');
-    for (let i = 55; i <= 63; i++) add('INGA2', `CLASE ${i}`);
-    add('INGA2', 'QUIZ UNITS 13*14 - A2');
-    add('INGA2', 'SMART ZONE - A2');
-    for (let i = 64; i <= 72; i++) add('INGA2', `CLASE ${i}`);
-    add('INGA2', 'QUIZ UNITS 15*16 - A2');
-    add('INGA2', 'SMART ZONE - A2');
-    add('INGA2', 'PREPARACIÓN EXAMEN FINAL - A2');
-    add('INGA2', 'EXAMEN FINAL - A2');
-
-    /* ===== INGB1 (items 189–278) ===== */
-    for (let i = 1; i <= 9; i++) add('INGB1', `CLASE ${i}`);
-    add('INGB1', 'QUIZ UNITS 1*2 - B1');
-    add('INGB1', 'SMART ZONE - B1');
-    for (let i = 10; i <= 18; i++) add('INGB1', `CLASE ${i}`);
-    add('INGB1', 'QUIZ UNITS 3*4 - B1');
-    add('INGB1', 'SMART ZONE - B1');
-    for (let i = 19; i <= 27; i++) add('INGB1', `CLASE ${i}`);
-    add('INGB1', 'QUIZ UNITS 5*6 - B1');
-    add('INGB1', 'SMART ZONE - B1');
-    for (let i = 28; i <= 36; i++) add('INGB1', `CLASE ${i}`);
-    add('INGB1', 'QUIZ UNITS 7*8 - B1');
-    add('INGB1', 'SMART ZONE - B1');
-    for (let i = 37; i <= 45; i++) add('INGB1', `CLASE ${i}`);
-    add('INGB1', 'QUIZ UNITS 9*10 - B1');
-    add('INGB1', 'SMART ZONE - B1');
-    for (let i = 46; i <= 54; i++) add('INGB1', `CLASE ${i}`);
-    add('INGB1', 'QUIZ UNITS 11*12 - B1');
-    add('INGB1', 'SMART ZONE - B1');
-    for (let i = 55; i <= 63; i++) add('INGB1', `CLASE ${i}`);
-    add('INGB1', 'QUIZ UNITS 13*14 - B1');
-    add('INGB1', 'SMART ZONE - B1');
-    for (let i = 64; i <= 72; i++) add('INGB1', `CLASE ${i}`);
-    add('INGB1', 'QUIZ UNITS 15*16 - B1');
-    add('INGB1', 'SMART ZONE - B1');
-    add('INGB1', 'PREPARACIÓN EXAMEN FINAL - B1');
-    add('INGB1', 'EXAMEN FINAL - B1');
-
-    /* ===== INGB2 (items 279–388) ===== */
-    for (let i = 1; i <= 7; i++) add('INGB2', `CLASE ${i}`);
-    add('INGB2', 'QUIZ UNIT 1 - B2');
-    add('INGB2', 'SMART ZONE - B2');
-    for (let i = 8; i <= 14; i++) add('INGB2', `CLASE ${i}`);
-    add('INGB2', 'QUIZ UNIT 2 - B2');
-    add('INGB2', 'SMART ZONE - B2');
-    for (let i = 15; i <= 21; i++) add('INGB2', `CLASE ${i}`);
-    add('INGB2', 'QUIZ UNIT 3 - B2');
-    add('INGB2', 'SMART ZONE - B2');
-    for (let i = 22; i <= 28; i++) add('INGB2', `CLASE ${i}`);
-    add('INGB2', 'QUIZ UNIT 4 - B2');
-    add('INGB2', 'SMART ZONE - B2');
-    for (let i = 29; i <= 35; i++) add('INGB2', `CLASE ${i}`);
-    add('INGB2', 'QUIZ UNIT 5 - B2');
-    add('INGB2', 'SMART ZONE - B2');
-    for (let i = 36; i <= 42; i++) add('INGB2', `CLASE ${i}`);
-    add('INGB2', 'QUIZ UNIT 6 - B2');
-    add('INGB2', 'SMART ZONE - B2');
-    for (let i = 43; i <= 49; i++) add('INGB2', `CLASE ${i}`);
-    add('INGB2', 'QUIZ UNIT 7 - B2');
-    add('INGB2', 'SMART ZONE - B2');
-    for (let i = 50; i <= 56; i++) add('INGB2', `CLASE ${i}`);
-    add('INGB2', 'QUIZ UNIT 8 - B2');
-    add('INGB2', 'SMART ZONE - B2');
-    for (let i = 57; i <= 63; i++) add('INGB2', `CLASE ${i}`);
-    add('INGB2', 'QUIZ UNIT 9 - B2');
-    add('INGB2', 'SMART ZONE - B2');
-    for (let i = 64; i <= 70; i++) add('INGB2', `CLASE ${i}`);
-    add('INGB2', 'QUIZ UNIT 10 - B2');
-    add('INGB2', 'SMART ZONE - B2');
-    for (let i = 71; i <= 77; i++) add('INGB2', `CLASE ${i}`);
-    add('INGB2', 'QUIZ UNIT 11 - B2');
-    add('INGB2', 'SMART ZONE - B2');
-    for (let i = 78; i <= 84; i++) add('INGB2', `CLASE ${i}`);
-    add('INGB2', 'QUIZ UNIT 12 - B2');
-    add('INGB2', 'SMART ZONE - B2');
-    add('INGB2', 'PREPARACIÓN EXAMEN FINAL - B2');
-    add('INGB2', 'EXAMEN FINAL - B2');
-
-    /* ===== PATCH: clases ya tomadas (datos reales del usuario) ===== */
-    const patches = [
-        { num: 1, grade: 0, status: 'Tomada', assigned: '22/04/25 05:15', classDate: '23/04/25 18:00', group: '2504232017' },
-        { num: 2, grade: 0, status: 'Tomada', assigned: '23/04/25 05:16', classDate: '24/04/25 18:00', group: '2504242017' },
-        { num: 3, grade: 0, status: 'Tomada', assigned: '24/04/25 05:33', classDate: '25/04/25 16:30', group: '2504252015' },
-        { num: 4, grade: 0, status: 'Tomada', assigned: '28/04/25 05:54', classDate: '29/04/25 18:00', group: '2504292017' },
-        { num: 5, grade: 0, status: 'Tomada', assigned: '29/04/25 05:52', classDate: '30/04/25 18:00', group: '2504302017' },
-        { num: 6, grade: 0, status: 'Tomada', assigned: '29/04/25 18:15', classDate: '30/04/25 19:30', group: '2504302019' },
-        { num: 7, grade: 0, status: 'Tomada', assigned: '04/05/25 11:35', classDate: '05/05/25 18:00', group: '2505052017' },
-        { num: 8, grade: 0, status: 'Tomada', assigned: '05/05/25 06:26', classDate: '06/05/25 18:00', group: '2505062017' },
-        { num: 9, grade: 0, status: 'Tomada', assigned: '06/05/25 05:47', classDate: '07/05/25 18:00', group: '2505072017' },
-        { num: 10, grade: 0, status: 'Tomada', assigned: '09/05/25 05:35', classDate: '09/05/25 16:30', group: '2505092015' },
-        { num: 11, grade: 0, status: 'Tomada', assigned: '09/05/25 13:13', classDate: '09/05/25 18:00', group: '2505092017' },
-        { num: 12, grade: 0, status: 'Tomada', assigned: '19/05/25 05:52', classDate: '20/05/25 18:00', group: '2505202017' },
-        { num: 13, grade: 0, status: 'Tomada', assigned: '20/05/25 05:53', classDate: '21/05/25 18:00', group: '2505212017' },
-        { num: 14, grade: 0, status: 'Tomada', assigned: '03/06/25 06:15', classDate: '03/06/25 18:00', group: '2506032017' },
-        { num: 15, grade: 0, status: 'Tomada', assigned: '03/06/25 06:15', classDate: '04/06/25 18:00', group: '2506042017' },
-        { num: 16, grade: 0, status: 'Tomada', assigned: '18/08/25 06:00', classDate: '19/08/25 18:00', group: '2508192017' },
-        { num: 17, grade: 0, status: 'Tomada', assigned: '20/08/25 06:07', classDate: '21/08/25 18:00', group: '2508212017' },
-    ];
-    patches.forEach(p => {
-        const it = items.find(x => x.num === p.num);
-        if (it) Object.assign(it, p);
+    A1_CURRICULUM_BLOCKS.forEach(block => {
+        for (let n = block.start; n <= block.end; n++) {
+            items.push({
+                level: 'A1', sortOrder: order++, kind: 'clase', classNumber: n,
+                name: `Clase ${n}`, unit: block.unit, unitTask: block.task,
+                grade: 0, status: A1_ALREADY_TAKEN.has(n) ? 'Tomada' : 'Pendiente',
+                assigned: '', classDate: '', group: '', notes: ''
+            });
+        }
+        block.checkpoints.forEach(cpName => {
+            items.push({
+                // class_number es NOT NULL en la tabla; los checkpoints
+                // (quiz, smart zone) no tienen un número real de clase,
+                // así que usamos 0 como valor "vacío" seguro — nunca se
+                // muestra: el render decide qué pintar por "kind".
+                level: 'A1', sortOrder: order++, kind: 'checkpoint', classNumber: 0,
+                name: cpName, unit: block.unit, unitTask: block.task,
+                grade: 0, status: 'Pendiente', assigned: '', classDate: '', group: '', notes: ''
+            });
+        });
+        (block.extra || []).forEach(exName => {
+            items.push({
+                // Filas "extra": igual que en la planilla original, no
+                // pertenecen a ninguna unidad/entrega — se muestran
+                // como tarjeta milestone independiente.
+                level: 'A1', sortOrder: order++, kind: 'extra', classNumber: 0,
+                name: exName, unit: '', unitTask: '',
+                grade: 0, status: 'Pendiente', assigned: '', classDate: '', group: '', notes: ''
+            });
+        });
     });
-    const quiz18 = items.find(x => x.num === 18 && x.level === 'INGA1' && x.name.includes('QUIZ'));
-    if (quiz18) { quiz18.grade = 3.40; quiz18.status = 'Tomada'; quiz18.assigned = '06/02/26 10:47'; quiz18.classDate = '06/02/26 11:18'; quiz18.group = ''; }
-    const tutor = items.find(x => x.level === 'INGA1' && x.name.includes('TUTORÍA'));
-    if (tutor) { tutor.status = 'Tomada'; tutor.assigned = '23/06/26 06:04'; tutor.classDate = '24/06/26 18:00'; tutor.group = '2606243017'; }
 
     return items;
+}
+
+/* Generador único por nivel — hoy solo resuelve A1; cuando se sume un
+   nivel nuevo, se agrega su propio "generate<Nivel>Curriculum()" y un
+   caso más aquí. */
+function generateEnglishCurriculum(levelKey) {
+    if (levelKey === 'A1') return generateA1Curriculum();
+    return [];
 }
 
 /* ---------- Carga inicial ---------- */
 async function loadEnglish() {
     if (typeof renderEnglishCourseWeeks === 'function') renderEnglishCourseWeeks();
 
-    const { data, error } = await _supabase.from('english_classes').select('*').order('class_number', { ascending: true });
+    const { data, error } = await _supabase.from('english_classes').select('*').order('sort_order', { ascending: true });
     if (error) { console.error('Error cargando english_classes:', error.message); return; }
 
     const section = document.getElementById('english-section');
     if (!section) return;
 
-    if (!data || data.length === 0) {
+    const levelData = (data || []).filter(c => c.level === 'A1');
+
+    if (levelData.length === 0) {
         section.innerHTML = `
             <div style="padding:24px; text-align:center;">
-                <div style="font-size:1.1rem; font-weight:700; margin-bottom:12px;">🇬🇧 Curso de Inglés</div>
-                <p style="color:var(--text-muted); margin-bottom:16px;">No hay plan de estudios cargado.</p>
-                <button class="add-habit-btn" onclick="seedEnglishClasses()">📥 Importar plan de 388 clases</button>
+                <div style="font-size:1.1rem; font-weight:700; margin-bottom:12px;">🇬🇧 Curso de Inglés — Nivel A1</div>
+                <p style="color:var(--text-muted); margin-bottom:16px;">Aún no está cargada la tabla oficial de A1.</p>
+                <button class="add-habit-btn" onclick="seedEnglishClasses()">📥 Importar tabla oficial A1 (72 clases)</button>
             </div>`;
         return;
     }
 
-    renderEnglish(data);
+    _englishData = data.filter(c => ENGLISH_LEVELS.some(l => l.key === c.level));
+    renderEnglish(_englishData);
 }
 
+/* Siembra (o RE-siembra) el plan oficial de A1. Si ya había datos, se
+   limpian primero, con confirmación, antes de cargar la tabla real. */
 async function seedEnglishClasses() {
-    const curriculum = generateEnglishCurriculum();
+    const { count } = await _supabase.from('english_classes').select('id', { count: 'exact', head: true });
+
+    if (count && count > 0) {
+        const ok = confirm('Esto reemplazará todo el historial actual de Inglés por la tabla oficial de A1 (72 clases). ¿Continuar?');
+        if (!ok) return;
+        const { error: delError } = await _supabase.from('english_classes').delete().neq('id', -1);
+        if (delError) { alert('Error limpiando el plan anterior: ' + delError.message); return; }
+    }
+
+    const curriculum = generateEnglishCurriculum('A1');
     const payload = curriculum.map(c => ({
         level: c.level,
-        class_number: c.num,
+        sort_order: c.sortOrder,
+        class_number: c.classNumber,
         class_name: c.name,
+        kind: c.kind,
+        unit_label: c.unit,
+        unit_task: c.unitTask,
         grade: c.grade,
         status: c.status,
         assigned_date: c.assigned,
@@ -235,8 +215,9 @@ async function seedEnglishClasses() {
     for (let i = 0; i < payload.length; i += BATCH) {
         const batch = payload.slice(i, i + BATCH);
         const { error } = await _supabase.from('english_classes').insert(batch);
-        if (error) { alert('Error importando lote ' + (i/BATCH+1) + ': ' + error.message); return; }
+        if (error) { alert('Error importando lote ' + (i / BATCH + 1) + ': ' + error.message); return; }
     }
+    _englishSectionsInitialized = false; // vuelve a abrir el primer bloque en el plan recién importado
     loadEnglish();
 }
 
@@ -245,7 +226,8 @@ function renderEnglish(data) {
     const section = document.getElementById('english-section');
     if (!section) return;
 
-    const stats = calculateEnglishStats(data);
+    const levelData = data.filter(c => c.level === _englishFilter);
+    const stats = calculateEnglishStats(levelData);
     const plan = calculateStudyPlan(stats.pending);
 
     section.innerHTML = `
@@ -280,72 +262,215 @@ function renderEnglish(data) {
                     <strong>${plan.daysLeft}</strong>
                 </div>
                 <div class="english-plan-row">
-                    <span>Clases pendientes:</span>
+                    <span>Clases/entregables pendientes:</span>
                     <strong>${stats.pending}</strong>
                 </div>
                 <div class="english-plan-row">
                     <span>Ritmo necesario:</span>
-                    <strong style="color:${plan.feasible ? 'var(--primary-green)' : '#e74c3c'};">${plan.neededPerWeek} clases/semana</strong>
+                    <strong style="color:${plan.feasible ? 'var(--primary-green)' : '#e74c3c'};">${plan.neededPerWeek} por semana</strong>
                 </div>
                 <div class="english-plan-row">
                     <span>Tu disponibilidad:</span>
                     <strong>Lunes a viernes (máx 10/sem)</strong>
                 </div>
                 <div class="english-plan-msg ${plan.feasible ? 'english-plan--ok' : 'english-plan--warn'}">
-                    ${plan.feasible 
-                        ? `✅ Vas bien. Si tomas <strong>${plan.suggestedPerWeek} clases por semana</strong> terminarías aproximadamente el <strong>${formatDateNice(plan.estimatedEnd)}</strong>.` 
-                        : `⚠️ Necesitas acelerar. Debes tomar al menos <strong>${Math.ceil(plan.neededPerWeek)} clases/semana</strong> para llegar a la meta.`}
+                    ${plan.feasible
+                        ? `✅ Vas bien. Si tomas <strong>${plan.suggestedPerWeek} por semana</strong> terminarías aproximadamente el <strong>${formatDateNice(plan.estimatedEnd)}</strong>.`
+                        : `⚠️ Necesitas acelerar. Debes avanzar al menos <strong>${Math.ceil(plan.neededPerWeek)} por semana</strong> para llegar a la meta.`}
                 </div>
             </div>
         </div>
 
         <div class="english-toolbar">
             <div class="english-level-tabs">
-                <button class="english-tab-btn ${_englishFilter==='INGA1'?'english-tab-active':''}" onclick="setEnglishFilter('INGA1')">A1</button>
-                <button class="english-tab-btn ${_englishFilter==='INGA2'?'english-tab-active':''}" onclick="setEnglishFilter('INGA2')">A2</button>
-                <button class="english-tab-btn ${_englishFilter==='INGB1'?'english-tab-active':''}" onclick="setEnglishFilter('INGB1')">B1</button>
-                <button class="english-tab-btn ${_englishFilter==='INGB2'?'english-tab-active':''}" onclick="setEnglishFilter('INGB2')">B2</button>
+                ${ENGLISH_LEVELS.map(lvl => `
+                    <button class="english-tab-btn ${_englishFilter === lvl.key ? 'english-tab-active' : ''}" onclick="setEnglishFilter('${lvl.key}')">${lvl.label}</button>
+                `).join('')}
             </div>
-            <button class="sql-btn-compact" onclick="exportEnglishSQL()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                SQL
-            </button>
+            <div style="display:flex; gap:6px;">
+                <button class="sql-btn-compact" onclick="seedEnglishClasses()" title="Reimportar la tabla oficial de A1 desde cero">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                    Reimportar
+                </button>
+                <button class="sql-btn-compact" onclick="exportEnglishSQL()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    SQL
+                </button>
+            </div>
         </div>
 
         <div class="english-list">
-            ${renderEnglishList(data)}
+            ${renderEnglishList(levelData)}
         </div>
 
         <div style="padding:12px 16px;">
-            <button class="add-habit-btn" style="width:100%;" onclick="addEnglishClass()">+ Agregar clase manual</button>
+            <button class="add-habit-btn" style="width:100%;" onclick="addEnglishClass()">+ Agregar clase o actividad extra</button>
         </div>
     `;
+
+    // Los acordeones marcados como abiertos arrancan con max-height:0
+    // en el CSS (para poder animar su cierre); una vez que el HTML ya
+    // está en el DOM, se mide su alto real y se aplica, si no quedan
+    // colapsados aunque digan "abiertos".
+    requestAnimationFrame(syncEnglishAccordions);
 }
 
-function renderEnglishList(data) {
-    const filtered = data.filter(c => c.level === _englishFilter);
+function syncEnglishAccordions() {
+    document.querySelectorAll('.english-acc.open > .english-acc-body').forEach(body => {
+        body.style.maxHeight = body.scrollHeight + 'px';
+    });
+}
 
-    if (!filtered.length) {
+/* Íconos inline (mismo lenguaje visual que el mockup de referencia,
+   pero con stroke="currentColor" para heredar el color de IKILIFE
+   según el contexto donde se usen). */
+const ENGLISH_CHECK_ICON = '<svg width="11" height="11" viewBox="0 0 24 24"><polyline fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" points="4.5 12.5 9.5 17.5 19.5 6.5"/></svg>';
+const ENGLISH_ENTREGA_ICON = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>';
+const ENGLISH_FINAL_ICON = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5"/></svg>';
+
+/* Badge compacto del número de unidad ("UND 1 & 2" -> "U1·2", "UND
+   3 & 4" -> "U3·4", "UND 14, 15 & 16" -> "U14·16", "UND 13" -> "U13")
+   — mismo criterio de abreviación que antes, aplicado a la unidad en
+   vez de a la tarea. Si el bloque no trae número de unidad (por
+   ejemplo una clase agregada a mano con unit_label "EXTRA"), usa la
+   tarea como respaldo. */
+function englishUnitBadge(unitLabel, taskStr) {
+    const nums = ((unitLabel || '').match(/\d+/g) || []);
+    if (nums.length === 0) {
+        const fallback = (taskStr || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 4).toUpperCase();
+        return fallback || '•';
+    }
+    if (nums.length === 1) return 'U' + nums[0];
+    return 'U' + nums[0] + '·' + nums[nums.length - 1];
+}
+
+/* Sub-etiqueta de una fila de evaluación, según el tipo. */
+function englishEvalSubLabel(name) {
+    if (name.includes('SMART ZONE')) return 'Práctica inteligente';
+    if (name.includes('QUIZ')) return 'Evaluación';
+    return '';
+}
+
+/* Chip numerado de una clase individual dentro de un bloque. */
+function englishChipHtml(item) {
+    const on = item.status === 'Tomada';
+    return `
+        <div class="english-chip${on ? ' on' : ''}" data-id="${item.id}" onclick="toggleEnglishStatus(${item.id}, '${on ? 'Pendiente' : 'Tomada'}')">
+            <span class="english-chip-dot">${on ? ENGLISH_CHECK_ICON : ''}</span>${item.class_number}
+        </div>`;
+}
+
+/* Fila de evaluación (quiz escrito/online, smart zone) dentro de un
+   bloque de unidad. */
+function englishEvalRowHtml(item) {
+    const on = item.status === 'Tomada';
+    const sub = englishEvalSubLabel(item.class_name);
+    return `
+        <div class="english-eval-row${on ? ' on' : ''}" data-id="${item.id}" onclick="toggleEnglishStatus(${item.id}, '${on ? 'Pendiente' : 'Tomada'}')">
+            <span class="english-eval-dot">${on ? ENGLISH_CHECK_ICON : ''}</span>
+            <span class="english-row-txt">${item.class_name}${sub ? `<div class="english-eval-sub">${sub}</div>` : ''}</span>
+        </div>`;
+}
+
+/* Tarjeta "milestone" de ancho completo: entrega de escritura o
+   examen final — no pertenecen a ninguna unidad, igual que en la
+   planilla original. */
+function englishMilestoneHtml(item) {
+    const on = item.status === 'Tomada';
+    const isFinal = item.class_name.includes('EXAMEN');
+    const cls = 'english-milestone' + (isFinal ? ' english-milestone--final' : '') + (on ? ' on' : '');
+    const icon = isFinal ? ENGLISH_FINAL_ICON : ENGLISH_ENTREGA_ICON;
+    const sub = isFinal ? 'Último paso del curso' : 'Entrega parcial de escritura';
+    return `
+        <div class="${cls}" data-id="${item.id}" onclick="toggleEnglishStatus(${item.id}, '${on ? 'Pendiente' : 'Tomada'}')">
+            <div class="english-milestone-ic">${icon}</div>
+            <div class="english-row-txt">
+                <div class="english-milestone-title">${item.class_name}</div>
+                <div class="english-milestone-sub">${sub}</div>
+            </div>
+            <span class="english-milestone-dot">${on ? ENGLISH_CHECK_ICON : ''}</span>
+        </div>`;
+}
+
+/* Tarjeta plegable de una unidad completa: badge + tarea/unidad +
+   contador "hechas/total" + chevron en la cabecera, y grilla de
+   chips + filas de evaluación en el cuerpo (colapsable). */
+function englishAccordionSectionHtml(items, idx) {
+    const first = items[0];
+    const classItems = items.filter(c => c.kind === 'clase');
+    const evalItems = items.filter(c => c.kind === 'checkpoint');
+    const doneCount = items.filter(c => c.status === 'Tomada').length;
+    const totalCount = items.length;
+    const isOpen = _englishOpenSections.has(idx);
+    const isDone = totalCount > 0 && doneCount === totalCount;
+    const badge = englishUnitBadge(first.unit_label, first.unit_task);
+    const rangeLabel = classItems.length
+        ? `Clases ${classItems[0].class_number}–${classItems[classItems.length - 1].class_number}`
+        : 'Clases';
+
+    const chips = classItems.map(englishChipHtml).join('');
+    const evalRows = evalItems.map(englishEvalRowHtml).join('');
+
+    return `
+        <div class="english-acc${isOpen ? ' open' : ''}">
+            <div class="english-acc-hd" onclick="toggleEnglishSection(${idx})">
+                <div class="english-acc-badge${isDone ? ' done' : ''}">${badge}</div>
+                <div class="english-acc-txt">
+                    <div class="english-acc-task">${first.unit_label || ''}</div>
+                    <div class="english-acc-und">${first.unit_task || ''}</div>
+                </div>
+                <span class="english-acc-prog">${doneCount}/${totalCount}</span>
+                <svg class="english-acc-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="english-acc-body">
+                <div class="english-acc-pad">
+                    ${classItems.length ? `<div class="english-acc-lbl">${rangeLabel}</div><div class="english-chip-grid">${chips}</div>` : ''}
+                    ${evalRows ? `<div class="english-acc-lbl">Evaluaciones</div>${evalRows}` : ''}
+                </div>
+            </div>
+        </div>`;
+}
+
+/* Recorre la lista (ya ordenada por sort_order) agrupando en bloques
+   de unidad consecutivos (tarjetas de acordeón) y dejando las filas
+   "extra" como tarjetas milestone independientes. */
+function buildEnglishAccordion(data) {
+    if (!_englishSectionsInitialized) {
+        _englishOpenSections = new Set([0]); // primer bloque abierto por defecto
+        _englishSectionsInitialized = true;
+    }
+
+    const html = [];
+    let i = 0;
+    let blockIdx = 0;
+    while (i < data.length) {
+        const item = data[i];
+        if (item.kind === 'extra') {
+            html.push(englishMilestoneHtml(item));
+            i++;
+            continue;
+        }
+        const label = item.unit_label;
+        const blockItems = [];
+        while (i < data.length && data[i].kind !== 'extra' && data[i].unit_label === label) {
+            blockItems.push(data[i]);
+            i++;
+        }
+        html.push(englishAccordionSectionHtml(blockItems, blockIdx));
+        blockIdx++;
+    }
+    return html.join('');
+}
+
+/* Lista completa: mismo contenido que la planilla oficial de A1
+   (72 clases, 8 unidades, checkpoints y entregas), en formato de
+   acordeón móvil en vez de tabla. */
+function renderEnglishList(data) {
+    if (!data.length) {
         return `<div class="english-empty">No hay clases registradas en este nivel.</div>`;
     }
 
-    const levelPct = Math.round((filtered.filter(c => c.status === 'Tomada').length / filtered.length) * 100);
-
-    const rows = filtered.map(c => {
-        const isTaken = c.status === 'Tomada';
-        return `
-            <div class="english-row ${isTaken ? 'english-row--taken' : ''}">
-                <div class="english-row-main" onclick="toggleEnglishStatus(${c.id}, '${isTaken ? 'Pendiente' : 'Tomada'}')">
-                    <span class="english-row-check">${isTaken ? '✓' : ''}</span>
-                    <span class="english-row-num">${c.class_number}</span>
-                    <span class="english-row-name">${c.class_name}</span>
-                </div>
-                <div class="english-row-meta">
-                    ${c.grade > 0 ? `<span class="english-row-grade" onclick="editEnglishGrade(${c.id}, ${c.grade})" title="Clic para editar nota">${c.grade}</span>` : ''}
-                    ${c.class_date ? `<span class="english-row-date">${c.class_date}</span>` : ''}
-                </div>
-            </div>`;
-    }).join('');
+    const levelPct = Math.round((data.filter(c => c.status === 'Tomada').length / data.length) * 100);
 
     return `
         <div class="english-level-progress">
@@ -355,14 +480,24 @@ function renderEnglishList(data) {
             </div>
             <span class="english-level-pct">${levelPct}%</span>
         </div>
-        <div class="english-rows">${rows}</div>
+        <div class="english-accordion-list">
+            ${buildEnglishAccordion(data)}
+        </div>
     `;
 }
 
 /* ---------- Filtros ---------- */
 function setEnglishFilter(filter) {
     _englishFilter = filter;
+    _englishSectionsInitialized = false; // el nuevo nivel abre su propio primer bloque
     loadEnglish();
+}
+
+/* ---------- Acordeón ---------- */
+function toggleEnglishSection(idx) {
+    if (_englishOpenSections.has(idx)) _englishOpenSections.delete(idx);
+    else _englishOpenSections.add(idx);
+    renderEnglish(_englishData); // re-render local, sin volver a pedir datos a Supabase
 }
 
 /* ---------- Cálculos ---------- */
@@ -398,9 +533,26 @@ function formatDateNice(dateStrOrObj) {
 
 /* ---------- Acciones ---------- */
 async function toggleEnglishStatus(id, newStatus) {
+    // Actualización optimista: cambia el estado local y re-renderiza
+    // de inmediato (sin esperar la respuesta del servidor ni volver a
+    // pedir todos los datos), para que se sienta instantáneo en
+    // móvil y no se pierda qué acordeón estaba abierto. Si falla el
+    // guardado en Supabase, se revierte y se avisa.
+    const item = _englishData.find(c => c.id === id);
+    const previousStatus = item ? item.status : null;
+    if (item) {
+        item.status = newStatus;
+        renderEnglish(_englishData);
+    }
+
     const { error } = await _supabase.from('english_classes').update({ status: newStatus }).eq('id', id);
-    if (error) alert('Error: ' + error.message);
-    else loadEnglish();
+    if (error) {
+        alert('Error: ' + error.message);
+        if (item) {
+            item.status = previousStatus;
+            renderEnglish(_englishData);
+        }
+    }
 }
 
 async function editEnglishGrade(id, current) {
@@ -414,13 +566,26 @@ async function editEnglishGrade(id, current) {
 }
 
 async function addEnglishClass() {
-    const name = prompt('Nombre de la clase:');
+    const name = prompt('Nombre de la clase o actividad extra:');
     if (!name) return;
-    const level = prompt('Nivel (ej: INGA1):', 'INGA1');
-    if (!level) return;
-    const num = prompt('Número de clase:', '1');
+
+    const { data: maxRows } = await _supabase
+        .from('english_classes')
+        .select('sort_order')
+        .eq('level', _englishFilter)
+        .order('sort_order', { ascending: false })
+        .limit(1);
+    const nextOrder = (maxRows && maxRows[0] && maxRows[0].sort_order ? maxRows[0].sort_order : 0) + 1;
+
     const { error } = await _supabase.from('english_classes').insert([{
-        level, class_number: parseFloat(num) || 1, class_name: name, status: 'Pendiente'
+        level: _englishFilter,
+        sort_order: nextOrder,
+        class_number: 0, // NOT NULL en la tabla — 0 = "sin número real" (ver nota en generateA1Curriculum)
+        class_name: name,
+        kind: 'clase',
+        unit_label: 'EXTRA',
+        unit_task: '',
+        status: 'Pendiente'
     }]);
     if (error) alert('Error: ' + error.message);
     else loadEnglish();
@@ -428,7 +593,7 @@ async function addEnglishClass() {
 
 async function exportEnglishSQL() {
     try {
-        const { data, error } = await _supabase.from('english_classes').select('*').order('class_number', { ascending: true });
+        const { data, error } = await _supabase.from('english_classes').select('*').order('sort_order', { ascending: true });
         if (error) throw error;
         if (!data || !data.length) { alert('No hay datos.'); return; }
         const sql = buildSQLInsert('english_classes', data);

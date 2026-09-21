@@ -653,6 +653,33 @@ async function seedDefaultHabitsOnce(tag) {
         return;
     }
 
+    // FIX "HÁBITOS FANTASMA": antes esto se controlaba SOLO con una
+    // bandera en localStorage. Si el localStorage se perdía (cambio
+    // de navegador/dispositivo, PWA reinstalada, caché borrado, modo
+    // incógnito, etc.) esta función se ejecutaba de nuevo y creaba
+    // una SEGUNDA copia de los hábitos por defecto — duplicados con
+    // el mismo nombre, cada uno con su propia fila de "hoy", que es
+    // justo lo que producía el conteo/marcado inconsistente. Ahora,
+    // antes de sembrar, se verifica en la base de datos (fuente de
+    // verdad real) si esta categoría YA tiene algún hábito; si los
+    // tiene, no se vuelve a sembrar.
+    const { data: existing, error: checkError } = await _supabase
+        .from('habit_logs')
+        .select('habit_name')
+        .eq('project_tag', tag)
+        .limit(1);
+
+    if (checkError) {
+        console.error(`Error verificando hábitos existentes de ${tag}:`, checkError.message);
+        return; // no marcar como sembrado: se reintentará la próxima vez
+    }
+
+    if (existing && existing.length > 0) {
+        // Ya hay hábitos reales en esta categoría — no se duplica.
+        localStorage.setItem(seedKey, '1');
+        return;
+    }
+
     const todayStr = formatDateLocal(new Date());
     const rows = defaults.map(name => ({
         habit_name: `${name} #${tag}`,
@@ -685,6 +712,53 @@ function getProjectFromHabitName(name) {
         return match[1].toUpperCase();
     }
     return null;
+}
+
+/**
+ * ==========================================
+ * FIX "HÁBITOS FANTASMA": una sola fuente de verdad para la categoría
+ * ==========================================
+ * ANTES, para decidir si un hábito pertenecía a una categoría, varias
+ * partes de la app (loadHabitsGroup, el Espejo del Alma, el progreso
+ * de Metas) hacían un OR entre 2 cosas: el PRIMER hashtag del nombre
+ * (#TAG) y el campo project_tag guardado en la fila. El problema: si
+ * un hábito tenía, por ejemplo, un sub-grupo antes que el tag
+ * principal en el nombre ("Corte #ESTILO #CABELLO" con project_tag =
+ * 'CABELLO'), el OR hacía que ese mismo hábito apareciera Y SE
+ * CONTARA A LA VEZ en DOS categorías distintas (ESTILO por el nombre,
+ * CABELLO por el campo) — un "hábito fantasma" duplicado que aparecía
+ * (y a veces se marcaba) en un sitio donde en realidad no pertenece.
+ *
+ * AHORA: una sola función resuelve la categoría de un hábito, con el
+ * campo project_tag como fuente de verdad (así se guarda siempre al
+ * crear/editar un hábito) y el nombre SOLO como respaldo para filas
+ * antiguas que no tengan ese campo. Cada hábito pertenece a UNA sola
+ * categoría, nunca a dos a la vez.
+ */
+function resolveHabitTag(habitName, projectTagField) {
+    const fromField = (projectTagField || '').trim().toUpperCase();
+    if (fromField) return fromField;
+    return getProjectFromHabitName(habitName);
+}
+
+/**
+ * FIX complementario: si por cualquier motivo llegan a existir DOS
+ * filas de habit_logs para el mismo hábito+fecha (por ejemplo, una
+ * categoría sembrada dos veces — ver seedDefaultHabitsOnce), antes se
+ * tomaba "la primera que aparezca" (weekLogs.find) en unos lugares y
+ * "la última" (forEach con sobre-escritura) en otros — dos criterios
+ * distintos leyendo el mismo dato, lo que hacía que un hábito ya
+ * completado apareciera marcado o desmarcado según qué parte de la
+ * app lo mostrara. Ahora: si CUALQUIERA de las filas duplicadas dice
+ * "completado", cuenta como completado — nunca se "desmarca" algo que
+ * el usuario ya había cumplido.
+ */
+function isHabitDoneOnDate(logs, habitName, dateStr) {
+    for (let i = 0; i < logs.length; i++) {
+        const l = logs[i];
+        if (l.habit_name === habitName && l.log_date === dateStr && l.is_completed) return true;
+    }
+    return false;
 }
 
 /**
@@ -2372,11 +2446,7 @@ async function loadHabitsGroup(tag, containerId) {
 
     const uniqueHabits = [...new Set(
         allHabitsData
-            .filter(h => {
-                const fromName = getProjectFromHabitName(h.habit_name);
-                const fromField = (h.project_tag || '').toUpperCase();
-                return fromName === tag.toUpperCase() || fromField === tag.toUpperCase();
-            })
+            .filter(h => resolveHabitTag(h.habit_name, h.project_tag) === tag.toUpperCase())
             .map(h => h.habit_name)
     )].sort();
 
@@ -2429,8 +2499,7 @@ function renderHabitCard(habitName, listContainer, datesOfWeek, currentDay, dayL
     let streakCount = 0;
     let isDoneToday = true;
     datesOfWeek.forEach((dateStr, idx) => {
-        const log = weekLogs.find(l => l.habit_name === habitName && l.log_date === dateStr);
-        const isDone = log ? log.is_completed : false;
+        const isDone = isHabitDoneOnDate(weekLogs, habitName, dateStr);
         if (isDone) streakCount++;
         const isToday = idx + 1 === currentDay;
         const isFuture = idx + 1 > currentDay;

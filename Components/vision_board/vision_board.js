@@ -96,8 +96,8 @@
             <div class="vision-tabs-bar">
                 <div class="vision-tabs" id="vision-tabs"></div>
             </div>
-            <div class="vision-meta-detail" id="vision-meta-detail"></div>
             <div class="vision-feed" id="vision-feed"></div>
+            <div class="vision-meta-detail" id="vision-meta-detail"></div>
         `;
 
         overlay.querySelector('#vision-add-btn').addEventListener('click', addVisionMeta);
@@ -132,12 +132,14 @@
         tags.forEach(t => { buckets[t] = { inicioPorHabito: {}, cumplidosSet: new Set() }; });
 
         (data || []).forEach(log => {
-            const fromField = (log.project_tag || '').toUpperCase();
-            const fromName = (typeof getProjectFromHabitName === 'function')
-                ? getProjectFromHabitName(log.habit_name)
-                : null;
-            const tag = tags.has(fromField) ? fromField : (tags.has(fromName) ? fromName : null);
-            if (!tag) return;
+            // Misma fuente única de verdad que el resto de la app (ver
+            // resolveHabitTag en main.js): evita que un hábito cuente a
+            // la vez en dos categorías distintas cuando el nombre y el
+            // campo project_tag no coinciden.
+            const tag = (typeof resolveHabitTag === 'function')
+                ? resolveHabitTag(log.habit_name, log.project_tag)
+                : (log.project_tag || '').toUpperCase();
+            if (!tags.has(tag)) return;
 
             const bucket = buckets[tag];
             const nombre = log.habit_name;
@@ -341,6 +343,28 @@
         const imagenes = _imagesByMeta[_activeMetaId] || [];
         feedEl.innerHTML = '';
 
+        if (imagenes.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'vision-feed-empty';
+            empty.textContent = 'Todavía no hay imágenes en el feed de esta meta. Agrega fotos que te inspiren.';
+            feedEl.appendChild(empty);
+        } else {
+            imagenes.forEach(img => {
+                const localImagePath = `assets/images/${img.image_filename}`;
+                const tile = document.createElement('div');
+                tile.className = 'vision-feed-item';
+                tile.innerHTML = `<img src="${localImagePath}" class="vision-feed-img" onerror="handleImgFallback(this)">`;
+                tile.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    deleteVisionImage(img.id, _activeMetaId);
+                });
+                feedEl.appendChild(tile);
+            });
+        }
+
+        // El tile "Agregar imagen" va AL FINAL del feed (como el
+        // clásico botón "+" al final de un tablero Pinterest), no
+        // antes de las fotos ya guardadas.
         const addTile = document.createElement('button');
         addTile.type = 'button';
         addTile.className = 'vision-feed-add';
@@ -355,26 +379,6 @@
         `;
         addTile.addEventListener('click', () => addVisionImage(_activeMetaId));
         feedEl.appendChild(addTile);
-
-        if (imagenes.length === 0) {
-            const empty = document.createElement('div');
-            empty.className = 'vision-feed-empty';
-            empty.textContent = 'Todavía no hay imágenes en el feed de esta meta. Agrega fotos que te inspiren.';
-            feedEl.appendChild(empty);
-            return;
-        }
-
-        imagenes.forEach(img => {
-            const localImagePath = `assets/images/${img.image_filename}`;
-            const tile = document.createElement('div');
-            tile.className = 'vision-feed-item';
-            tile.innerHTML = `<img src="${localImagePath}" class="vision-feed-img" onerror="handleImgFallback(this)">`;
-            tile.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-                deleteVisionImage(img.id, _activeMetaId);
-            });
-            feedEl.appendChild(tile);
-        });
     }
 
     window.addVisionMeta = async function () {
