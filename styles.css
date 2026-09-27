@@ -904,7 +904,6 @@ div.day-segment.future {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    padding: 16px;
 }
 
 .compra-card {
@@ -1918,27 +1917,6 @@ div.day-segment.future {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 4px;
-}
-
-/*
-    NUEVO: encabezado de sub-grupo dentro de ME / Health / Work
-    (ej: "APARIENCIA", "SALUD MENTAL"). Solo se muestra si hay más
-    de un sub-grupo en la lista; separa visualmente sin ser una card.
-*/
-.habit-subgroup-header {
-    list-style: none;
-    padding: 14px 4px 6px;
-    font-size: 0.7rem;
-    font-weight: 800;
-    letter-spacing: 0.6px;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    border-bottom: 1px solid var(--border-color);
-    margin-bottom: 6px;
-}
-
-.habit-subgroup-header:first-child {
-    padding-top: 2px;
 }
 
 .habit-day-chip {

@@ -1,0 +1,94 @@
+/**
+ * ==========================================
+ * COMPONENTE: EXPORT CENTER — ESTILOS
+ * ==========================================
+ * Ya no es una ventana flotante sobre un fondo oscuro: vive dentro
+ * del flujo normal de la app como una subvista más (mismo lenguaje
+ * visual que Brain Dump — .category, .item-list-header, botones
+ * "pill" tipo .add-habit-btn), sin position:fixed, sin backdrop y
+ * sin box-shadow de modal.
+ */
+
+.export-center-intro {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px 16px;
+}
+
+.export-center-title {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--text-dark);
+}
+
+.export-center-subtitle {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+.export-center-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 16px;
+}
+
+.export-center-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background-color: transparent;
+    color: var(--text-dark);
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-align: left;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.export-center-option:hover:not(:disabled) {
+    border-color: var(--primary-green);
+    background-color: rgba(116, 192, 138, 0.08);
+}
+
+.export-center-option:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.export-center-option-icon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.export-center-option-label {
+    flex: 1;
+    min-width: 0;
+}
+
+.export-center-option-arrow {
+    color: var(--text-muted);
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.export-center-all-btn {
+    width: calc(100% - 32px);
+    margin: 4px 16px 14px;
+    justify-content: center;
+}
+
+.export-center-status {
+    min-height: 18px;
+    padding: 0 16px 16px;
+    text-align: center;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}

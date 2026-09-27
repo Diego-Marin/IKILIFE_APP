@@ -516,9 +516,15 @@ async function calcularBalanceMensualLovesOdios() {
  * una categoría ya renombrada/eliminada infl​en el conteo.
  */
 async function calcularHabitosHoy() {
-    const { data: allHabits, error: err1 } = await _supabase
-        .from('habit_logs')
-        .select('habit_name, project_tag');
+    // FIX "CONTEO INCONSISTENTE" (27 vs 22, etc.): esta consulta debe
+    // traer TODAS las filas de habit_logs para calcular los nombres
+    // únicos reales, no solo las primeras 1000 que devuelve Supabase
+    // por defecto. fetchAllRows() (main.js) pagina hasta traerlas
+    // todas. Ver también el fix del "await" en la inicialización de
+    // main.js, que evitaba que este cálculo corriera antes de que las
+    // categorías personalizadas (HABIT_CATEGORIES) terminaran de
+    // cargar.
+    const { data: allHabits, error: err1 } = await fetchAllRows('habit_logs', 'habit_name, project_tag');
 
     if (err1) {
         console.error('Error cargando hábitos:', err1.message);

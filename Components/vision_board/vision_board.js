@@ -67,13 +67,16 @@
         overlay.innerHTML = `
             <div class="vision-board-header">
                 <div class="vision-board-title">
-                    <svg class="vision-board-title-icon" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="9"></circle>
-                        <circle cx="12" cy="12" r="5"></circle>
-                        <circle cx="12" cy="12" r="1"></circle>
-                    </svg>
+                    <span class="vision-board-title-icon-badge">
+                        <svg class="vision-board-title-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="9"></circle>
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <circle cx="12" cy="12" r="1"></circle>
+                        </svg>
+                    </span>
                     <span class="vision-board-title-text">Metas</span>
+                    <span class="vision-board-summary-pill" id="vision-board-summary-pill" title="Progreso promedio de tus metas conectadas a hábitos"></span>
                 </div>
                 <div class="vision-board-header-actions">
                     <button type="button" class="icon-btn" id="vision-add-btn" aria-label="Agregar meta"
@@ -84,7 +87,7 @@
                             <line x1="5" y1="12" x2="19" y2="12"></line>
                         </svg>
                     </button>
-                    <button type="button" class="icon-btn" id="vision-close-btn" aria-label="Cerrar">
+                    <button type="button" class="icon-btn" id="vision-close-btn" aria-label="Cerrar" title="Cerrar (Esc)">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -241,6 +244,40 @@
         renderTabs();
         renderMetaDetail();
         renderFeed();
+        renderHeaderSummary();
+    }
+
+    /* Resumen rápido en la cabecera: cuántas metas tienes y, de las
+       que ya están conectadas a una categoría de hábitos con datos,
+       el promedio de avance real. Da una vista general de un
+       vistazo, sin tener que entrar tab por tab. */
+    function renderHeaderSummary() {
+        const pill = document.getElementById('vision-board-summary-pill');
+        if (!pill) return;
+
+        if (_metas.length === 0) {
+            pill.textContent = '';
+            pill.classList.remove('vision-board-summary-pill--visible');
+            return;
+        }
+
+        const pcts = _metas
+            .map(m => {
+                const tag = m.linked_tag ? m.linked_tag.toUpperCase() : '';
+                const p = tag ? _progresoPorTag[tag] : null;
+                return (p && !p.sinDatos) ? p.pct : null;
+            })
+            .filter(p => p !== null);
+
+        const metaLabel = _metas.length === 1 ? 'meta' : 'metas';
+
+        if (pcts.length > 0) {
+            const promedio = Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length);
+            pill.textContent = `${_metas.length} ${metaLabel} · ${promedio}% prom.`;
+        } else {
+            pill.textContent = `${_metas.length} ${metaLabel}`;
+        }
+        pill.classList.add('vision-board-summary-pill--visible');
     }
 
     function renderTabs() {
@@ -482,6 +519,13 @@
         if (metaId === _activeMetaId) renderFeed();
     };
 
+    /* Cerrar con la tecla Esc — se agrega/quita el listener solo
+       mientras Metas está abierto, para no interferir con el resto
+       de la app. */
+    function handleVisionBoardKeydown(e) {
+        if (e.key === 'Escape') closeVisionBoard();
+    }
+
     window.openVisionBoard = function () {
         const overlay = document.getElementById('vision-board-overlay');
         if (!overlay) {
@@ -494,6 +538,7 @@
         }
         overlay.classList.add('vision-board-active');
         document.body.style.overflow = 'hidden';
+        document.addEventListener('keydown', handleVisionBoardKeydown);
         _isOpen = true;
         loadVisionMetas();
     };
@@ -503,6 +548,7 @@
         if (!overlay) return;
         overlay.classList.remove('vision-board-active');
         document.body.style.overflow = '';
+        document.removeEventListener('keydown', handleVisionBoardKeydown);
         _isOpen = false;
     };
 

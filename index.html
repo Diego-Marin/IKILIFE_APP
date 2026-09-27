@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="./Components/bottom_nav/bottom_nav.css">
     <link rel="stylesheet" href="./Components/loves_counter/loves_counter.css">
     <link rel="stylesheet" href="./Components/vision_board/vision_board.css">
+    <link rel="stylesheet" href="./Components/export_center/export_center.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <base target="_blank">
     <base target="_blank">
@@ -61,8 +62,8 @@
                     </svg>
                 </button>
 
-                <button id="export-json-btn" class="icon-btn" onclick="exportAllDataJSON()"
-                    aria-label="Exportar Todo (JSON para IA)" title="Exportar Todo (JSON para IA)">
+                <button id="export-json-btn" class="icon-btn" onclick="openExportCenter()"
+                    aria-label="Exportar datos (JSON para IA)" title="Exportar datos (JSON para IA)">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                         stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -541,23 +542,44 @@
                 </div>
                 </div>
 
-                <!-- 🛒 COMPRAS: ahorro por item -->
+                <!-- 🛒 COMPRAS: ahorro por item
+                     (antes tenía un <section class="category"> extra envolviendo
+                     todo esto — un contenedor adicional innecesario que ningún
+                     otro sub-tab del mismo patrón usa, ver sent-positivos /
+                     sent-negativos arriba. Se quitó para que Compras siga la
+                     misma estructura plana que el resto.) -->
                 <div id="money-compras" class="sent-subview hidden">
-                    <section class="category">
-                        <div class="mood-minimal-header">
-                            <button type="button" class="icon-btn" onclick="addCompra()"
-                                aria-label="Agregar nueva compra" title="Agregar nueva compra">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
-                            </button>
-                        </div>
-                        <div id="list-compras"></div>
-                    </section>
+                    <div class="mood-minimal-header">
+                        <button type="button" class="icon-btn" onclick="addCompra()"
+                            aria-label="Agregar nueva compra" title="Agregar nueva compra">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="list-compras"></div>
                 </div>
 
+            </div>
+
+            <!-- 📤 EXPORT CENTER (subvista de pantalla completa, mismo
+                 patrón que Brain Dump: sin overlay oscuro ni ventana
+                 flotante, solo una vista más dentro del flujo normal
+                 de la app con un botón de "volver"). -->
+            <div id="view-export-center" class="bottom-view">
+                <div style="display:flex; justify-content:flex-start; padding: 0 0 8px;">
+                    <button type="button" class="icon-btn" onclick="closeExportCenter()" aria-label="Volver"
+                        title="Volver">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                    </button>
+                </div>
+                <section class="category" id="export-center-content"></section>
             </div>
 
         </main>
@@ -571,6 +593,7 @@
     <script src="./Components/bottom_nav/bottom_nav.js"></script>
     <script src="./Components/loves_counter/loves_counter.js"></script>
     <script src="./Components/vision_board/vision_board.js"></script>
+    <script src="./Components/export_center/export_center.js"></script>
 </body>
 
 </html>

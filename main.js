@@ -106,7 +106,7 @@ function loadAgradecimientos() {
  * INICIALIZACIÓN
  * ==========================================
  */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
 
     // 1. Inicialización de UI
     try {
@@ -143,7 +143,6 @@ document.addEventListener('DOMContentLoaded', () => {
         loadOdios();
         loadPlanes();
         loadCompras();
-        loadCustomHabitCategories();
         if (typeof renderYearWeeks === 'function') renderYearWeeks(); // Progreso del Año (Home)
         loadFinances();
         loadAgradecimientos();
@@ -151,6 +150,20 @@ document.addEventListener('DOMContentLoaded', () => {
         // no existía en ningún lado del HTML (código muerto). Ahora el
         // componente vive como sub-tab "INGLÉS" dentro de Camino y se carga
         // al visitarla (ver switchTrackingTab).
+
+        // FIX "CONTEO INCONSISTENTE DE HÁBITOS" (parte 2): antes
+        // loadCustomHabitCategories() se disparaba sin esperar su
+        // respuesta y loadEspejoDelAlma() corría de inmediato. Como
+        // esa función agrega las categorías personalizadas (ME,
+        // SALUD, WORK...) a HABIT_CATEGORIES de forma asíncrona, el
+        // conteo de "Hábitos de hoy" a veces se calculaba ANTES de
+        // que esas categorías existieran (y las ignoraba por
+        // completo) y a veces DESPUÉS (y sí las contaba) — una
+        // carrera que dependía de qué tan rápido respondiera
+        // Supabase. Ahora se espera explícitamente a que las
+        // categorías personalizadas terminen de cargar antes de
+        // calcular el Espejo del Alma por primera vez.
+        await loadCustomHabitCategories();
         if (typeof loadEspejoDelAlma === 'function') loadEspejoDelAlma();
     } catch (error) {
         console.error("Error durante la carga de datos:", error);
@@ -464,6 +477,43 @@ function formatDateLocal(date) {
 
 /**
  * ==========================================
+ * FIX "CONTEO INCONSISTENTE DE HÁBITOS"
+ * ==========================================
+ * Supabase/PostgREST limita cada consulta a un máximo de 1000 filas
+ * por defecto. La tabla "habit_logs" ya supera esa cifra (crece con
+ * cada día × cada hábito activo), así que cualquier .select() simple
+ * sobre ella devolvía un recorte distinto de filas en cada carga —
+ * sin ORDER BY explícito el orden de ese recorte no está garantizado,
+ * así que un hábito completo podía quedar fuera del recorte en una
+ * carga y aparecer en la siguiente. Como el conteo de "Hábitos de
+ * hoy" (Espejo del Alma) y la propia lista de hábitos por categoría
+ * se basan en los NOMBRES ÚNICOS presentes en esas filas, esto
+ * producía justo el síntoma reportado: el total cambiaba solo
+ * entre cargas (ej. 27 vs 22) sin que el usuario tocara nada.
+ *
+ * fetchAllRows() pagina en bloques de 1000 hasta traer la tabla
+ * completa, así cualquier cálculo derivado de ella siempre parte de
+ * los mismos datos reales.
+ */
+async function fetchAllRows(table, selectStr) {
+    const PAGE_SIZE = 1000;
+    let from = 0;
+    let all = [];
+    while (true) {
+        const { data, error } = await _supabase
+            .from(table)
+            .select(selectStr)
+            .range(from, from + PAGE_SIZE - 1);
+        if (error) return { data: null, error };
+        all = all.concat(data || []);
+        if (!data || data.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
+    }
+    return { data: all, error: null };
+}
+
+/**
+ * ==========================================
  * REGISTRO DE CATEGORÍAS DE HÁBITOS (FIJAS + PERSONALIZADAS)
  * ==========================================
  * Única fuente de verdad para el mapeo subtab-id ↔ tag ↔ label/icon.
@@ -761,20 +811,6 @@ function isHabitDoneOnDate(logs, habitName, dateStr) {
     return false;
 }
 
-/**
- * NUEVO: sub-grupo dentro de ME/Health/Work (ej: "Meditar #ME #APARIENCIA"
- * -> subgrupo "APARIENCIA"). Es el SEGUNDO hashtag del nombre; si no
- * existe, el hábito cae en el grupo "General".
- */
-function getSubgroupFromHabitName(name) {
-    if (!name) return null;
-    const matches = [...name.matchAll(/#([A-Za-z0-9_ÁÉÍÓÚáéíóúÑñ]+)/g)];
-    if (matches.length > 1) {
-        return matches[1][1].toUpperCase();
-    }
-    return null;
-}
-
 async function addHabit() {
     const name = prompt("Crea un nuevo hábito:");
     if (!name || name.trim() === "") return;
@@ -1008,37 +1044,61 @@ const TABLAS_EXPORTABLES = [
 
 
 async function exportAllDataJSON() {
+    return exportSupabaseTablesJSON(TABLAS_EXPORTABLES, 'Todos_los_datos');
+}
+
+/**
+ * ==========================================
+ * EXPORTAR UN SUBCONJUNTO DE TABLAS A JSON
+ * ==========================================
+ * Motor genérico detrás del selector de exportación (ver
+ * export_center.js / #export-json-btn): recibe una lista de tablas
+ * de Supabase y una etiqueta, y descarga un único .json con esas
+ * tablas completas. Usa fetchAllRows() (no un .select('*') simple)
+ * para no toparse con el límite de 1000 filas por consulta de
+ * Supabase/PostgREST — el mismo fix aplicado al conteo de hábitos,
+ * necesario aquí también porque "habit_logs" ya supera esa cifra.
+ */
+async function exportSupabaseTablesJSON(tablas, etiqueta) {
     try {
-        const tablas = {};
+        const resultado = {};
         const errores = [];
 
-        await Promise.all(TABLAS_EXPORTABLES.map(async (nombreTabla) => {
-            const { data, error } = await _supabase.from(nombreTabla).select('*');
+        await Promise.all(tablas.map(async (nombreTabla) => {
+            const { data, error } = await fetchAllRows(nombreTabla, '*');
             if (error) {
                 errores.push(`${nombreTabla}: ${error.message}`);
-                tablas[nombreTabla] = [];
+                resultado[nombreTabla] = [];
             } else {
-                tablas[nombreTabla] = data || [];
+                resultado[nombreTabla] = data || [];
             }
         }));
 
         const payload = {
             app: 'IKILIFE',
+            categoria: etiqueta,
             exportado_el: new Date().toISOString(),
-            tablas: tablas
+            tablas: resultado
         };
 
         const json = JSON.stringify(payload, null, 2);
         const fecha = new Date().toISOString().slice(0, 10);
-        descargarArchivo(json, `IKILIFE_datos_completos_${fecha}.json`, 'application/json;charset=utf-8;');
+        const slug = etiqueta
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^A-Za-z0-9]+/g, '_')
+            .replace(/^_+|_+$/g, '');
+        descargarArchivo(json, `IKILIFE_${slug}_${fecha}.json`, 'application/json;charset=utf-8;');
 
         if (errores.length > 0) {
             console.warn("Algunas tablas fallaron al exportar:", errores);
             alert("Se exportó el archivo, pero algunas tablas fallaron:\n" + errores.join('\n'));
         }
+
+        return true;
     } catch (err) {
-        console.error("Error exportando todos los datos:", err);
+        console.error("Error exportando datos:", err);
         alert("Ocurrió un error inesperado generando el archivo:\n" + err.message);
+        return false;
     }
 }
 
@@ -2405,7 +2465,7 @@ async function fetchHabitsRawData(datesOfWeek) {
     }
 
     const [allHabitsRes, weekLogsRes, habitImagesRes] = await Promise.all([
-        _supabase.from('habit_logs').select('habit_name, project_tag'),
+        fetchAllRows('habit_logs', 'habit_name, project_tag'),
         _supabase.from('habit_logs').select('*').gte('log_date', datesOfWeek[0]).lte('log_date', datesOfWeek[6]),
         _supabase.from('habit_images').select('habit_name, image_filename'),
     ]);
@@ -2461,36 +2521,19 @@ async function loadHabitsGroup(tag, containerId) {
 
     const habitImages = Object.fromEntries(raw.habitImages.map(h => [h.habit_name, h.image_filename]));
 
-    uniqueHabits.sort((a, b) => {
-        const ga = getSubgroupFromHabitName(a) || '';
-        const gb = getSubgroupFromHabitName(b) || '';
-        if (ga !== gb) return ga.localeCompare(gb);
-        return a.localeCompare(b);
-    });
+    // NOTA: antes los hábitos se agrupaban por un segundo sub-tag en
+    // el nombre (ej. "#APARIENCIA") con un encabezado de sub-grupo
+    // (.habit-subgroup-header) separándolos dentro de la lista. Se
+    // eliminó: los hábitos ya están segmentados por categoría a
+    // través de las camino-tabs (CABELLO, SEXUALIDAD, PIEL, etc.), así
+    // que ese segundo nivel de agrupación era redundante y generaba
+    // conflictos (un mismo hábito podía "perder" su sub-grupo al
+    // editarlo y reordenarse de forma inesperada). Ahora la lista es
+    // plana, ordenada alfabéticamente.
+    uniqueHabits.sort((a, b) => a.localeCompare(b));
 
-    // Agrupa los hábitos por su sub-grupo (segundo hashtag). Los que no
-    // tienen sub-grupo caen en "General".
-    const groups = new Map();
     uniqueHabits.forEach(habitName => {
-        const sub = getSubgroupFromHabitName(habitName) || 'General';
-        if (!groups.has(sub)) groups.set(sub, []);
-        groups.get(sub).push(habitName);
-    });
-    const sortedGroupNames = [...groups.keys()].sort((a, b) => {
-        if (a === 'General') return 1;
-        if (b === 'General') return -1;
-        return a.localeCompare(b);
-    });
-
-    groups.forEach((habitsInGroup, groupName) => {
-        if (sortedGroupNames.length > 1) {
-            const displayName = groupName.replace(/_/g, ' ');
-            listContainer.insertAdjacentHTML('beforeend',
-                `<li class="habit-subgroup-header">${displayName}</li>`);
-        }
-        habitsInGroup.forEach(habitName => {
-            renderHabitCard(habitName, listContainer, datesOfWeek, currentDay, dayLabels, weekLogs, habitImages);
-        });
+        renderHabitCard(habitName, listContainer, datesOfWeek, currentDay, dayLabels, weekLogs, habitImages);
     });
 }
 
