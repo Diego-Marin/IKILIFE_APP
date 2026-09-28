@@ -707,7 +707,6 @@ async function loadEspejoDelAlma() {
     }
 
     container.innerHTML = `
-        <div class="espejo-alma-card">
             <div class="espejo-emo-card">
                 <div class="espejo-emo-body">
                     <div class="espejo-emo-label">Balance emocional del mes</div>
@@ -755,7 +754,6 @@ async function loadEspejoDelAlma() {
                     </div>
                 </div>
             </div>
-        </div>
     `;
 }
 

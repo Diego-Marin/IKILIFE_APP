@@ -6,90 +6,48 @@
  * Paleta y lenguaje visual de la app, sin emojis.)
  * ==========================================
  */
-#vision-board-overlay {
-    display: none;
-}
-
-#vision-board-overlay.vision-board-active {
-    display: flex;
-    flex-direction: column;
-    position: fixed;
-    inset: 0;
-    z-index: 9500;
-    background-color: var(--bg-light);
-    overflow-y: auto;
+/**
+ * Metas vive como subvista dentro de la app (#view-vision-board,
+ * clase .bottom-view): el header de la app queda visible y todo el
+ * contenido ocupa el mismo ancho de columna que el resto de vistas
+ * (el .container ya limita a 600px y da el padding lateral).
+ */
+#vision-board-root {
+    width: 100%;
 }
 
 .vision-board-header {
-    position: sticky;
-    top: 0;
-    z-index: 3;
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 10px;
-    padding: 14px 18px;
-    /* Frosted-glass: deja intuir el feed detrás al hacer scroll, en
-       vez de un header 100% opaco — se siente más "vivo" y menos
-       plano que un simple color sólido. */
-    background-color: color-mix(in srgb, var(--white) 88%, transparent);
-    backdrop-filter: saturate(180%) blur(14px);
-    -webkit-backdrop-filter: saturate(180%) blur(14px);
-    box-shadow: 0 1px 0 var(--border-color), 0 4px 14px rgba(0, 0, 0, 0.05);
-    /* FIX escritorio: el resto de la app vive en una columna
-       centrada de max 600px (ver .container en styles.css). Antes
-       este header no tenía tope de ancho, así que en pantallas
-       anchas se estiraba de borde a borde del navegador — rompiendo
-       la arquitectura de la app (que en mobile no se nota porque el
-       viewport YA mide ~esos 600px o menos). */
-    max-width: 600px;
-    margin: 0 auto;
+    width: 100%;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--bg-header) 0%, transparent 100%);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
     box-sizing: border-box;
-    transition: box-shadow var(--transition);
 }
 
 .vision-board-title {
+    flex: 1;
     display: flex;
     align-items: center;
-    gap: 10px;
+    flex-wrap: wrap;
+    gap: 8px 10px;
+    min-width: 0;
     font-size: 1.08rem;
     font-weight: 800;
     color: var(--text-dark);
     letter-spacing: -0.01em;
-    min-width: 0;
 }
 
 .vision-board-title-text {
     flex-shrink: 0;
 }
 
-/* Resumen rápido ("3 metas · 62% prom.") — aparece junto al título
-   apenas hay al menos una meta cargada, para que abrir Metas ya dé
-   una idea del avance general sin tener que tocar ningún tab. */
-.vision-board-summary-pill {
-    display: none;
-    flex-shrink: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: var(--primary-green);
-    background: rgba(116, 192, 138, 0.14);
-    padding: 4px 10px;
-    border-radius: 20px;
-}
-
-.vision-board-summary-pill--visible {
-    display: inline-block;
-}
-
-/* Antes era un ícono plano suelto junto al texto. Ahora vive dentro
-   de una insignia circular en degradado — el mismo lenguaje visual
-   que #vision-header-btn (el botón de "Metas" en Inicio) — para que
-   al abrir el Vision Board se sienta como una continuación de ese
-   mismo botón, no como una pantalla aparte. */
+/* Insignia circular en degradado: mismo lenguaje que #vision-header-btn */
 .vision-board-title-icon-badge {
     display: flex;
     align-items: center;
@@ -107,80 +65,71 @@
     flex-shrink: 0;
 }
 
-.vision-board-header-actions {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-shrink: 0;
+/* Resumen ("3 metas · 62% prom.") */
+.vision-board-summary-pill {
+    display: none;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--primary-green);
+    background: rgba(116, 192, 138, 0.14);
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
 }
 
-/* Botones circulares con hover suave — antes heredaban el .icon-btn
-   genérico (cuadrado, esquinas de 6px) del resto de la app; aquí se
-   redondean por completo para hacer juego con la insignia del
-   título y sentirse más pulidos como cabecera de una pantalla a
-   toda página. Se agrega feedback táctil (:active) para que tocar
-   "+" o cerrar se sienta más responsivo en móvil. */
-.vision-board-header-actions .icon-btn {
+.vision-board-summary-pill--visible {
+    display: inline-block;
+}
+
+.vision-board-back-btn,
+.vision-board-add-btn {
     width: 34px;
     height: 34px;
+    flex-shrink: 0;
     border-radius: 50%;
     padding: 0;
     color: var(--text-muted);
     transition: background-color var(--transition), color var(--transition), transform 0.12s ease;
 }
 
-.vision-board-header-actions .icon-btn:hover {
+.vision-board-back-btn:hover,
+.vision-board-add-btn:hover {
     background-color: var(--bg-header);
     color: var(--text-dark);
 }
 
-.vision-board-header-actions .icon-btn:active {
+.vision-board-back-btn:active,
+.vision-board-add-btn:active {
     transform: scale(0.9);
 }
 
-.vision-board-header-actions .icon-btn:focus-visible {
+.vision-board-back-btn:focus-visible,
+.vision-board-add-btn:focus-visible {
     outline: 2px solid var(--primary-green);
     outline-offset: 2px;
-}
-
-#vision-close-btn:hover {
-    background-color: rgba(231, 76, 60, 0.12);
-    color: #e74c3c;
 }
 
 /**
  * ==========================================
  * TABS (una por meta)
  * ==========================================
- * Fila horizontal deslizable, pegada debajo de la cabecera. Mismo
- * lenguaje visual que .camino-tabs / .sent-tabs (píldoras), pero con
- * scroll horizontal porque el número de metas puede crecer.
+ * En móvil ya NO hay scroll horizontal: las pestañas se acomodan en
+ * varias filas (flex-wrap) y, si un nombre es muy largo, se recorta
+ * con "…" dentro del ancho disponible.
  */
 .vision-tabs-bar {
-    position: sticky;
-    top: 62px;
-    z-index: 2;
-    background-color: var(--bg-light);
-    border-bottom: 1px solid var(--border-color);
-    max-width: 600px;
-    margin: 0 auto;
-    box-sizing: border-box;
+    margin-bottom: 8px;
 }
 
 .vision-tabs {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
-    padding: 10px 16px;
-    overflow-x: auto;
-    scrollbar-width: none;
-}
-
-.vision-tabs::-webkit-scrollbar {
-    display: none;
 }
 
 .vision-tab-btn {
-    flex: 0 0 auto;
+    flex: 0 1 auto;
+    max-width: 100%;
     padding: 8px 16px;
     border-radius: 20px;
     border: 1px solid var(--border-color);
@@ -189,6 +138,8 @@
     font-weight: 700;
     font-size: 0.82rem;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     cursor: pointer;
     transition: all var(--transition);
 }
@@ -205,7 +156,7 @@
 }
 
 .vision-tabs-empty {
-    padding: 8px 16px;
+    padding: 8px 0;
     color: var(--text-muted);
     font-size: 0.85rem;
 }
@@ -222,9 +173,8 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 16px 16px calc(24px + env(safe-area-inset-bottom, 0));
-    max-width: 600px;
-    margin: 8px auto 0;
+    padding: 16px 0 8px;
+    margin: 8px 0 0;
     box-sizing: border-box;
     /* Ahora vive AL FINAL de cada tab (después del feed), así que
        lleva su propia línea separadora arriba en vez de heredar la
@@ -275,17 +225,6 @@
     white-space: nowrap;
 }
 
-.vision-meta-tag-select {
-    width: 100%;
-    padding: 7px 10px;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    background: var(--bg-light);
-    color: var(--text-dark);
-    font-size: 0.78rem;
-    font-weight: 600;
-}
-
 /**
  * ==========================================
  * FEED ESTILO PINTEREST (masonry, 2 columnas)
@@ -298,9 +237,8 @@
 .vision-feed {
     column-count: 2;
     column-gap: 10px;
-    padding: 12px 16px;
-    max-width: 600px;
-    margin: 0 auto;
+    padding: 12px 0;
+    width: 100%;
     box-sizing: border-box;
 }
 

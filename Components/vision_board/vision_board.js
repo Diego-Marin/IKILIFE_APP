@@ -2,9 +2,9 @@
  * ==========================================
  * COMPONENTE: VISION BOARD (Metas)
  * ==========================================
- * Se abre desde el botón del header (junto al de Brain Dump), NO
- * vive dentro del bottom-nav: es una vista de pantalla completa,
- * igual que Auth Lock, que se superpone a toda la app.
+ * Se abre desde el botón del header (junto al de Brain Dump) como una
+ * SUBVISTA dentro de la app (igual que Export Center): el header de
+ * la app sigue visible y hay un botón de volver, sin overlay.
  *
  * REDISEÑO: cada meta ahora es un TAB en la parte de arriba (en vez
  * de una tarjeta larga en una lista vertical). Al tocar un tab se
@@ -52,7 +52,6 @@
  */
 (function () {
     let _loaded = false;
-    let _isOpen = false;
 
     // Estado en memoria: metas cargadas, imágenes por meta y tab activo.
     let _metas = [];
@@ -60,12 +59,20 @@
     let _progresoPorTag = {};
     let _activeMetaId = null;
 
-    function buildOverlaySkeleton() {
-        const overlay = document.getElementById('vision-board-overlay');
-        if (!overlay) return null;
+    function buildSkeleton() {
+        const root = document.getElementById('vision-board-root');
+        if (!root) return null;
 
-        overlay.innerHTML = `
+        root.innerHTML = `
             <div class="vision-board-header">
+                <button type="button" class="icon-btn vision-board-back-btn" id="vision-close-btn"
+                    aria-label="Volver" title="Volver (Esc)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                </button>
                 <div class="vision-board-title">
                     <span class="vision-board-title-icon-badge">
                         <svg class="vision-board-title-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -76,25 +83,17 @@
                         </svg>
                     </span>
                     <span class="vision-board-title-text">Metas</span>
-                    <span class="vision-board-summary-pill" id="vision-board-summary-pill" title="Progreso promedio de tus metas conectadas a hábitos"></span>
+                    <span class="vision-board-summary-pill" id="vision-board-summary-pill"
+                        title="Progreso promedio de tus metas conectadas a hábitos"></span>
                 </div>
-                <div class="vision-board-header-actions">
-                    <button type="button" class="icon-btn" id="vision-add-btn" aria-label="Agregar meta"
-                        title="Agregar una nueva meta">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="12" y1="5" x2="12" y2="19"></line>
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                    </button>
-                    <button type="button" class="icon-btn" id="vision-close-btn" aria-label="Cerrar" title="Cerrar (Esc)">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                    </button>
-                </div>
+                <button type="button" class="icon-btn vision-board-add-btn" id="vision-add-btn"
+                    aria-label="Agregar meta" title="Agregar una nueva meta">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
             </div>
             <div class="vision-tabs-bar">
                 <div class="vision-tabs" id="vision-tabs"></div>
@@ -103,10 +102,10 @@
             <div class="vision-meta-detail" id="vision-meta-detail"></div>
         `;
 
-        overlay.querySelector('#vision-add-btn').addEventListener('click', addVisionMeta);
-        overlay.querySelector('#vision-close-btn').addEventListener('click', closeVisionBoard);
+        root.querySelector('#vision-add-btn').addEventListener('click', addVisionMeta);
+        root.querySelector('#vision-close-btn').addEventListener('click', closeVisionBoard);
 
-        return overlay;
+        return root;
     }
 
     /* ==========================================
@@ -177,17 +176,6 @@
         });
 
         return result;
-    }
-
-    function buildTagOptions(selectedTag) {
-        let opts = `<option value="">🔗 Sin conectar a un hábito</option>`;
-        if (typeof HABIT_CATEGORIES === 'object' && HABIT_CATEGORIES) {
-            Object.values(HABIT_CATEGORIES).forEach(cat => {
-                const selected = cat.tag === selectedTag ? ' selected' : '';
-                opts += `<option value="${cat.tag}"${selected}>${cat.icon} ${cat.label}</option>`;
-            });
-        }
-        return opts;
     }
 
     /* ==========================================
@@ -350,18 +338,12 @@
                 ${pctPillHtml}
             </div>
             ${progresoHtml}
-            <select class="vision-meta-tag-select" title="Conectar con una categoría de hábitos">
-                ${buildTagOptions(linkedTag)}
-            </select>
         `;
 
         detailEl.querySelector('.vision-meta-name').addEventListener('click', () => {
             editVisionMetaName(meta.id, meta.name);
         });
 
-        detailEl.querySelector('.vision-meta-tag-select').addEventListener('change', (e) => {
-            setVisionMetaLinkedTag(meta.id, e.target.value);
-        });
     }
 
     /* ==========================================
@@ -451,22 +433,6 @@
         }
     };
 
-    /* Conecta (o desconecta) la meta con una categoría de Hábitos —
-       a partir de ahora su barra de progreso refleja el % real de
-       cumplimiento histórico de esa categoría. */
-    window.setVisionMetaLinkedTag = async function (id, tag) {
-        const { error } = await _supabase
-            .from('vision_metas')
-            .update({ linked_tag: tag || null })
-            .eq('id', id);
-
-        if (error) {
-            alert('Error al conectar la meta: ' + error.message);
-        } else {
-            loadVisionMetas();
-        }
-    };
-
     window.deleteVisionMeta = async function (id, name) {
         const ok = confirm(`¿Eliminar la meta "${name}" y todas sus imágenes del feed?`);
         if (!ok) return;
@@ -519,37 +485,53 @@
         if (metaId === _activeMetaId) renderFeed();
     };
 
-    /* Cerrar con la tecla Esc — se agrega/quita el listener solo
-       mientras Metas está abierto, para no interferir con el resto
-       de la app. */
+    /* Igual que Export Center / Brain Dump: Metas es una subvista
+       dentro de la app (el header con los botones sigue visible), no
+       un overlay que tapa todo. Se recuerda la vista anterior para
+       volver exactamente ahí. */
+    let _previousViewId = null;
+
+    function visionViewEl() {
+        return document.getElementById('view-vision-board');
+    }
+
+    function isVisionOpen() {
+        const v = visionViewEl();
+        return !!(v && v.classList.contains('active'));
+    }
+
     function handleVisionBoardKeydown(e) {
-        if (e.key === 'Escape') closeVisionBoard();
+        if (e.key === 'Escape' && isVisionOpen()) closeVisionBoard();
     }
 
     window.openVisionBoard = function () {
-        const overlay = document.getElementById('vision-board-overlay');
-        if (!overlay) {
-            console.warn('vision_board: no existe #vision-board-overlay en el HTML.');
+        const view = visionViewEl();
+        if (!view) {
+            console.warn('vision_board: no existe #view-vision-board en el HTML.');
             return;
         }
         if (!_loaded) {
-            buildOverlaySkeleton();
+            buildSkeleton();
+            document.addEventListener('keydown', handleVisionBoardKeydown);
             _loaded = true;
         }
-        overlay.classList.add('vision-board-active');
-        document.body.style.overflow = 'hidden';
-        document.addEventListener('keydown', handleVisionBoardKeydown);
-        _isOpen = true;
+
+        if (!isVisionOpen()) {
+            const activeView = document.querySelector('.bottom-view.active');
+            _previousViewId = activeView ? activeView.id : 'view-home';
+        }
+        document.querySelectorAll('.bottom-view').forEach(v => v.classList.remove('active'));
+        view.classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         loadVisionMetas();
     };
 
     window.closeVisionBoard = function () {
-        const overlay = document.getElementById('vision-board-overlay');
-        if (!overlay) return;
-        overlay.classList.remove('vision-board-active');
-        document.body.style.overflow = '';
-        document.removeEventListener('keydown', handleVisionBoardKeydown);
-        _isOpen = false;
+        const view = visionViewEl();
+        if (view) view.classList.remove('active');
+        const target = document.getElementById(_previousViewId || 'view-home');
+        if (target) target.classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     /* Si la app registra/edita un hábito mientras Metas está
@@ -559,7 +541,7 @@
         if (typeof _supabase !== 'undefined') {
             _supabase.channel('vision-board-habit-changes')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'habit_logs' }, () => {
-                    if (_isOpen) loadVisionMetas();
+                    if (isVisionOpen()) loadVisionMetas();
                 })
                 .subscribe();
         }

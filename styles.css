@@ -2089,7 +2089,7 @@ div.day-segment.future {
 .quick-idea-actions {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: flex-start;
 }
 
 .quick-idea-save-btn {
@@ -2251,18 +2251,6 @@ div.day-segment.future {
  * que se sentía repetitivo). Una sola barra de progreso por métrica
  * y un renglón de detalle debajo.
  */
-.espejo-alma-card {
-    background: linear-gradient(135deg, var(--bg-header) 0%, transparent 100%);
-    border: 1px solid var(--border-color);
-    border-radius: 18px;
-    margin-bottom: 20px;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-}
-
 /* ---------- Hábitos de hoy: título grande + contador + barra a la
    izquierda, anillo circular con el % a la derecha ---------- */
 .espejo-section--ring {
@@ -2353,6 +2341,7 @@ div.day-segment.future {
    un simple separador con border-top, para que las dos métricas se
    vean como un único par de tarjetas coherente. */
 .espejo-section--habitos.espejo-section--ring {
+    margin-bottom: 20px;
     padding: 16px;
     border-radius: 16px;
     background: linear-gradient(135deg, rgba(22, 163, 74, 0.10) 0%, rgba(116, 192, 138, 0.05) 100%);
@@ -2383,6 +2372,7 @@ div.day-segment.future {
  * quién va ganando.
  */
 .espejo-emo-card {
+    margin-bottom: 20px;
     padding: 16px;
     border-radius: 16px;
     background: linear-gradient(135deg, rgba(224, 71, 158, 0.10) 0%, rgba(242, 140, 192, 0.05) 100%);

@@ -40,6 +40,20 @@ const IKILIFE_IMG_PLACEHOLDER =
         '</svg>'
     );
 
+/* Imagen de fondo por defecto de un hábito nuevo (sin fila en
+   habit_images). Se resuelve solo al pintar la tarjeta: crear un
+   hábito NO hace ningún insert/upsert extra en habit_images; solo
+   se guarda una fila cuando el usuario realmente cambia la imagen. */
+const DEFAULT_HABIT_IMAGE = 'images.jpg';
+
+/* Fallback de las tarjetas de hábitos: si la imagen falla, va directo
+   al placeholder embebido (sin red). Así no se encadenan peticiones
+   404 (images.jpg → default.jpg) por cada tarjeta de la lista. */
+function handleHabitImgFallback(img) {
+    img.onerror = null;
+    img.src = IKILIFE_IMG_PLACEHOLDER;
+}
+
 function handleImgFallback(img) {
     if (!img.dataset.fallbackStage) {
         img.dataset.fallbackStage = '1';
@@ -732,7 +746,7 @@ async function seedDefaultHabitsOnce(tag) {
 
     const todayStr = formatDateLocal(new Date());
     const rows = defaults.map(name => ({
-        habit_name: `${name} #${tag}`,
+        habit_name: name,
         log_date: todayStr,
         is_completed: false,
         project_tag: tag,
@@ -836,7 +850,7 @@ async function addHabit() {
     }
 }
 
-async function toggleHabit(btnEl, habitName, dateStr, currentState) {
+async function toggleHabit(btnEl, habitName, dateStr, currentState, tag) {
     // Feedback optimista: refleja el cambio en el botón AL INSTANTE
     // (sin esperar la red) y lo bloquea brevemente para evitar doble
     // clic mientras se sincroniza. El refresco completo (debounced)
@@ -867,7 +881,7 @@ async function toggleHabit(btnEl, habitName, dateStr, currentState) {
 
         if (updateError) console.error("Error actualizando:", updateError.message);
     } else {
-        const projectTag = getProjectFromHabitName(habitName);
+        const projectTag = tag || getProjectFromHabitName(habitName);
 
         const { error: insertError } = await _supabase
             .from('habit_logs')
@@ -885,17 +899,16 @@ async function toggleHabit(btnEl, habitName, dateStr, currentState) {
 }
 
 async function editHabit(oldName) {
-    const newName = prompt("Editar nombre (afectará a todo su historial):", oldName);
-    if (!newName || newName.trim() === "" || newName === oldName) return;
+    const cleanOld = cleanHabitName(oldName);
+    const newName = prompt("Editar nombre (afectará a todo su historial):", cleanOld);
+    if (!newName || newName.trim() === "" || newName.trim() === cleanOld) return;
 
     const updatedName = newName.trim();
-    const newProjectTag = getProjectFromHabitName(updatedName);
 
     const { error } = await _supabase
         .from('habit_logs')
         .update({
-            habit_name: updatedName,
-            project_tag: newProjectTag
+            habit_name: updatedName
         })
         .eq('habit_name', oldName);
 
@@ -939,8 +952,14 @@ async function deleteHabit(name) {
        updated_at timestamptz DEFAULT now()
      ); */
 async function setHabitImage(habitName) {
-    const input = prompt(`Nombre del archivo de imagen para "${cleanHabitName(habitName)}" (debe estar en assets/images/):`, 'default.jpg');
+    const input = prompt(`Nombre del archivo de imagen para "${cleanHabitName(habitName)}" (debe estar en assets/images/):`, DEFAULT_HABIT_IMAGE);
     if (input === null || input.trim() === '') return;
+    if (input.trim() === DEFAULT_HABIT_IMAGE) {
+        // Volver a la imagen por defecto = borrar la fila (no se guarda un valor redundante)
+        await _supabase.from('habit_images').delete().eq('habit_name', habitName);
+        refreshActiveHabitsList();
+        return;
+    }
 
     const { error } = await _supabase
         .from('habit_images')
@@ -2533,11 +2552,11 @@ async function loadHabitsGroup(tag, containerId) {
     uniqueHabits.sort((a, b) => a.localeCompare(b));
 
     uniqueHabits.forEach(habitName => {
-        renderHabitCard(habitName, listContainer, datesOfWeek, currentDay, dayLabels, weekLogs, habitImages);
+        renderHabitCard(habitName, listContainer, datesOfWeek, currentDay, dayLabels, weekLogs, habitImages, tag.toUpperCase());
     });
 }
 
-function renderHabitCard(habitName, listContainer, datesOfWeek, currentDay, dayLabels, weekLogs, habitImages) {
+function renderHabitCard(habitName, listContainer, datesOfWeek, currentDay, dayLabels, weekLogs, habitImages, tag) {
     let daysHTML = '';
     let streakCount = 0;
     let isDoneToday = true;
@@ -2547,16 +2566,16 @@ function renderHabitCard(habitName, listContainer, datesOfWeek, currentDay, dayL
         const isToday = idx + 1 === currentDay;
         const isFuture = idx + 1 > currentDay;
         if (isToday) isDoneToday = isDone;
-        daysHTML += `<button type="button" class="habit-day-chip${isDone ? ' habit-day-chip--done' : ''}${isToday ? ' habit-day-chip--today' : ''}${isFuture ? ' habit-day-chip--future' : ''}" ${isFuture ? 'disabled' : `onclick="toggleHabit(this, '${habitName.replace(/'/g, "\\'")}', '${dateStr}', ${isDone})"`}>${dayLabels[idx]}</button>`;
+        daysHTML += `<button type="button" class="habit-day-chip${isDone ? ' habit-day-chip--done' : ''}${isToday ? ' habit-day-chip--today' : ''}${isFuture ? ' habit-day-chip--future' : ''}" ${isFuture ? 'disabled' : `onclick="toggleHabit(this, '${habitName.replace(/'/g, "\\'")}', '${dateStr}', ${isDone}, '${tag}')"`}>${dayLabels[idx]}</button>`;
     });
 
-    const imageFilename = habitImages[habitName] || 'default.jpg';
+    const imageFilename = habitImages[habitName] || DEFAULT_HABIT_IMAGE;
     const localImagePath = `assets/images/${imageFilename}`;
     const habitNameEscaped = habitName.replace(/'/g, "\\'");
 
     const card = `
         <li class="habit-card" oncontextmenu="event.preventDefault(); deleteHabit('${habitNameEscaped}')" title="Clic derecho para eliminar">
-            <img src="${localImagePath}" class="habit-card-img" onerror="handleImgFallback(this)" onclick="event.stopPropagation(); setHabitImage('${habitNameEscaped}')" title="Clic para cambiar la imagen">
+            <img src="${localImagePath}" class="habit-card-img" loading="lazy" decoding="async" onerror="handleHabitImgFallback(this)" onclick="event.stopPropagation(); setHabitImage('${habitNameEscaped}')" title="Clic para cambiar la imagen">
             <div class="habit-card-info">
                 <div class="habit-card-top">
                     <span class="habit-card-name" onclick="editHabit('${habitNameEscaped}')" title="Clic para editar">${cleanHabitName(habitName)}</span>
@@ -2572,15 +2591,9 @@ function renderHabitCard(habitName, listContainer, datesOfWeek, currentDay, dayL
 async function addHabitForTag(tag) {
     const name = prompt(`Nuevo hábito para ${tag}:`);
     if (!name || name.trim() === "") return;
-    let habitName = name.trim();
+    // La categoría vive SOLO en la columna project_tag; el nombre queda limpio (sin #TAG).
+    const habitName = name.trim();
     const upperTag = tag.toUpperCase();
-    if (!habitName.toUpperCase().includes('#' + upperTag)) {
-        habitName += ' #' + upperTag;
-    }
-    const subgroup = prompt(`Sub-grupo dentro de ${tag} (opcional, ej: Apariencia, Salud Mental). Deja vacío para "General":`);
-    if (subgroup && subgroup.trim() !== "") {
-        habitName += ' #' + subgroup.trim().toUpperCase().replace(/\s+/g, '_');
-    }
     const todayStr = formatDateLocal(new Date());
     const { error } = await _supabase.from('habit_logs').insert([{
         habit_name: habitName,
