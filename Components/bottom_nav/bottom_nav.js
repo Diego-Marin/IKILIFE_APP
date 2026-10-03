@@ -81,7 +81,6 @@
         if (tabId === 'planes') {
             if (typeof loadPlanes === 'function') loadPlanes();
             if (typeof loadTareas === 'function') loadTareas();
-            if (typeof loadIdeas === 'function') loadIdeas();
         }
 
         if (tabId === 'money') {

@@ -1271,21 +1271,6 @@ function switchMoneyTab(which, btn) {
  */
 
 /**
- * "planes-main" muestra la lista de Planes. "planes-ideas" (Brain
- * Dump) es la única subvista alterna, y solo se muestra al abrirla
- * desde el botón de ideas del header (ver openIdeasFromHeader /
- * closeIdeasView). Antes "Tareas" también vivía aquí como una
- * segunda sección dentro de "planes-main"; se eliminó por completo
- * (UI, CSS y lógica) junto con la tabla "tareas_logs".
- */
-function showPlanesMain() {
-    const main = document.getElementById('planes-main');
-    const ideas = document.getElementById('planes-ideas');
-    if (main) main.classList.remove('hidden');
-    if (ideas) ideas.classList.add('hidden');
-}
-
-/**
  * GESTIÓN DE FINANZAS — MOVIDO A COMPONENTE INDEPENDIENTE
  * Todo el módulo de Finanzas (loadFinances, toggleFinanceView,
  * addFinanceCategory, addFinanceItem, presupuestos, balance neto,
@@ -1300,38 +1285,6 @@ function showPlanesMain() {
 
 
 
-
-/**
- * ==========================================
- * IDEA RÁPIDA (INICIO)
- * ==========================================
- * Permite capturar una idea sin salir de Inicio, directo en el textarea.
- * Guarda en la misma tabla "ideas_logs" que usa el Brain Dump.
- * NOTA: se removieron las variables de dictado por voz (Web Speech API,
- * quickIdeaRecognition/Recording/BaseText) — no existe ningún botón de
- * micrófono en el HTML ni se usan en ninguna otra parte del código, así
- * que quedaron declaradas sin ningún efecto real.
- */
-async function saveQuickIdea() {
-    const input = document.getElementById('quick-idea-input');
-    if (!input) return;
-    const content = input.value.trim();
-    if (!content) return;
-
-    const { error } = await _supabase
-        .from('ideas_logs')
-        .insert([{ content: content }]);
-
-    if (error) {
-        alert("Error al guardar la idea: " + error.message);
-        return;
-    }
-
-    input.value = '';
-    randomIdeaCache = []; // invalida el caché de "Pensamiento Aleatorio"
-    if (typeof loadIdeas === 'function') loadIdeas();
-    if (typeof showRandomIdea === 'function') showRandomIdea();
-}
 
 /**
  * ==========================================
@@ -2757,16 +2710,36 @@ async function deleteCustomHabitCategory(tag, subtabId) {
     }
 }
 
+/**
+ * Brain Dump es una subvista propia (#view-ideas), igual que Metas y
+ * Export Center: ya NO vive dentro de #view-planes. Antes
+ * openIdeasFromHeader() llamaba a switchBottomTab('planes') y ocultaba
+ * "planes-main"; como nada lo restauraba al volver a tocar "Planes",
+ * esa pestaña quedaba marcada como activa y mostrando siempre Ideas.
+ * Ahora se recuerda la vista anterior y se vuelve exactamente a ella.
+ */
+let _ideasPreviousViewId = null;
+
 function openIdeasFromHeader() {
-    switchBottomTab('planes');
-    const main = document.getElementById('planes-main');
-    const ideas = document.getElementById('planes-ideas');
-    if (main) main.classList.add('hidden');
-    if (ideas) ideas.classList.remove('hidden');
+    const view = document.getElementById('view-ideas');
+    if (!view) return;
+
+    const activeView = document.querySelector('.bottom-view.active');
+    if (activeView && activeView.id !== 'view-ideas') _ideasPreviousViewId = activeView.id;
+
+    document.querySelectorAll('.bottom-view').forEach(v => v.classList.remove('active'));
+    view.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
     if (typeof loadIdeas === 'function') loadIdeas();
     if (typeof showRandomIdea === 'function') showRandomIdea();
 }
 
 function closeIdeasView() {
-    showPlanesMain();
+    const view = document.getElementById('view-ideas');
+    if (view) view.classList.remove('active');
+
+    const target = document.getElementById(_ideasPreviousViewId || 'view-home');
+    if (target) target.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }

@@ -35,8 +35,8 @@ function formatCurrency(num) {
 
 function toggleFinanceView(viewId) {
     // Soporta 3 vistas: 'finance-main', 'finance-income' y
-    // 'finance-debts'. El ahorro manual (tipo 'saving') se eliminó:
-    // "Ahorro / Capital" ahora es solo informativo (Ingresos - Gastos).
+    // 'finance-debts'. "Ahorro / Capital" es solo informativo (tarjeta
+    // estática, sin vista propia).
     const views = ['finance-main', 'finance-income', 'finance-debts'];
 
     views.forEach(v => {
@@ -191,7 +191,8 @@ async function loadFinances() {
         patrimonioEl.classList.toggle('text-savings', patrimonioNeto >= 0);
     }
 
-    renderPatrimonioWidget(patrimonioNeto, totalGastosReal);
+    const gastoBase = await getGastoMensualBase(totalGastosReal);
+    renderPatrimonioWidget(patrimonioNeto, gastoBase);
 }
 
 /* ==========================================
@@ -339,28 +340,73 @@ async function deleteFinanceItem(id, concept) {
    ========================================== */
 const FINANCE_MONTH_KEY = 'ikilife_finance_current_month';
 
-async function autoRegisterFinanceMonthIfNeeded() {
-    const mesActual = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
+/* Mes actual en HORA LOCAL ('YYYY-MM'). Antes se usaba
+   new Date().toISOString(), que es UTC: en Colombia (UTC-5), desde las
+   7:00 p.m. del último día del mes el "mes UTC" ya es el siguiente, así
+   que el cierre y el reinicio a $0 se disparaban la noche anterior. */
+function getMesLocalYYYYMM() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/* Candado en memoria: loadFinances() se llama desde varios sitios a la
+   vez (pestaña Finanzas, sub-tab, Compras...). Sin esto, dos llamadas
+   simultáneas veían "cambió el mes" antes de que ninguna terminara y
+   ambas cerraban/reiniciaban el mes (la segunda guardaba un historial
+   con todo en $0). */
+let _financeMonthCheckPromise = null;
+
+function autoRegisterFinanceMonthIfNeeded() {
+    if (!_financeMonthCheckPromise) {
+        _financeMonthCheckPromise = _autoRegisterFinanceMonth()
+            .catch(e => console.error('Error en el registro mensual de finanzas:', e))
+            .finally(() => { _financeMonthCheckPromise = null; });
+    }
+    return _financeMonthCheckPromise;
+}
+
+async function _autoRegisterFinanceMonth() {
+    const mesActual = getMesLocalYYYYMM();
     const mesGuardado = localStorage.getItem(FINANCE_MONTH_KEY);
 
     if (!mesGuardado) {
-        // Primera vez que esto corre en este dispositivo: solo fija el
-        // punto de partida, no cierra ningún mes retroactivamente.
+        // Primera vez en este dispositivo: solo fija el punto de partida.
         localStorage.setItem(FINANCE_MONTH_KEY, mesActual);
         return;
     }
 
-    if (mesGuardado === mesActual) return; // seguimos en el mismo mes, nada que hacer
+    // Solo se cierra un mes cuando el guardado es ANTERIOR al actual.
+    // (Con "!==" un dispositivo cuyo mes guardado estuviera adelantado
+    // también reiniciaba.)
+    if (mesGuardado >= mesActual) return;
 
-    // Cambió el mes desde la última vez que se abrió la app: cierra
-    // el mes anterior (mismo cálculo que antes hacía resetFinanceMonth).
+    // Protección multi-dispositivo: el mes guardado vive en localStorage
+    // (uno por navegador). Si OTRO dispositivo ya cerró ese mes, existe
+    // su fila en finance_month_history y los montos ya se reiniciaron;
+    // volver a reiniciar borraría lo que ya registraste en el mes nuevo.
+    const { data: yaCerrado, error: errCheck } = await _supabase
+        .from('finance_month_history')
+        .select('id')
+        .eq('mes', mesGuardado)
+        .limit(1);
+
+    if (errCheck) {
+        console.error('No se pudo verificar el historial mensual (¿existe "finance_month_history"?):', errCheck.message);
+        return; // ante la duda NO se reinicia nada
+    }
+
+    if (yaCerrado && yaCerrado.length > 0) {
+        localStorage.setItem(FINANCE_MONTH_KEY, mesActual);
+        return;
+    }
+
     const { data: finances, error: errFin } = await _supabase
         .from('finance_logs')
         .select('*')
         .order('id', { ascending: true });
     if (errFin) {
         console.error('Error leyendo finanzas para el registro mensual automático:', errFin.message);
-        return; // se reintentará la próxima vez que se abra la app
+        return;
     }
 
     const { data: comprasData } = await _supabase.from('compras_logs').select('ahorro');
@@ -380,19 +426,22 @@ async function autoRegisterFinanceMonthIfNeeded() {
     const totalAhorro = totalIngresos - totalGastos - ahorroAsignado;
     const patrimonioNeto = totalAhorro - totalDeudasParaPatrimonio;
 
-    const { error: errHist } = await _supabase.from('finance_month_history').insert([{
-        mes: mesGuardado,
-        total_ingresos: totalIngresos,
-        total_gastos: totalGastos,
-        total_ahorro: totalAhorro,
-        total_deudas: totalDeudas,
-        patrimonio_neto: patrimonioNeto,
-        detalle: finances,
-    }]);
+    const { data: insertado, error: errHist } = await _supabase
+        .from('finance_month_history')
+        .insert([{
+            mes: mesGuardado,
+            total_ingresos: totalIngresos,
+            total_gastos: totalGastos,
+            total_ahorro: totalAhorro,
+            total_deudas: totalDeudas,
+            patrimonio_neto: patrimonioNeto,
+            detalle: finances,
+        }])
+        .select('id');
 
     if (errHist) {
-        console.error('No se pudo guardar el registro mensual automático (¿existe la tabla "finance_month_history"?):', errHist.message);
-        return; // no reinicia ni actualiza el mes: se reintentará la próxima vez
+        console.error('No se pudo guardar el registro mensual automático:', errHist.message);
+        return; // no reinicia nada: se reintentará la próxima vez
     }
 
     const { error: errReset } = await _supabase
@@ -401,7 +450,12 @@ async function autoRegisterFinanceMonthIfNeeded() {
         .not('id', 'is', null);
 
     if (errReset) {
-        console.error('El registro mensual se guardó, pero hubo un error al reiniciar los montos:', errReset.message);
+        console.error('El registro mensual se guardó, pero falló el reinicio de montos:', errReset.message);
+        // Se deshace el historial para que el reintento no lo tome
+        // como "mes ya cerrado" y se quede sin reiniciar.
+        if (insertado && insertado[0]) {
+            await _supabase.from('finance_month_history').delete().eq('id', insertado[0].id);
+        }
         return;
     }
 
@@ -410,9 +464,49 @@ async function autoRegisterFinanceMonthIfNeeded() {
 
 
 /* ==========================================
-   PATRIMONIO NETO INTERACTIVO
-   ========================================== */
-function renderPatrimonioWidget(patrimonio, gastosMensuales) {
+   PATRIMONIO NETO — COLCHÓN EN MESES
+   ==========================================
+   Colchón = Patrimonio Neto / gasto mensual base.
+   El gasto del mes en curso es engañoso (a inicios de mes es ~$0 y
+   el colchón se dispara), así que la base es el MAYOR entre el gasto
+   actual y el promedio de los últimos 3 meses cerrados
+   (finance_month_history). La barra es lineal: 0 a 12 meses. */
+const PATRIMONIO_META_MESES = 12;
+
+async function getGastoMensualBase(gastoActual) {
+    let promedio = 0;
+    try {
+        const { data, error } = await _supabase
+            .from('finance_month_history')
+            .select('mes, total_gastos')
+            .order('mes', { ascending: false })
+            .limit(12);
+
+        if (!error && data) {
+            // Un valor por mes (el mayor) y se ignoran meses en $0.
+            const porMes = {};
+            data.forEach(r => {
+                const g = Number(r.total_gastos) || 0;
+                if (g > 0 && (porMes[r.mes] === undefined || g > porMes[r.mes])) porMes[r.mes] = g;
+            });
+            const ultimos = Object.keys(porMes).sort().reverse().slice(0, 3).map(m => porMes[m]);
+            if (ultimos.length > 0) promedio = ultimos.reduce((a, b) => a + b, 0) / ultimos.length;
+        }
+    } catch (e) { /* sin historial: se usa el gasto actual */ }
+
+    return Math.max(Number(gastoActual) || 0, promedio);
+}
+
+function getPatrimonioEstado(meses) {
+    if (meses < 0) return { clase: 'patrimonio--rojo', texto: 'En riesgo' };
+    if (meses < 1) return { clase: 'patrimonio--amarillo', texto: 'Frágil' };
+    if (meses < 3) return { clase: 'patrimonio--verde', texto: 'En construcción' };
+    if (meses < 6) return { clase: 'patrimonio--verde', texto: 'Sólido' };
+    if (meses < 12) return { clase: 'patrimonio--verde', texto: 'Casi libre' };
+    return { clase: 'patrimonio--verde', texto: 'Libre' };
+}
+
+function renderPatrimonioWidget(patrimonio, gastoBase) {
     const container = document.getElementById('finance-main');
     if (!container) return;
 
@@ -423,72 +517,39 @@ function renderPatrimonioWidget(patrimonio, gastosMensuales) {
     widget.id = 'patrimonio-widget';
     widget.className = 'patrimonio-widget';
 
-    var mensaje = '';
-    var submensaje = '';
-    var emoji = '';
-    var claseColor = '';
-    var barraPct = 50;
-
-    if (patrimonio < 0) {
-        emoji = '\uD83D\uDEA8';
-        claseColor = 'patrimonio--rojo';
-        var mesesSalir = gastosMensuales > 0 ? Math.abs(patrimonio) / gastosMensuales : 0;
-        mensaje = 'Estás en zona de riesgo financiero';
-        submensaje = 'Necesitas aproximadamente ' + mesesSalir.toFixed(1) + ' meses de ingresos para salir de rojo.';
-        barraPct = Math.max(5, 50 - (mesesSalir / 3) * 50);
-    } else if (patrimonio === 0 || (gastosMensuales > 0 && patrimonio < gastosMensuales)) {
-        emoji = '\u2696\uFE0F';
-        claseColor = 'patrimonio--amarillo';
-        mensaje = 'En equilibrio frágil';
-        submensaje = 'Cualquier imprevisto te sacaría de tu zona de confort. Intenta aumentar tu colchón.';
-        barraPct = 55;
+    let html;
+    if (!(gastoBase > 0)) {
+        html =
+            '<div class="patrimonio-top"><span class="patrimonio-label">Colchón financiero</span></div>' +
+            '<div class="patrimonio-sub">Registra tus gastos para calcular cuántos meses cubre tu patrimonio.</div>';
     } else {
-        var meses = gastosMensuales > 0 ? patrimonio / gastosMensuales : 0;
-        claseColor = 'patrimonio--verde';
-        if (meses < 3) {
-            emoji = '\uD83C\uDF31';
-            mensaje = 'Tienes ' + meses.toFixed(1) + ' meses de ventaja de vida';
-            submensaje = 'Buen comienzo. Sigue construyendo tu libertad financiera.';
-            barraPct = 55 + (meses / 3) * 20;
-        } else if (meses < 6) {
-            emoji = '\uD83D\uDEE1\uFE0F';
-            mensaje = 'Tienes ' + meses.toFixed(1) + ' meses de ventaja de vida';
-            submensaje = 'Colchón financiero sólido. Puedes respirar tranquilo ante imprevistos.';
-            barraPct = 75 + ((meses - 3) / 3) * 10;
-        } else if (meses < 12) {
-            emoji = '\uD83D\uDE80';
-            mensaje = 'Tienes ' + meses.toFixed(1) + ' meses de ventaja de vida';
-            submensaje = 'Libertad parcial alcanzada. Estás muy cerca de la independencia.';
-            barraPct = 85 + ((meses - 6) / 6) * 10;
-        } else {
-            emoji = '\uD83C\uDFC6';
-            mensaje = meses.toFixed(1) + ' meses de libertad financiera!';
-            submensaje = 'Has alcanzado un nivel de seguridad envidiable. Tu dinero trabaja para ti.';
-            barraPct = 95;
-        }
+        const meses = patrimonio / gastoBase;
+        const estado = getPatrimonioEstado(meses);
+        const pct = Math.max(0, Math.min(100, (meses / PATRIMONIO_META_MESES) * 100));
+        const mesesTxt = (meses < 0 ? '−' : '') + Math.abs(meses).toFixed(1);
+        const sub = meses < 0
+            ? 'Déficit de ' + formatCurrency(Math.abs(patrimonio)) + ' sobre un gasto base de ' + formatCurrency(gastoBase) + '/mes.'
+            : 'Sobre un gasto base de ' + formatCurrency(gastoBase) + '/mes.';
+
+        html =
+            '<div class="patrimonio-top">' +
+                '<span class="patrimonio-label">Colchón financiero</span>' +
+                '<span class="patrimonio-estado ' + estado.clase + '">' + estado.texto + '</span>' +
+            '</div>' +
+            '<div class="patrimonio-valor ' + estado.clase + '">' + mesesTxt + '<span class="patrimonio-unidad"> meses</span></div>' +
+            '<div class="patrimonio-sub">' + sub + '</div>' +
+            '<div class="patrimonio-bar-track"><div class="patrimonio-bar-fill ' + estado.clase + '" style="width:' + pct.toFixed(1) + '%;"></div></div>' +
+            '<div class="patrimonio-bar-ticks">' +
+                '<span style="left:0">0</span>' +
+                '<span style="left:25%">3</span>' +
+                '<span style="left:50%">6</span>' +
+                '<span style="left:100%">12</span>' +
+            '</div>';
     }
 
-    widget.innerHTML =
-        '<div class="patrimonio-header ' + claseColor + '">' +
-            '<span class="patrimonio-emoji">' + emoji + '</span>' +
-            '<div class="patrimonio-texts">' +
-                '<div class="patrimonio-mensaje">' + mensaje + '</div>' +
-                '<div class="patrimonio-submensaje">' + submensaje + '</div>' +
-            '</div>' +
-        '</div>' +
-        '<div class="patrimonio-bar-wrap">' +
-            '<div class="patrimonio-bar-track">' +
-                '<div class="patrimonio-bar-fill ' + claseColor + '" style="width:' + barraPct + '%;"></div>' +
-                '<div class="patrimonio-bar-marker" style="left:' + barraPct + '%"></div>' +
-            '</div>' +
-            '<div class="patrimonio-bar-labels">' +
-                '<span>Endeudado</span>' +
-                '<span>Equilibrio</span>' +
-                '<span>Libre</span>' +
-            '</div>' +
-        '</div>';
+    widget.innerHTML = html;
 
-    var summaryGrid = container.querySelector('.summary-grid');
+    const summaryGrid = container.querySelector('.summary-grid');
     if (summaryGrid && summaryGrid.nextSibling) {
         container.insertBefore(widget, summaryGrid.nextSibling);
     } else {
