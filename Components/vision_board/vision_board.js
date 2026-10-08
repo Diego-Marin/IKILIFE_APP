@@ -14,23 +14,17 @@
  * Para volver atrás se usa la barra inferior o la tecla Esc. Doble clic
  * en un tab = renombrar; clic derecho = eliminar.
  *
- * HÁBITOS → PUNTOS Y RANKING
- * Cada meta (tab) puede tener hábitos vinculados (botón "Vincular
- * hábitos" en el panel de la meta). Cada día que cumples un hábito
- * vinculado suma PTS_POR_CUMPLIDO puntos a esa meta. Los puntos NO se
- * guardan: se calculan siempre desde habit_logs (días completados), así
- * que nunca se desfasan y marcar/desmarcar un hábito los ajusta solo.
- * Incluye todo el historial del hábito, no solo desde que se vinculó.
- *   - Nivel: sube con los puntos (nivel n desde 50·n·(n−1) pts).
- *   - Racha: días seguidos con al menos un hábito vinculado cumplido.
- *   - Ranking: todas tus metas ordenadas por puntos.
- * Al marcar un hábito vinculado en Hábitos aparece un aviso "+10 pts".
- * Un hábito puede vincularse a varias metas (suma en cada una).
- *
- * Hooks que llama main.js (todos opcionales):
- *   visionOnHabitToggled(nombre, completado)  → aviso de puntos
- *   visionOnHabitRenamed(viejo, nuevo)        → conserva el vínculo
- *   visionOnHabitDeleted(nombre)              → borra el vínculo
+ * PASOS DE CADA META
+ * Debajo de los tabs, cada meta tiene su lista de pasos para ir
+ * chuleando y ver el avance de eso que estás proyectando (ej. la moto:
+ * sacar papeles, llevarla donde mamá, preguntar impuestos). Hay dos tipos:
+ *   - "Una vez": se chulea y queda hecho. Alimentan la barra de avance
+ *     (3 de 5 pasos = 60%).
+ *   - "Se repiten": todos los días o N veces por semana. Se chulean por
+ *     día (L M M J V S D, igual que Hábitos) y muestran cuántas llevas
+ *     esta semana, la racha (si es diaria) y el total de veces.
+ * Si una meta solo tiene pasos repetidos, la barra mide la semana.
+ * Los pasos hechos se agrupan bajo "Hechos" para no alargar el panel.
  *
  * TABLAS REQUERIDAS EN SUPABASE:
  *   CREATE TABLE vision_metas (
@@ -49,15 +43,28 @@
  *     created_at timestamptz DEFAULT now()
  *   );
  *
- *   -- NUEVA: hábitos vinculados a cada meta (puntos y ranking).
- *   CREATE TABLE vision_habit_links (
+ *   -- NUEVAS: pasos de cada meta y su registro diario.
+ *   CREATE TABLE vision_tareas (
  *     id bigint generated always as identity PRIMARY KEY,
  *     meta_id bigint NOT NULL REFERENCES vision_metas(id) ON DELETE CASCADE,
- *     habit_name text NOT NULL,
+ *     title text NOT NULL,
+ *     tipo text NOT NULL DEFAULT 'unica',   -- 'unica' | 'repetida'
+ *     veces_semana int,                     -- repetida: 7 = diaria, 1-6 = N por semana
+ *     done_at timestamptz,                  -- unica: cuándo se completó
+ *     created_at timestamptz DEFAULT now()
+ *   );
+ *
+ *   CREATE TABLE vision_tarea_logs (
+ *     id bigint generated always as identity PRIMARY KEY,
+ *     tarea_id bigint NOT NULL REFERENCES vision_tareas(id) ON DELETE CASCADE,
+ *     fecha date NOT NULL,
  *     created_at timestamptz DEFAULT now(),
- *     UNIQUE (meta_id, habit_name)
+ *     UNIQUE (tarea_id, fecha)
  *   );
  *   (Si usas RLS en tus otras tablas, agrega la misma política aquí.)
+ *
+ *   -- Ya no se usa (vínculo hábito ↔ meta, versión anterior):
+ *   --   DROP TABLE IF EXISTS vision_habit_links;
  *
  * Si la tabla vision_metas ya existía de antes con "image_filename"
  * (versión de una sola imagen por meta), esa columna se puede dejar
@@ -65,8 +72,7 @@
  *   ALTER TABLE vision_metas DROP COLUMN IF EXISTS image_filename;
  *
  * USO: cargar después de main.js y de mood_tracker.js (usa _supabase,
- * HABIT_CATEGORIES, resolveHabitTag, fetchAllRows, cleanHabitName y
- * getFechaHoyISO — todas ya definidas por esos componentes).
+ * getFechaHoyISO — definida en mood_tracker.js).
  */
 (function () {
     let _loaded = false;
@@ -76,15 +82,14 @@
     let _imagesByMeta = {}; // { [metaId]: [{id, image_filename}, ...] }
     let _activeMetaId = null;
 
-    // Hábitos vinculados, puntos y ranking.
-    const PTS_POR_CUMPLIDO = 10;
-    const NIVELES = ['Semilla', 'Brote', 'Raíz', 'Tallo', 'Hoja', 'Rama', 'Árbol', 'Bosque'];
-    let _links = [];                 // [{ id, meta_id, habit_name }]
-    let _linksDisponibles = true;    // false si falta la tabla vision_habit_links
-    let _stats = {};                 // { [metaId]: { puntos, semana, hoy, racha, nivel..., habitos: [] } }
-    let _pickerOpen = false;
-    let _allHabits = [];             // [{ name, tag }] para el selector
-    let _toastTimer = null;
+    // Pasos de cada meta.
+    const DIAS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+    let _tareas = [];                // filas de vision_tareas (todas las metas)
+    let _logs = {};                  // { [tareaId]: Set('YYYY-MM-DD') } solo repetidas
+    let _tareasDisponibles = true;   // false si faltan las tablas
+    let _formOpen = false;
+    let _showDone = false;
+    let _draft = { title: '', freq: 'unica' };
 
     function esc(text) {
         return String(text == null ? '' : text)
@@ -101,14 +106,17 @@
                 <div class="vision-tabs" id="vision-tabs"></div>
             </div>
             <div class="vision-panel" id="vision-meta-panel"></div>
-            <div class="vision-ranking" id="vision-ranking"></div>
             <div class="vision-feed" id="vision-feed"></div>
         `;
 
-        root.querySelector('#vision-meta-panel').addEventListener('click', onPanelClick);
-        root.querySelector('#vision-ranking').addEventListener('click', (e) => {
-            const row = e.target.closest('.vision-rank-row');
-            if (row) switchVisionMetaTab(Number(row.dataset.metaId));
+        const panel = root.querySelector('#vision-meta-panel');
+        panel.addEventListener('click', onPanelClick);
+        panel.addEventListener('input', onPanelInput);
+        panel.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.target.id === 'vision-add-title') {
+                e.preventDefault();
+                submitNuevoPaso();
+            }
         });
 
         return root;
@@ -164,9 +172,9 @@
         renderFeed();
         renderPanel();   // primero lo que ya se sabe, para que no se vea vacío
 
-        await loadHabitStats();
+        await loadTareas();
+        renderTabs();    // ahora con el % de cada meta
         renderPanel();
-        renderRanking();
     }
 
     function renderTabs() {
@@ -181,6 +189,13 @@
             btn.className = 'vision-tab-btn' + (meta.id === _activeMetaId ? ' vision-tab-active' : '');
             btn.dataset.metaId = meta.id;
             btn.textContent = meta.name;
+            const resumen = resumenMeta(meta.id);
+            if (resumen.hayPasos) {
+                const pct = document.createElement('span');
+                pct.className = 'vision-tab-pct';
+                pct.textContent = ` ${resumen.pct}%`;
+                btn.appendChild(pct);
+            }
             btn.addEventListener('click', () => switchVisionMetaTab(meta.id));
             btn.addEventListener('dblclick', () => editVisionMetaName(meta.id, meta.name));
             btn.addEventListener('contextmenu', (e) => {
@@ -214,9 +229,9 @@
         document.querySelectorAll('.vision-tab-btn').forEach(b => {
             b.classList.toggle('vision-tab-active', Number(b.dataset.metaId) === id);
         });
-        _pickerOpen = false;
+        _formOpen = false;
+        _showDone = false;
         renderPanel();
-        renderRanking();
         renderFeed();
     };
 
@@ -275,7 +290,7 @@
     }
 
     /* ==========================================
-       HÁBITOS VINCULADOS: DATOS Y CÁLCULO DE PUNTOS
+       PASOS DE LA META
        ========================================== */
     function toISO(d) {
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -290,15 +305,21 @@
         return toISO(new Date(y, m - 1, d + n));
     }
 
-    function lunesDeEstaSemanaISO() {
+    // Lunes a domingo de la semana actual.
+    function fechasDeLaSemana() {
         const d = new Date();
         const dia = d.getDay() === 0 ? 7 : d.getDay();
         d.setDate(d.getDate() - dia + 1);
-        return toISO(d);
+        const fechas = [];
+        for (let i = 0; i < 7; i++) {
+            fechas.push(toISO(d));
+            d.setDate(d.getDate() + 1);
+        }
+        return fechas;
     }
 
-    // Días seguidos con actividad. Si hoy aún no se cumple nada, la
-    // racha no se rompe: se cuenta desde ayer.
+    // Días seguidos cumplidos. Si hoy aún no se marca, la racha no se
+    // rompe: se cuenta desde ayer.
     function calcRacha(fechas, hoy) {
         let cursor = fechas.has(hoy) ? hoy : addDias(hoy, -1);
         let n = 0;
@@ -309,94 +330,157 @@
         return n;
     }
 
-    // Nivel n empieza en 50·n·(n−1) puntos: 0, 100, 300, 600, 1000...
-    function calcNivel(puntos) {
-        const n = Math.max(1, Math.floor((1 + Math.sqrt(1 + (4 * puntos) / 50)) / 2));
-        const base = 50 * n * (n - 1);
-        const siguiente = 50 * (n + 1) * n;
-        return {
-            nivel: n,
-            nombre: NIVELES[Math.min(n - 1, NIVELES.length - 1)],
-            pct: Math.round(((puntos - base) / (siguiente - base)) * 100),
-            faltan: siguiente - puntos,
-        };
-    }
+    async function loadTareas() {
+        const { data, error } = await _supabase
+            .from('vision_tareas')
+            .select('*')
+            .order('created_at', { ascending: true });
 
-    async function fetchCompletedLogs(nombres) {
-        const PAGE = 1000;
-        const filas = [];
-        for (let from = 0; ; from += PAGE) {
-            const { data, error } = await _supabase
-                .from('habit_logs')
-                .select('habit_name, log_date')
-                .eq('is_completed', true)
-                .in('habit_name', nombres)
-                .order('id', { ascending: true })
-                .range(from, from + PAGE - 1);
-            if (error) {
-                console.error('Error cargando habit_logs para los puntos de Metas:', error.message);
-                break;
-            }
-            filas.push(...(data || []));
-            if (!data || data.length < PAGE) break;
-        }
-        return filas;
-    }
-
-    async function loadHabitStats() {
-        const { data, error } = await _supabase.from('vision_habit_links').select('*');
         if (error) {
-            _linksDisponibles = false;
-            _links = [];
-            _stats = {};
+            _tareasDisponibles = false;
+            _tareas = [];
+            _logs = {};
             return;
         }
-        _linksDisponibles = true;
-        _links = data || [];
 
-        const nombres = [...new Set(_links.map(l => l.habit_name))];
-        const logs = nombres.length > 0 ? await fetchCompletedLogs(nombres) : [];
+        _tareasDisponibles = true;
+        _tareas = data || [];
+        _logs = {};
 
-        // Un día cumplido cuenta una sola vez aunque haya filas duplicadas.
-        const fechasPorHabito = {};
-        logs.forEach(l => {
-            if (!fechasPorHabito[l.habit_name]) fechasPorHabito[l.habit_name] = new Set();
-            fechasPorHabito[l.habit_name].add(l.log_date);
-        });
+        const ids = _tareas.filter(t => t.tipo === 'repetida').map(t => t.id);
+        ids.forEach(id => { _logs[id] = new Set(); });
+        if (ids.length === 0) return;
 
+        const PAGE = 1000;
+        for (let from = 0; ; from += PAGE) {
+            const { data: logs, error: errLogs } = await _supabase
+                .from('vision_tarea_logs')
+                .select('tarea_id, fecha')
+                .in('tarea_id', ids)
+                .order('id', { ascending: true })
+                .range(from, from + PAGE - 1);
+            if (errLogs) {
+                console.error('Error cargando vision_tarea_logs:', errLogs.message);
+                break;
+            }
+            (logs || []).forEach(l => {
+                if (!_logs[l.tarea_id]) _logs[l.tarea_id] = new Set();
+                _logs[l.tarea_id].add(l.fecha);
+            });
+            if (!logs || logs.length < PAGE) break;
+        }
+    }
+
+    function resumenMeta(metaId) {
+        const mias = _tareas.filter(t => t.meta_id === metaId);
+        const unicas = mias.filter(t => t.tipo !== 'repetida');
+        const reps = mias.filter(t => t.tipo === 'repetida');
+        const hechas = unicas.filter(t => t.done_at).length;
+
+        const semana = fechasDeLaSemana();
         const hoy = hoyISO();
-        const lunes = lunesDeEstaSemanaISO();
-        _stats = {};
-
-        _metas.forEach(meta => {
-            const habitos = _links
-                .filter(l => l.meta_id === meta.id)
-                .map(l => {
-                    const fechas = fechasPorHabito[l.habit_name] || new Set();
-                    let semana = 0;
-                    fechas.forEach(f => { if (f >= lunes && f <= hoy) semana++; });
-                    return { name: l.habit_name, dias: fechas.size, puntos: fechas.size * PTS_POR_CUMPLIDO, semana, hoy: fechas.has(hoy) };
-                })
-                .sort((a, b) => b.puntos - a.puntos || a.name.localeCompare(b.name));
-
-            const union = new Set();
-            habitos.forEach(h => (fechasPorHabito[h.name] || []).forEach(f => union.add(f)));
-
-            const puntos = habitos.reduce((acc, h) => acc + h.puntos, 0);
-            _stats[meta.id] = {
-                puntos,
-                semana: habitos.reduce((acc, h) => acc + h.semana, 0) * PTS_POR_CUMPLIDO,
-                hoy: habitos.filter(h => h.hoy).length,
-                racha: calcRacha(union, hoy),
-                habitos,
-                ...calcNivel(puntos),
-            };
+        let semHechas = 0;
+        let semMeta = 0;
+        reps.forEach(t => {
+            const set = _logs[t.id] || new Set();
+            const veces = semana.filter(f => f <= hoy && set.has(f)).length;
+            semHechas += Math.min(veces, t.veces_semana || 7);
+            semMeta += t.veces_semana || 7;
         });
+
+        let pct = 0;
+        let etiqueta = '';
+        if (unicas.length > 0) {
+            pct = Math.round((hechas / unicas.length) * 100);
+            etiqueta = hechas === unicas.length ? 'Todos los pasos listos' : `${hechas} de ${unicas.length} pasos`;
+        } else if (reps.length > 0) {
+            pct = semMeta > 0 ? Math.round((semHechas / semMeta) * 100) : 0;
+            etiqueta = `${semHechas} de ${semMeta} esta semana`;
+        }
+
+        return { unicas, reps, hechas, semHechas, semMeta, pct, etiqueta, hayPasos: mias.length > 0 };
     }
 
     /* ==========================================
        PANEL DE LA META ACTIVA
        ========================================== */
+    function frecuenciaTexto(veces) {
+        if (veces >= 7) return 'Todos los días';
+        return veces === 1 ? '1 vez por semana' : `${veces} veces por semana`;
+    }
+
+    function renderPaso(t) {
+        const hecho = !!t.done_at;
+        return `
+            <li class="vision-step${hecho ? ' vision-step--done' : ''}">
+                <button type="button" class="vision-check${hecho ? ' on' : ''}" data-action="toggle-unica" data-id="${t.id}"
+                    aria-pressed="${hecho}" aria-label="${hecho ? 'Desmarcar' : 'Marcar'} paso">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"
+                        stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </button>
+                <span class="vision-step-title" data-action="edit" data-id="${t.id}" title="Clic para editar">${esc(t.title)}</span>
+                <button type="button" class="vision-step-del" data-action="delete" data-id="${t.id}" aria-label="Eliminar paso" title="Eliminar">×</button>
+            </li>`;
+    }
+
+    function renderRepetido(t) {
+        const set = _logs[t.id] || new Set();
+        const semana = fechasDeLaSemana();
+        const hoy = hoyISO();
+        const veces = t.veces_semana || 7;
+        const estaSemana = semana.filter(f => f <= hoy && set.has(f)).length;
+        const racha = veces >= 7 ? calcRacha(set, hoy) : 0;
+
+        const chips = semana.map((fecha, i) => {
+            const futuro = fecha > hoy;
+            const clases = 'vision-day-chip'
+                + (set.has(fecha) ? ' on' : '')
+                + (fecha === hoy ? ' today' : '')
+                + (futuro ? ' future' : '');
+            return `<button type="button" class="${clases}" data-action="toggle-dia" data-id="${t.id}" data-fecha="${fecha}"
+                ${futuro ? 'disabled' : ''} aria-pressed="${set.has(fecha)}">${DIAS[i]}</button>`;
+        }).join('');
+
+        return `
+            <li class="vision-rep">
+                <div class="vision-rep-top">
+                    <span class="vision-step-title" data-action="edit" data-id="${t.id}" title="Clic para editar">${esc(t.title)}</span>
+                    <button type="button" class="vision-step-del" data-action="delete" data-id="${t.id}" aria-label="Eliminar paso" title="Eliminar">×</button>
+                </div>
+                <div class="vision-rep-info">
+                    <span>${frecuenciaTexto(veces)}</span>
+                    <span class="vision-rep-count${estaSemana >= veces ? ' vision-rep-count--ok' : ''}">${estaSemana} de ${veces} esta semana</span>
+                    ${racha > 1 ? `<span>Racha de ${racha} días</span>` : ''}
+                    <span>${set.size} en total</span>
+                </div>
+                <div class="vision-rep-days">${chips}</div>
+            </li>`;
+    }
+
+    function renderForm() {
+        const opciones = [
+            ['unica', 'Una sola vez'],
+            ['7', 'Todos los días'],
+            ['1', '1 vez por semana'],
+            ['2', '2 veces por semana'],
+            ['3', '3 veces por semana'],
+            ['4', '4 veces por semana'],
+            ['5', '5 veces por semana'],
+            ['6', '6 veces por semana'],
+        ].map(([v, txt]) => `<option value="${v}"${_draft.freq === v ? ' selected' : ''}>${txt}</option>`).join('');
+
+        return `
+            <div class="vision-add-form">
+                <input type="text" id="vision-add-title" class="vision-add-input" maxlength="120"
+                    placeholder="Ej. Sacar los papeles" value="${esc(_draft.title)}" autocomplete="off">
+                <select id="vision-add-freq" class="vision-add-select" aria-label="Frecuencia">${opciones}</select>
+                <div class="vision-add-actions">
+                    <button type="button" class="vision-add-submit" data-action="add-submit">Agregar</button>
+                    <button type="button" class="vision-add-cancel" data-action="add-cancel">Listo</button>
+                </div>
+            </div>`;
+    }
+
     function renderPanel() {
         const el = document.getElementById('vision-meta-panel');
         if (!el) return;
@@ -409,240 +493,193 @@
         }
         el.style.display = '';
 
-        if (!_linksDisponibles) {
-            el.innerHTML = `<div class="vision-panel-empty">Para vincular hábitos falta crear la tabla <strong>vision_habit_links</strong> en Supabase. El SQL está al inicio de vision_board.js.</div>`;
+        if (!_tareasDisponibles) {
+            el.innerHTML = `<div class="vision-panel-empty">Para agregar pasos falta crear las tablas <strong>vision_tareas</strong> y <strong>vision_tarea_logs</strong> en Supabase. El SQL está al inicio de vision_board.js.</div>`;
             return;
         }
 
-        const st = _stats[meta.id] || { puntos: 0, semana: 0, hoy: 0, racha: 0, habitos: [], nivel: 1, nombre: NIVELES[0], pct: 0, faltan: 100 };
+        const r = resumenMeta(meta.id);
+        const pendientes = r.unicas.filter(t => !t.done_at);
+        const hechos = r.unicas.filter(t => t.done_at);
 
-        const orden = rankingOrdenado();
-        const posicion = orden.findIndex(m => m.id === meta.id) + 1;
-        const rankHtml = (_metas.length > 1 && st.habitos.length > 0)
-            ? `<span class="vision-panel-rank" title="Posición en el ranking de tus metas">#${posicion} de ${_metas.length}</span>`
-            : '';
-
-        const filas = st.habitos.map(h => `
-            <li class="vision-habit-row">
-                <span class="vision-habit-name">${esc(cleanName(h.name))}</span>
-                ${h.hoy ? '<span class="vision-habit-today" title="Cumplido hoy">hoy ✓</span>' : ''}
-                <span class="vision-habit-days">${h.dias} ${h.dias === 1 ? 'día' : 'días'}</span>
-                <span class="vision-habit-pts">${h.puntos}</span>
-                <button type="button" class="vision-habit-unlink" data-action="unlink" data-habit="${esc(h.name)}"
-                    aria-label="Quitar vínculo" title="Quitar vínculo">×</button>
-            </li>
-        `).join('');
-
-        el.innerHTML = `
+        const cabecera = r.hayPasos ? `
             <div class="vision-panel-top">
-                <div>
-                    <div class="vision-panel-level">Nivel ${st.nivel}: ${st.nombre}</div>
-                    <div class="vision-panel-points">${st.puntos}<span class="vision-panel-points-unit"> pts</span></div>
-                </div>
-                ${rankHtml}
+                <span class="vision-panel-pct">${r.pct}%</span>
+                <span class="vision-panel-label">${esc(r.etiqueta)}</span>
             </div>
             <div class="ik-bar-track vision-panel-bar">
-                <div class="ik-bar-fill ik-bar-fill--green" style="width:${st.pct}%;"></div>
+                <div class="ik-bar-fill ik-bar-fill--green" style="width:${r.pct}%;"></div>
             </div>
-            <div class="vision-panel-sub">Faltan ${st.faltan} pts para el nivel ${st.nivel + 1}</div>
+            ${(r.unicas.length > 0 && r.reps.length > 0)
+                ? `<div class="vision-panel-sub">Constancia de la semana: ${r.semHechas} de ${r.semMeta}</div>` : ''}
+        ` : '';
 
-            <div class="vision-panel-stats">
-                <div class="vision-stat"><span class="vision-stat-value">${st.hoy}</span><span class="vision-stat-label">hábitos hoy</span></div>
-                <div class="vision-stat"><span class="vision-stat-value">${st.semana}</span><span class="vision-stat-label">pts esta semana</span></div>
-                <div class="vision-stat"><span class="vision-stat-value">${st.racha}</span><span class="vision-stat-label">${st.racha === 1 ? 'día de racha' : 'días de racha'}</span></div>
-            </div>
+        const seccionPasos = (pendientes.length + hechos.length) > 0 ? `
+            <div class="vision-section">
+                <div class="vision-section-title">Pasos</div>
+                ${pendientes.length > 0
+                    ? `<ul class="vision-steps">${pendientes.map(renderPaso).join('')}</ul>`
+                    : `<div class="vision-panel-empty">No te queda ningún paso pendiente.</div>`}
+                ${hechos.length > 0 ? `
+                    <button type="button" class="vision-done-toggle" data-action="toggle-done">
+                        ${_showDone ? 'Ocultar' : 'Ver'} hechos (${hechos.length})
+                    </button>
+                    ${_showDone ? `<ul class="vision-steps">${hechos.map(renderPaso).join('')}</ul>` : ''}
+                ` : ''}
+            </div>` : '';
 
-            <div class="vision-panel-head">
-                <span class="vision-panel-head-label">Hábitos vinculados</span>
-                <button type="button" class="vision-link-toggle" data-action="toggle-picker">${_pickerOpen ? 'Listo' : 'Vincular hábitos'}</button>
-            </div>
-            ${st.habitos.length > 0
-                ? `<ul class="vision-habit-list">${filas}</ul>`
-                : `<div class="vision-panel-empty">Vincula hábitos a esta meta: cada día que los cumplas suma ${PTS_POR_CUMPLIDO} pts.</div>`}
-            ${_pickerOpen ? renderPicker(meta.id) : ''}
+        const seccionRepetidos = r.reps.length > 0 ? `
+            <div class="vision-section">
+                <div class="vision-section-title">Se repiten</div>
+                <ul class="vision-reps">${r.reps.map(renderRepetido).join('')}</ul>
+            </div>` : '';
+
+        const vacio = !r.hayPasos && !_formOpen
+            ? `<div class="vision-panel-empty">Agrega los pasos que te acercan a esta meta: cosas que haces una vez o que repites cada día o cada semana.</div>`
+            : '';
+
+        el.innerHTML = `
+            ${cabecera}
+            ${seccionPasos}
+            ${seccionRepetidos}
+            ${vacio}
+            ${_formOpen
+                ? renderForm()
+                : `<button type="button" class="vision-add-step-btn" data-action="show-form">+ Agregar paso</button>`}
         `;
     }
 
-    function cleanName(name) {
-        return (typeof cleanHabitName === 'function') ? cleanHabitName(name) : name;
-    }
-
-    function renderPicker(metaId) {
-        if (_allHabits.length === 0) {
-            return `<div class="vision-panel-empty">Aún no tienes hábitos. Créalos en la pestaña Hábitos.</div>`;
-        }
-
-        const vinculados = new Set(_links.filter(l => l.meta_id === metaId).map(l => l.habit_name));
-
-        // Orden: categorías conocidas primero, luego el resto.
-        const categorias = (typeof HABIT_CATEGORIES !== 'undefined') ? Object.values(HABIT_CATEGORIES) : [];
-        const porTag = {};
-        _allHabits.forEach(h => {
-            if (!porTag[h.tag]) porTag[h.tag] = [];
-            porTag[h.tag].push(h);
-        });
-        const tags = [
-            ...categorias.map(c => c.tag).filter(t => porTag[t]),
-            ...Object.keys(porTag).filter(t => !categorias.some(c => c.tag === t)).sort(),
-        ];
-
-        const grupos = tags.map(tag => {
-            const cat = categorias.find(c => c.tag === tag);
-            const titulo = cat ? `${cat.icon} ${cat.label}` : tag;
-            const chips = porTag[tag]
-                .sort((a, b) => cleanName(a.name).localeCompare(cleanName(b.name)))
-                .map(h => `<button type="button" class="vision-picker-chip${vinculados.has(h.name) ? ' on' : ''}"
-                    data-action="toggle-link" data-habit="${esc(h.name)}" aria-pressed="${vinculados.has(h.name)}">${esc(cleanName(h.name))}</button>`)
-                .join('');
-            return `<div class="vision-picker-group">
-                <div class="vision-picker-group-title">${esc(titulo)}</div>
-                <div class="vision-picker-chips">${chips}</div>
-            </div>`;
-        }).join('');
-
-        return `<div class="vision-picker">${grupos}</div>`;
-    }
-
-    async function loadAllHabits() {
-        if (typeof fetchAllRows !== 'function') return [];
-        const { data, error } = await fetchAllRows('habit_logs', 'habit_name, project_tag');
-        if (error) {
-            console.error('Error cargando hábitos para vincular:', error.message);
-            return [];
-        }
-        const mapa = new Map();
-        (data || []).forEach(r => {
-            if (!r.habit_name || mapa.has(r.habit_name)) return;
-            const tag = (typeof resolveHabitTag === 'function' ? resolveHabitTag(r.habit_name, r.project_tag) : r.project_tag) || 'OTROS';
-            mapa.set(r.habit_name, tag);
-        });
-        return [...mapa].map(([name, tag]) => ({ name, tag }));
+    function onPanelInput(e) {
+        if (e.target.id === 'vision-add-title') _draft.title = e.target.value;
+        if (e.target.id === 'vision-add-freq') _draft.freq = e.target.value;
     }
 
     async function onPanelClick(e) {
         const btn = e.target.closest('[data-action]');
-        if (!btn || !_activeMetaId) return;
-        const action = btn.dataset.action;
+        if (!btn) return;
+        const id = btn.dataset.id ? Number(btn.dataset.id) : null;
 
-        if (action === 'toggle-picker') {
-            _pickerOpen = !_pickerOpen;
-            if (_pickerOpen) _allHabits = await loadAllHabits();
-            renderPanel();
+        switch (btn.dataset.action) {
+            case 'toggle-unica': return toggleUnica(id);
+            case 'toggle-dia': return toggleDia(id, btn.dataset.fecha);
+            case 'edit': return editarPaso(id);
+            case 'delete': return eliminarPaso(id);
+            case 'toggle-done':
+                _showDone = !_showDone;
+                return renderPanel();
+            case 'show-form':
+                _formOpen = true;
+                renderPanel();
+                return document.getElementById('vision-add-title')?.focus();
+            case 'add-cancel':
+                _formOpen = false;
+                return renderPanel();
+            case 'add-submit':
+                return submitNuevoPaso();
+        }
+    }
+
+    async function submitNuevoPaso() {
+        const title = (_draft.title || '').trim();
+        if (!title || !_activeMetaId) return;
+
+        const repetida = _draft.freq !== 'unica';
+        const fila = {
+            meta_id: _activeMetaId,
+            title,
+            tipo: repetida ? 'repetida' : 'unica',
+            veces_semana: repetida ? Number(_draft.freq) : null,
+        };
+
+        const { data, error } = await _supabase.from('vision_tareas').insert([fila]).select();
+        if (error) {
+            alert('Error al guardar el paso: ' + error.message);
             return;
         }
 
-        if (action === 'toggle-link' || action === 'unlink') {
-            const habit = btn.dataset.habit;
-            const existente = _links.find(l => l.meta_id === _activeMetaId && l.habit_name === habit);
-            let error = null;
+        if (data && data[0]) {
+            _tareas.push(data[0]);
+            if (repetida) _logs[data[0].id] = new Set();
+        }
 
-            if (existente && (action === 'unlink' || action === 'toggle-link')) {
-                ({ error } = await _supabase.from('vision_habit_links').delete().eq('id', existente.id));
-            } else if (!existente && action === 'toggle-link') {
-                ({ error } = await _supabase.from('vision_habit_links').insert([{ meta_id: _activeMetaId, habit_name: habit }]));
-            }
+        // Se queda abierto para agregar varios pasos seguidos.
+        _draft.title = '';
+        renderPanel();
+        renderTabs();
+        document.getElementById('vision-add-title')?.focus();
+    }
 
-            if (error) {
-                alert('Error al actualizar el vínculo: ' + error.message);
-                return;
-            }
+    async function toggleUnica(id) {
+        const t = _tareas.find(x => x.id === id);
+        if (!t) return;
 
-            await loadHabitStats();
+        const anterior = t.done_at;
+        t.done_at = anterior ? null : new Date().toISOString();
+        renderPanel();
+        renderTabs();
+
+        const { error } = await _supabase.from('vision_tareas').update({ done_at: t.done_at }).eq('id', id);
+        if (error) {
+            t.done_at = anterior;
             renderPanel();
-            renderRanking();
+            renderTabs();
+            alert('Error al actualizar el paso: ' + error.message);
         }
     }
 
-    /* ==========================================
-       RANKING DE METAS
-       ========================================== */
-    function rankingOrdenado() {
-        return [..._metas].sort((a, b) => {
-            const pa = (_stats[a.id] || {}).puntos || 0;
-            const pb = (_stats[b.id] || {}).puntos || 0;
-            return pb - pa || a.name.localeCompare(b.name);
-        });
+    async function toggleDia(id, fecha) {
+        if (!_logs[id]) _logs[id] = new Set();
+        const set = _logs[id];
+        const estaba = set.has(fecha);
+
+        if (estaba) set.delete(fecha); else set.add(fecha);
+        renderPanel();
+        renderTabs();
+
+        const consulta = estaba
+            ? _supabase.from('vision_tarea_logs').delete().eq('tarea_id', id).eq('fecha', fecha)
+            : _supabase.from('vision_tarea_logs').insert([{ tarea_id: id, fecha }]);
+        const { error } = await consulta;
+
+        if (error) {
+            if (estaba) set.add(fecha); else set.delete(fecha);
+            renderPanel();
+            renderTabs();
+            alert('Error al registrar el día: ' + error.message);
+        }
     }
 
-    function renderRanking() {
-        const el = document.getElementById('vision-ranking');
-        if (!el) return;
+    async function editarPaso(id) {
+        const t = _tareas.find(x => x.id === id);
+        if (!t) return;
 
-        const hayPuntos = _linksDisponibles && _links.length > 0;
-        if (_metas.length < 2 || !hayPuntos) {
-            el.innerHTML = '';
-            el.style.display = 'none';
+        const nuevo = prompt('Editar paso:', t.title);
+        if (nuevo === null || nuevo.trim() === '' || nuevo.trim() === t.title) return;
+
+        const { error } = await _supabase.from('vision_tareas').update({ title: nuevo.trim() }).eq('id', id);
+        if (error) {
+            alert('Error al editar: ' + error.message);
             return;
         }
-        el.style.display = '';
-
-        const orden = rankingOrdenado();
-        const maximo = Math.max(1, ...orden.map(m => (_stats[m.id] || {}).puntos || 0));
-
-        el.innerHTML = `
-            <div class="vision-ranking-title">Ranking de metas</div>
-            ${orden.map((m, i) => {
-                const st = _stats[m.id] || { puntos: 0, nivel: 1 };
-                const pct = Math.round((st.puntos / maximo) * 100);
-                return `
-                <div class="vision-rank-row${m.id === _activeMetaId ? ' vision-rank-row--active' : ''}" data-meta-id="${m.id}">
-                    <span class="vision-rank-pos${i === 0 && st.puntos > 0 ? ' vision-rank-pos--first' : ''}">${i + 1}</span>
-                    <span class="vision-rank-body">
-                        <span class="vision-rank-name">${esc(m.name)}</span>
-                        <span class="vision-rank-bar"><span class="vision-rank-bar-fill" style="width:${pct}%;"></span></span>
-                    </span>
-                    <span class="vision-rank-pts">${st.puntos}</span>
-                </div>`;
-            }).join('')}
-        `;
+        t.title = nuevo.trim();
+        renderPanel();
     }
 
-    /* ==========================================
-       AVISO "+10 PTS" AL CUMPLIR UN HÁBITO VINCULADO
-       ========================================== */
-    function showToast(texto) {
-        let el = document.getElementById('vision-toast');
-        if (!el) {
-            el = document.createElement('div');
-            el.id = 'vision-toast';
-            el.className = 'vision-toast';
-            el.setAttribute('role', 'status');
-            document.body.appendChild(el);
+    async function eliminarPaso(id) {
+        const t = _tareas.find(x => x.id === id);
+        if (!t) return;
+        if (!confirm(`¿Eliminar el paso "${t.title}"${t.tipo === 'repetida' ? ' y todo su registro' : ''}?`)) return;
+
+        const { error } = await _supabase.from('vision_tareas').delete().eq('id', id);
+        if (error) {
+            alert('Error al eliminar: ' + error.message);
+            return;
         }
-        el.textContent = texto;
-        el.classList.add('vision-toast--show');
-        clearTimeout(_toastTimer);
-        _toastTimer = setTimeout(() => el.classList.remove('vision-toast--show'), 2600);
+        _tareas = _tareas.filter(x => x.id !== id);
+        delete _logs[id];
+        renderPanel();
+        renderTabs();
     }
-
-    window.visionOnHabitToggled = async function (habitName, completado) {
-        if (!completado) return;
-        try {
-            const { data, error } = await _supabase
-                .from('vision_habit_links')
-                .select('meta_id, vision_metas(name)')
-                .eq('habit_name', habitName);
-            if (error || !data || data.length === 0) return;
-
-            const nombres = data.map(r => r.vision_metas && r.vision_metas.name).filter(Boolean);
-            if (nombres.length === 0) return;
-            showToast(`+${PTS_POR_CUMPLIDO} pts para ${nombres.join(', ')}`);
-        } catch (e) {
-            console.warn('vision_board: no se pudo calcular el aviso de puntos.', e.message);
-        }
-    };
-
-    window.visionOnHabitRenamed = async function (viejo, nuevo) {
-        try {
-            await _supabase.from('vision_habit_links').update({ habit_name: nuevo }).eq('habit_name', viejo);
-        } catch (e) { /* tabla aún no creada */ }
-    };
-
-    window.visionOnHabitDeleted = async function (nombre) {
-        try {
-            await _supabase.from('vision_habit_links').delete().eq('habit_name', nombre);
-        } catch (e) { /* tabla aún no creada */ }
-    };
 
     window.addVisionMeta = async function () {
         const name = prompt('¿Cuál es la meta o propósito? (ej: "Certificado B2 de Inglés")');
@@ -678,11 +715,11 @@
     };
 
     window.deleteVisionMeta = async function (id, name) {
-        const ok = confirm(`¿Eliminar la meta "${name}", sus imágenes y sus hábitos vinculados?`);
+        const ok = confirm(`¿Eliminar la meta "${name}", sus imágenes y sus pasos?`);
         if (!ok) return;
 
         await _supabase.from('vision_meta_images').delete().eq('meta_id', id);
-        await _supabase.from('vision_habit_links').delete().eq('meta_id', id);
+        await _supabase.from('vision_tareas').delete().eq('meta_id', id);
         const { error } = await _supabase.from('vision_metas').delete().eq('id', id);
         if (error) {
             alert('Error al eliminar: ' + error.message);

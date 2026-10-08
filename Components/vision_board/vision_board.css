@@ -213,65 +213,49 @@
 
 /**
  * ==========================================
- * PANEL DE LA META: puntos, nivel y hábitos vinculados
+ * PANEL DE LA META: avance y pasos
  * ==========================================
- * Mismo lenguaje que el resto de la app: borde de 1px, sin fondos de
- * relleno ni sombras. El único elemento grande es el total de puntos.
+ * Mismo lenguaje que el resto de la app: borde de 1px, sin sombras.
+ * El elemento grande es el porcentaje de avance.
  */
-.vision-panel,
-.vision-ranking {
-    border: 1px solid var(--border-color);
-    border-radius: 14px;
-    padding: 14px 16px;
-    margin: 8px 0 12px;
+.vision-tab-pct {
+    font-weight: 600;
+    opacity: 0.65;
 }
 
 .vision-panel {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
+    margin: 8px 0 12px;
+    padding: 14px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
 }
 
 .vision-panel-top {
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
+    align-items: baseline;
     gap: 10px;
 }
 
-.vision-panel-level {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--text-muted);
-}
-
-.vision-panel-points {
-    margin-top: 2px;
+.vision-panel-pct {
     font-size: 2rem;
     font-weight: 800;
-    line-height: 1.1;
+    line-height: 1;
     color: var(--text-dark);
     font-variant-numeric: tabular-nums;
 }
 
-.vision-panel-points-unit {
-    font-size: 0.85rem;
+.vision-panel-label {
+    font-size: 0.8rem;
     font-weight: 600;
     color: var(--text-muted);
 }
 
-.vision-panel-rank {
-    flex-shrink: 0;
-    padding: 3px 10px;
-    border-radius: 20px;
-    background: rgba(116, 192, 138, 0.15);
-    color: var(--primary-green);
-    font-size: 0.78rem;
-    font-weight: 800;
-}
-
 .vision-panel-bar {
-    height: 5px;
+    height: 6px;
+    margin-top: -4px;
 }
 
 .vision-panel-sub {
@@ -280,170 +264,206 @@
     color: var(--text-muted);
 }
 
-.vision-panel-stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    padding-top: 10px;
-    border-top: 1px solid var(--border-color);
-}
-
-.vision-stat {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    text-align: center;
-}
-
-.vision-stat-value {
-    font-size: 1.1rem;
-    font-weight: 800;
-    color: var(--text-dark);
-    font-variant-numeric: tabular-nums;
-}
-
-.vision-stat-label {
-    font-size: 0.68rem;
-    font-weight: 600;
-    color: var(--text-muted);
-}
-
-.vision-panel-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding-top: 10px;
-    border-top: 1px solid var(--border-color);
-}
-
-.vision-panel-head-label {
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: var(--text-dark);
-}
-
-.vision-link-toggle {
-    padding: 5px 12px;
-    border-radius: 20px;
-    border: 1px dashed var(--border-color);
-    background: transparent;
-    color: var(--text-muted);
-    font-size: 0.72rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all var(--transition);
-}
-
-.vision-link-toggle:hover {
-    border-style: solid;
-    border-color: var(--primary-green);
-    color: var(--primary-green);
-}
-
 .vision-panel-empty {
     font-size: 0.78rem;
     line-height: 1.45;
     color: var(--text-muted);
 }
 
-.vision-habit-list {
+.vision-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
+}
+
+.vision-section-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+.vision-steps,
+.vision-reps {
     list-style: none;
     display: flex;
     flex-direction: column;
 }
 
-.vision-habit-row {
+/* ---------- Pasos de una sola vez ---------- */
+.vision-step {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 7px 0;
+    gap: 12px;
+    padding: 8px 0;
     border-bottom: 1px solid var(--border-color);
-    font-size: 0.82rem;
 }
 
-.vision-habit-row:last-child {
+.vision-step:last-child {
     border-bottom: none;
 }
 
-.vision-habit-name {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-weight: 600;
-    color: var(--text-dark);
-}
-
-.vision-habit-today {
-    flex-shrink: 0;
-    font-size: 0.68rem;
-    font-weight: 700;
-    color: var(--primary-green);
-}
-
-.vision-habit-days {
-    flex-shrink: 0;
-    font-size: 0.7rem;
-    color: var(--text-muted);
-}
-
-.vision-habit-pts {
-    flex-shrink: 0;
-    min-width: 2.2em;
-    text-align: right;
-    font-weight: 800;
-    color: var(--text-dark);
-    font-variant-numeric: tabular-nums;
-}
-
-.vision-habit-unlink {
+.vision-check {
     flex-shrink: 0;
     width: 24px;
     height: 24px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 7px;
+    border: 2px solid var(--border-color);
+    background: transparent;
+    color: var(--white);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.vision-check svg {
+    opacity: 0;
+}
+
+.vision-check:hover {
+    border-color: var(--primary-green);
+}
+
+.vision-check.on {
+    background: var(--primary-green);
+    border-color: var(--primary-green);
+}
+
+.vision-check.on svg {
+    opacity: 1;
+}
+
+.vision-step-title {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.88rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--text-dark);
+    cursor: pointer;
+    overflow-wrap: anywhere;
+}
+
+.vision-step--done .vision-step-title {
+    color: var(--text-muted);
+    text-decoration: line-through;
+}
+
+.vision-step-del {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
     border: none;
     border-radius: 50%;
     background: transparent;
     color: var(--text-muted);
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     line-height: 1;
     cursor: pointer;
 }
 
-.vision-habit-unlink:hover {
+.vision-step-del:hover {
     background: var(--bg-header);
     color: #e74c3c;
 }
 
-/* Selector de hábitos (dentro del panel) */
-.vision-picker {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding-top: 10px;
-    border-top: 1px solid var(--border-color);
+.vision-done-toggle {
+    align-self: flex-start;
+    padding: 4px 0;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.74rem;
+    font-weight: 700;
+    cursor: pointer;
 }
 
-.vision-picker-group-title {
-    margin-bottom: 6px;
-    font-size: 0.72rem;
-    font-weight: 700;
+.vision-done-toggle:hover {
+    color: var(--primary-green);
+}
+
+/* ---------- Pasos que se repiten ---------- */
+.vision-rep {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.vision-rep:last-child {
+    border-bottom: none;
+}
+
+.vision-rep-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.vision-rep-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    font-size: 0.7rem;
     color: var(--text-muted);
 }
 
-.vision-picker-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+.vision-rep-count--ok {
+    font-weight: 700;
+    color: var(--primary-green);
 }
 
-.vision-picker-chip {
-    max-width: 100%;
-    padding: 6px 12px;
-    border-radius: 20px;
+.vision-rep-days {
+    display: flex;
+    gap: 4px;
+}
+
+.vision-day-chip {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 30px;
+    padding: 0;
+    border-radius: 8px;
     border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.vision-day-chip:hover:not(:disabled) {
+    border-color: var(--primary-green);
+}
+
+.vision-day-chip.today {
+    border-color: var(--text-muted);
+    color: var(--text-dark);
+}
+
+.vision-day-chip.on {
+    background: var(--primary-green);
+    border-color: var(--primary-green);
+    color: var(--white);
+}
+
+.vision-day-chip.future {
+    opacity: 0.35;
+    cursor: default;
+}
+
+/* ---------- Agregar paso ---------- */
+.vision-add-step-btn {
+    align-self: flex-start;
+    padding: 7px 14px;
+    border-radius: 20px;
+    border: 1px dashed var(--border-color);
     background: transparent;
     color: var(--text-muted);
     font-size: 0.76rem;
@@ -452,117 +472,65 @@
     transition: all var(--transition);
 }
 
-.vision-picker-chip:hover {
-    border-color: var(--text-muted);
-    color: var(--text-dark);
-}
-
-.vision-picker-chip.on {
+.vision-add-step-btn:hover {
+    border-style: solid;
     border-color: var(--primary-green);
-    background: rgba(116, 192, 138, 0.15);
     color: var(--primary-green);
 }
 
-/* Ranking de metas */
-.vision-ranking-title {
-    margin-bottom: 4px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: var(--text-dark);
-}
-
-.vision-rank-row {
-    display: grid;
-    grid-template-columns: 22px 1fr auto;
-    align-items: center;
-    gap: 10px;
-    padding: 7px 0;
-    cursor: pointer;
-    font-size: 0.82rem;
-}
-
-.vision-rank-pos {
-    font-weight: 800;
-    color: var(--text-muted);
-    font-variant-numeric: tabular-nums;
-}
-
-.vision-rank-pos--first {
-    color: var(--primary-green);
-}
-
-.vision-rank-body {
+.vision-add-form {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    min-width: 0;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
 }
 
-.vision-rank-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-weight: 600;
+.vision-add-input,
+.vision-add-select {
+    width: 100%;
+    padding: 9px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background-color: var(--white);
+    color: var(--text-dark);
+    font-family: inherit;
+    font-size: 0.85rem;
+}
+
+.vision-add-input:focus,
+.vision-add-select:focus {
+    outline: none;
+    border-color: var(--primary-green);
+}
+
+.vision-add-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.vision-add-submit,
+.vision-add-cancel {
+    padding: 7px 16px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.vision-add-submit {
+    border: 1px solid var(--primary-green);
+    background: var(--primary-green);
+    color: var(--bg-light);
+}
+
+.vision-add-cancel {
+    border: 1px solid var(--border-color);
+    background: transparent;
     color: var(--text-muted);
 }
 
-.vision-rank-row--active .vision-rank-name {
-    font-weight: 800;
+.vision-add-cancel:hover {
     color: var(--text-dark);
-}
-
-.vision-rank-bar {
-    display: block;
-    height: 3px;
-    border-radius: 2px;
-    background: var(--border-color);
-    overflow: hidden;
-}
-
-.vision-rank-bar-fill {
-    display: block;
-    height: 100%;
-    border-radius: 2px;
-    background: var(--text-muted);
-}
-
-.vision-rank-row--active .vision-rank-bar-fill {
-    background: var(--primary-green);
-}
-
-.vision-rank-pts {
-    font-weight: 800;
-    color: var(--text-dark);
-    font-variant-numeric: tabular-nums;
-}
-
-/* Aviso "+10 pts" al cumplir un hábito vinculado */
-.vision-toast {
-    position: fixed;
-    left: 50%;
-    bottom: calc(84px + env(safe-area-inset-bottom, 0px));
-    z-index: 1100;
-    max-width: calc(100vw - 32px);
-    padding: 10px 16px;
-    border-radius: 20px;
-    background: var(--text-dark);
-    color: var(--bg-light);
-    font-size: 0.8rem;
-    font-weight: 700;
-    text-align: center;
-    opacity: 0;
-    pointer-events: none;
-    transform: translateX(-50%) translateY(6px);
-    transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.vision-toast--show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .vision-toast {
-        transition: none;
-    }
+    border-color: var(--text-muted);
 }

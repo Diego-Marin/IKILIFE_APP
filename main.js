@@ -826,8 +826,6 @@ async function toggleHabit(btnEl, habitName, dateStr, currentState, tag) {
         .eq('log_date', dateStr)
         .maybeSingle();
 
-    let guardado = true;
-
     if (fetchError) {
         console.error("Error buscando registro:", fetchError.message);
         if (btnEl) { btnEl.classList.toggle('habit-day-chip--done', currentState); btnEl.disabled = false; }
@@ -840,7 +838,7 @@ async function toggleHabit(btnEl, habitName, dateStr, currentState, tag) {
             .update({ is_completed: !currentState })
             .eq('id', data.id);
 
-        if (updateError) { console.error("Error actualizando:", updateError.message); guardado = false; }
+        if (updateError) console.error("Error actualizando:", updateError.message);
     } else {
         const projectTag = tag || getProjectFromHabitName(habitName);
 
@@ -853,11 +851,8 @@ async function toggleHabit(btnEl, habitName, dateStr, currentState, tag) {
                 project_tag: projectTag
             }]);
 
-        if (insertError) { console.error("Error insertando:", insertError.message); guardado = false; }
+        if (insertError) console.error("Error insertando:", insertError.message);
     }
-
-    // Si el hábito está vinculado a una meta (Metas), avisa los puntos ganados.
-    if (guardado && typeof visionOnHabitToggled === 'function') visionOnHabitToggled(habitName, !currentState);
 
     refreshActiveHabitsList();
 }
@@ -883,8 +878,6 @@ async function editHabit(oldName) {
 
     // Mantiene la imagen asociada al renombrar el hábito.
     await _supabase.from('habit_images').update({ habit_name: updatedName }).eq('habit_name', oldName);
-    // Mantiene el vínculo hábito ↔ meta al renombrar.
-    if (typeof visionOnHabitRenamed === 'function') await visionOnHabitRenamed(oldName, updatedName);
 
     refreshActiveHabitsList();
 }
@@ -904,7 +897,6 @@ async function deleteHabit(name) {
     }
 
     await _supabase.from('habit_images').delete().eq('habit_name', name);
-    if (typeof visionOnHabitDeleted === 'function') await visionOnHabitDeleted(name);
 
     refreshActiveHabitsList();
 }
@@ -1026,7 +1018,7 @@ const TABLAS_EXPORTABLES = [
     'odios_registros', 'sentimientos_logs', 'sentimientos_registros',
     'ideas_logs', 'compras_logs', 'finance_logs',
     'inversiones_logs', 'journal_logs', 'bloques_logs', 'planes_logs','english_classes',
-    'vision_metas', 'vision_meta_images', 'vision_habit_links'
+    'vision_metas', 'vision_meta_images', 'vision_tareas', 'vision_tarea_logs'
 ];
 
 
