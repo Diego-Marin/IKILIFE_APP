@@ -4,6 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#121212">
     <title>IKILIFE</title>
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌱</text></svg>">
@@ -23,7 +25,7 @@
     <base target="_blank">
 </head>
 
-<body>
+<body class="dark-mode">
     <div id="auth-lock-overlay"></div>
 
     <div class="container">
@@ -39,23 +41,6 @@
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                         stroke-linecap="round" stroke-linejoin="round">
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                    </svg>
-                </button>
-
-                <button id="theme-toggle" class="icon-btn" onclick="toggleTheme()" aria-label="Cambiar modo">
-                    <svg class="sun-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="5"></circle>
-                        <line x1="12" y1="1" x2="12" y2="3"></line>
-                        <line x1="12" y1="21" x2="12" y2="23"></line>
-                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                        <line x1="1" y1="12" x2="3" y2="12"></line>
-                        <line x1="21" y1="12" x2="23" y2="12"></line>
-                    </svg>
-                    <svg class="moon-icon hidden" width="22" height="22" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                     </svg>
                 </button>
 
@@ -382,11 +367,17 @@
 
             <!-- 💰 FINANZAS -->
             <div id="view-money" class="bottom-view">
-                <div class="sent-tabs">
-                    <button type="button" class="sent-tab-btn sent-tab-active" data-money-tab="finanzas"
-                        onclick="switchMoneyTab('finanzas', this)">💰 Finanzas</button>
-                    <button type="button" class="sent-tab-btn" data-money-tab="compras"
-                        onclick="switchMoneyTab('compras', this)">🛒 Compras</button>
+                <div class="camino-tabs camino-tabs--2">
+                    <button type="button" class="camino-tab-btn camino-tab-active" data-money-tab="finanzas"
+                        onclick="switchMoneyTab('finanzas', this)">
+                        <span class="camino-tab-icon">💰</span>
+                        <span class="camino-tab-label">FINANZAS</span>
+                    </button>
+                    <button type="button" class="camino-tab-btn" data-money-tab="compras"
+                        onclick="switchMoneyTab('compras', this)">
+                        <span class="camino-tab-icon">🛒</span>
+                        <span class="camino-tab-label">COMPRAS</span>
+                    </button>
                 </div>
 
                 <div id="money-finanzas" class="sent-subview">

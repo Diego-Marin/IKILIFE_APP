@@ -4,24 +4,15 @@
  * ==========================================
  */
 :root {
+    color-scheme: dark;
     --primary-green: #74C08A;
-    --bg-light: #F8F9FA;
-    --bg-header: #EAECEF; 
-    --text-dark: #1A1A1A;
-    --text-muted: #666666; 
-    --white: #ffffff;
-    --border-color: #E5E5E5; 
-    --transition: 0.25s ease;
-}
-
-/* Variables para el modo oscuro */
-.dark-mode {
     --bg-light: #121212;
-    --bg-header: #242424; 
+    --bg-header: #242424;
     --text-dark: #EAEAEA;
-    --white: #1C1C1C;
     --text-muted: #888888;
+    --white: #1C1C1C;
     --border-color: #2D2D2D;
+    --transition: 0.25s ease;
 }
 
 /**
@@ -269,6 +260,11 @@ header.main-header {
 .camino-tab-btn--add:hover {
     border-color: var(--primary-green);
     color: var(--primary-green);
+}
+
+/* Variante de 2 botones (Finanzas / Compras): ocupa todo el ancho en cualquier pantalla. */
+.camino-tabs--2 {
+    grid-template-columns: repeat(2, 1fr);
 }
 
 /**
@@ -1804,9 +1800,6 @@ div.day-segment.future {
     flex-direction: column;
     gap: 4px;
     cursor: default;
-}
-
-.dark-mode .state-dropdown {
     background-color: rgba(0, 0, 0, 0.2);
 }
 
@@ -1835,10 +1828,6 @@ div.day-segment.future {
 }
 
 .state-dropdown-item:hover {
-    background-color: rgba(255, 255, 255, 0.6);
-}
-
-.dark-mode .state-dropdown-item:hover {
     background-color: rgba(255, 255, 255, 0.08);
 }
 

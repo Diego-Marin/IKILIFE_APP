@@ -44,6 +44,7 @@
         { key: 'compras', label: 'Compras', icon: '🛒', tables: ['compras_logs'] },
         { key: 'planes', label: 'Planes', icon: '📅', tables: ['planes_logs'] },
         { key: 'ingles', label: 'Inglés', icon: '🇬🇧', tables: ['english_classes'] },
+        { key: 'metas', label: 'Metas', icon: '🎯', tables: ['vision_metas', 'vision_meta_images', 'vision_habit_links'] },
     ];
 
     let _busy = false;

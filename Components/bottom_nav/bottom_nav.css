@@ -57,13 +57,13 @@
 
 /* Inactivo */
 .bottom-nav-item:not(.active) {
-    color: #9ca3af;
+    color: #666;
 }
 .bottom-nav-item:not(.active) .nav-icon {
-    stroke: #9ca3af;
+    stroke: #666;
 }
 .bottom-nav-item:not(.active) .nav-label {
-    color: #9ca3af;
+    color: #666;
 }
 
 /* Activo: solo color, sin fondo, sin punto, sin línea */
@@ -75,22 +75,6 @@
 }
 .bottom-nav-item.active .nav-label {
     color: var(--primary-green);
-}
-
-/* Modo oscuro */
-.dark-mode .bottom-nav {
-    background: var(--white);
-    border-color: var(--border-color);
-}
-
-.dark-mode .bottom-nav-item:not(.active) {
-    color: #666;
-}
-.dark-mode .bottom-nav-item:not(.active) .nav-icon {
-    stroke: #666;
-}
-.dark-mode .bottom-nav-item:not(.active) .nav-label {
-    color: #666;
 }
 
 /* Padding del contenedor (ajustado a altura 68px del bottom nav) */

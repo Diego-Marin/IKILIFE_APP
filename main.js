@@ -149,8 +149,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // generateInsights(), una función que nunca llegó a definirse y que
     // rompía la carga inicial con un ReferenceError en consola.
     try {
-        applySavedTheme();
-                updateWeeklyProgress();
+        updateWeeklyProgress();
         loadHomeUpcomingPlans();
         loadIdeas();
         showRandomIdea();
@@ -213,46 +212,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
 
-/**
- * ==========================================
- * GESTIÓN DEL TEMA (MODO CLARO / OSCURO)
- * ==========================================
- */
-function toggleTheme() {
-    const body = document.body;
-    const sunIcon = document.querySelector('.sun-icon');
-    const moonIcon = document.querySelector('.moon-icon');
-
-    body.classList.toggle('dark-mode');
-
-    const isDark = body.classList.contains('dark-mode');
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-
-    if (isDark) {
-        sunIcon.classList.add('hidden');
-        moonIcon.classList.remove('hidden');
-    } else {
-        sunIcon.classList.remove('hidden');
-        moonIcon.classList.add('hidden');
-    }
-}
-
-function applySavedTheme() {
-    const savedTheme = localStorage.getItem('theme');
-    const body = document.body;
-    const sunIcon = document.querySelector('.sun-icon');
-    const moonIcon = document.querySelector('.moon-icon');
-
-    if (savedTheme === 'dark') {
-        body.classList.add('dark-mode');
-        if (sunIcon) sunIcon.classList.add('hidden');
-        if (moonIcon) moonIcon.classList.remove('hidden');
-    } else {
-        body.classList.remove('dark-mode');
-        if (sunIcon) sunIcon.classList.remove('hidden');
-        if (moonIcon) moonIcon.classList.add('hidden');
-    }
-}
 
 
 
@@ -867,6 +826,8 @@ async function toggleHabit(btnEl, habitName, dateStr, currentState, tag) {
         .eq('log_date', dateStr)
         .maybeSingle();
 
+    let guardado = true;
+
     if (fetchError) {
         console.error("Error buscando registro:", fetchError.message);
         if (btnEl) { btnEl.classList.toggle('habit-day-chip--done', currentState); btnEl.disabled = false; }
@@ -879,7 +840,7 @@ async function toggleHabit(btnEl, habitName, dateStr, currentState, tag) {
             .update({ is_completed: !currentState })
             .eq('id', data.id);
 
-        if (updateError) console.error("Error actualizando:", updateError.message);
+        if (updateError) { console.error("Error actualizando:", updateError.message); guardado = false; }
     } else {
         const projectTag = tag || getProjectFromHabitName(habitName);
 
@@ -892,8 +853,11 @@ async function toggleHabit(btnEl, habitName, dateStr, currentState, tag) {
                 project_tag: projectTag
             }]);
 
-        if (insertError) console.error("Error insertando:", insertError.message);
+        if (insertError) { console.error("Error insertando:", insertError.message); guardado = false; }
     }
+
+    // Si el hábito está vinculado a una meta (Metas), avisa los puntos ganados.
+    if (guardado && typeof visionOnHabitToggled === 'function') visionOnHabitToggled(habitName, !currentState);
 
     refreshActiveHabitsList();
 }
@@ -919,6 +883,8 @@ async function editHabit(oldName) {
 
     // Mantiene la imagen asociada al renombrar el hábito.
     await _supabase.from('habit_images').update({ habit_name: updatedName }).eq('habit_name', oldName);
+    // Mantiene el vínculo hábito ↔ meta al renombrar.
+    if (typeof visionOnHabitRenamed === 'function') await visionOnHabitRenamed(oldName, updatedName);
 
     refreshActiveHabitsList();
 }
@@ -938,6 +904,7 @@ async function deleteHabit(name) {
     }
 
     await _supabase.from('habit_images').delete().eq('habit_name', name);
+    if (typeof visionOnHabitDeleted === 'function') await visionOnHabitDeleted(name);
 
     refreshActiveHabitsList();
 }
@@ -1058,7 +1025,8 @@ const TABLAS_EXPORTABLES = [
     'habit_logs', 'loves_logs', 'odios_logs',
     'odios_registros', 'sentimientos_logs', 'sentimientos_registros',
     'ideas_logs', 'compras_logs', 'finance_logs',
-    'inversiones_logs', 'journal_logs', 'bloques_logs', 'planes_logs','english_classes'
+    'inversiones_logs', 'journal_logs', 'bloques_logs', 'planes_logs','english_classes',
+    'vision_metas', 'vision_meta_images', 'vision_habit_links'
 ];
 
 
@@ -1235,10 +1203,10 @@ function switchSentTab(which, btn) {
  * pestaña Money — mismo patrón que switchSentTab en Sentimientos.
  */
 function switchMoneyTab(which, btn) {
-    document.querySelectorAll('#view-money .sent-tab-btn').forEach(b => {
-        b.classList.remove('sent-tab-active');
+    document.querySelectorAll('#view-money .camino-tab-btn').forEach(b => {
+        b.classList.remove('camino-tab-active');
     });
-    if (btn) btn.classList.add('sent-tab-active');
+    if (btn) btn.classList.add('camino-tab-active');
 
     document.querySelectorAll('#view-money .sent-subview').forEach(v => v.classList.add('hidden'));
     const target = document.getElementById('money-' + which);
@@ -2608,7 +2576,7 @@ async function loadCustomHabitCategories() {
 function renderCustomHabitCategoryUI(subtabId, category) {
     if (document.getElementById('tracking-' + subtabId)) return; // ya renderizada
 
-    const tabsBar = document.querySelector('.camino-tabs');
+    const tabsBar = document.querySelector('#view-tracking .camino-tabs');
     const addBtn = document.getElementById('camino-add-category-btn');
     if (tabsBar) {
         const btn = document.createElement('button');
