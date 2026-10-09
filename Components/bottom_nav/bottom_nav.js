@@ -70,6 +70,7 @@
             if (typeof loadEspejoDelAlma === 'function') loadEspejoDelAlma();
             if (typeof renderYearWeeks === 'function') renderYearWeeks();
             if (typeof loadHomeUpcomingPlans === 'function') loadHomeUpcomingPlans();
+            if (typeof loadHomeSlides === 'function') loadHomeSlides();
         }
 
       if (tabId === 'tracking') {
