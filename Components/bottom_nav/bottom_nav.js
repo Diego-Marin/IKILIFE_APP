@@ -94,6 +94,12 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    // El logo de IKILIFE vuelve siempre a Inicio, esté abierta la
+    // pestaña o la subvista que esté (Metas, Brain Dump, Exportar...).
+    window.goToHome = function () {
+        switchBottomTab('home');
+    };
+
     function initBottomNav() {
         const container = document.querySelector('.container');
         if (!container) return;

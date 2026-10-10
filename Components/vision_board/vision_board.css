@@ -53,15 +53,22 @@
     transition: all var(--transition);
 }
 
-.vision-tab-btn:hover {
-    border-color: var(--primary-green);
-    color: var(--text-dark);
+/* El hover solo aplica a dispositivos con mouse y nunca al tab activo.
+   En móvil el :hover se queda "pegado" tras tocar un tab, y como tiene
+   más especificidad que .vision-tab-active, pintaba el texto claro
+   (--text-dark) sobre el fondo claro del tab activo: texto invisible. */
+@media (hover: hover) {
+    .vision-tab-btn:not(.vision-tab-active):hover {
+        border-color: var(--primary-green);
+        color: var(--text-dark);
+    }
 }
 
-.vision-tab-active {
+.vision-tab-btn.vision-tab-active {
     background: var(--text-dark);
     color: var(--bg-light);
     border-color: var(--text-dark);
+    -webkit-text-fill-color: var(--bg-light);
 }
 
 /* Botón "+" al final de la fila de tabs */

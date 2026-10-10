@@ -247,24 +247,26 @@
 
 
 /* ==========================================
-   PATRIMONIO NETO — COLCHÓN EN MESES (minimalista)
+   ESTADO DEL MES (#patrimonio-widget)
    ========================================== */
-.patrimonio-widget {
+.estado-widget {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
     margin: 0 0 24px;
     padding: 14px 16px;
     border-radius: 8px;
     border: 1px solid var(--border-color);
-    background: transparent;
 }
 
-.patrimonio-top {
+.estado-top {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
 }
 
-.patrimonio-label {
+.estado-label {
     font-size: 0.68rem;
     font-weight: 600;
     color: var(--text-muted);
@@ -272,75 +274,95 @@
     letter-spacing: 0.5px;
 }
 
-.patrimonio-estado {
-    font-size: 0.7rem;
-    font-weight: 700;
+.estado-pill {
+    font-size: 0.72rem;
+    font-weight: 800;
 }
 
-.patrimonio-valor {
-    margin-top: 6px;
-    font-size: 1.6rem;
-    font-weight: 800;
-    line-height: 1.1;
-    font-variant-numeric: tabular-nums;
+.estado-msg {
+    font-size: 0.92rem;
+    font-weight: 700;
+    line-height: 1.4;
     color: var(--text-dark);
 }
 
-.patrimonio-unidad {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--text-muted);
-}
+/* Colores de estado (texto de la etiqueta y relleno de la barra) */
+.estado-pill.estado--ok { color: #16a34a; }
+.estado-pill.estado--warn { color: #e67e22; }
+.estado-pill.estado--bad { color: #e74c3c; }
+.estado-pill.estado--none { color: var(--text-muted); }
 
-.patrimonio-sub {
-    margin-top: 4px;
-    font-size: 0.75rem;
-    line-height: 1.4;
-    color: var(--text-muted);
-}
-
-/* Estados de color (texto y relleno) */
-.patrimonio-estado.patrimonio--rojo,
-.patrimonio-valor.patrimonio--rojo { color: #e74c3c; }
-.patrimonio-estado.patrimonio--amarillo,
-.patrimonio-valor.patrimonio--amarillo { color: #e67e22; }
-.patrimonio-estado.patrimonio--verde,
-.patrimonio-valor.patrimonio--verde { color: #16a34a; }
-
-/* Barra lineal 0 → 12 meses */
-.patrimonio-bar-track {
-    margin-top: 12px;
-    width: 100%;
-    height: 4px;
-    border-radius: 2px;
-    background: var(--border-color);
-    overflow: hidden;
-}
-
-.patrimonio-bar-fill {
-    height: 100%;
-    border-radius: 2px;
-    background: var(--text-muted);
-    transition: width 0.4s ease;
-}
-
-.patrimonio-bar-fill.patrimonio--rojo { background: #e74c3c; }
-.patrimonio-bar-fill.patrimonio--amarillo { background: #e67e22; }
-.patrimonio-bar-fill.patrimonio--verde { background: #16a34a; }
-
-.patrimonio-bar-ticks {
+/* Barra: gasto sobre ingresos + marca del día del mes */
+.estado-bar {
     position: relative;
-    height: 14px;
-    margin-top: 4px;
-    font-size: 0.62rem;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border-color);
+}
+
+.estado-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--text-muted);
+    transition: width 0.5s ease;
+}
+
+.estado-bar-fill.estado--ok { background: #16a34a; }
+.estado-bar-fill.estado--warn { background: #e67e22; }
+.estado-bar-fill.estado--bad { background: #e74c3c; }
+
+.estado-bar-now {
+    position: absolute;
+    top: -4px;
+    bottom: -4px;
+    width: 2px;
+    margin-left: -1px;
+    border-radius: 1px;
+    background: var(--text-dark);
+}
+
+.estado-legend {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: -4px;
+    font-size: 0.7rem;
     font-weight: 600;
     color: var(--text-muted);
 }
 
-.patrimonio-bar-ticks span {
-    position: absolute;
-    transform: translateX(-50%);
+.estado-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
 }
 
-.patrimonio-bar-ticks span:first-child { transform: none; }
-.patrimonio-bar-ticks span:last-child { transform: translateX(-100%); }
+.estado-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-width: 0;
+    text-align: center;
+}
+
+.estado-stat-value {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--text-dark);
+    font-variant-numeric: tabular-nums;
+}
+
+.estado-stat-label {
+    font-size: 0.66rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .estado-bar-fill {
+        transition: none;
+    }
+}

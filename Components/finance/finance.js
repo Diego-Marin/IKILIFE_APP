@@ -191,8 +191,7 @@ async function loadFinances() {
         patrimonioEl.classList.toggle('text-savings', patrimonioNeto >= 0);
     }
 
-    const gastoBase = await getGastoMensualBase(totalGastosReal);
-    renderPatrimonioWidget(patrimonioNeto, gastoBase);
+    renderPatrimonioWidget({ ingresos: totalIngresosReal, gastos: totalGastosReal, deudas: totalDeudasReal });
 }
 
 /* ==========================================
@@ -464,90 +463,102 @@ async function _autoRegisterFinanceMonth() {
 
 
 /* ==========================================
-   PATRIMONIO NETO — COLCHÓN EN MESES
+   ESTADO DEL MES (widget #patrimonio-widget)
    ==========================================
-   Colchón = Patrimonio Neto / gasto mensual base.
-   El gasto del mes en curso es engañoso (a inicios de mes es ~$0 y
-   el colchón se dispara), así que la base es el MAYOR entre el gasto
-   actual y el promedio de los últimos 3 meses cerrados
-   (finance_month_history). La barra es lineal: 0 a 12 meses. */
-const PATRIMONIO_META_MESES = 12;
+   Resume cómo va el mes ACTUAL con lo que ya está registrado:
+     · Barra: cuánto de tus ingresos llevas gastado, con una marca
+       que indica en qué punto del mes estás (si la barra va por
+       delante de la marca, estás gastando más rápido que el calendario).
+     · Mensaje: proyección a fin de mes al ritmo actual (desde el día 4,
+       antes sería muy ruidosa), o aviso si ya gastaste más de lo que
+       ingresaste.
+     · Libre del mes, tasa de ahorro y deudas.
+   Antes el widget medía "meses de colchón" dividiendo el patrimonio
+   entre el gasto; como todos los montos se reinician cada mes, justo
+   después del cierre mensual daba 0 / "registra tus gastos" y parecía
+   que no funcionaba. Esta versión siempre muestra algo útil. */
+function fmtCorto(n) {
+    const v = Number(n) || 0;
+    const signo = v < 0 ? '−' : '';
+    const abs = Math.abs(v);
+    if (abs < 1000) return `${signo}$${Math.round(abs)}`;
+    if (abs < 1000000) return `${signo}$${Math.round(abs / 1000)} mil`;
+    return `${signo}$${(abs / 1000000).toFixed(1).replace('.0', '').replace('.', ',')} M`;
+}
 
-async function getGastoMensualBase(gastoActual) {
-    let promedio = 0;
-    try {
-        const { data, error } = await _supabase
-            .from('finance_month_history')
-            .select('mes, total_gastos')
-            .order('mes', { ascending: false })
-            .limit(12);
+function calcularEstadoMes(ingresos, gastos, dia, diasDelMes) {
+    const fraccion = dia / diasDelMes;
 
-        if (!error && data) {
-            // Un valor por mes (el mayor) y se ignoran meses en $0.
-            const porMes = {};
-            data.forEach(r => {
-                const g = Number(r.total_gastos) || 0;
-                if (g > 0 && (porMes[r.mes] === undefined || g > porMes[r.mes])) porMes[r.mes] = g;
-            });
-            const ultimos = Object.keys(porMes).sort().reverse().slice(0, 3).map(m => porMes[m]);
-            if (ultimos.length > 0) promedio = ultimos.reduce((a, b) => a + b, 0) / ultimos.length;
+    if (ingresos <= 0 && gastos <= 0) {
+        return { clase: 'estado--none', texto: 'Sin datos', msg: 'Aún no hay movimientos este mes. Registra tus ingresos y gastos para ver tu estado.' };
+    }
+    if (ingresos <= 0) {
+        return { clase: 'estado--warn', texto: 'Atención', msg: 'Tienes gastos registrados, pero ningún ingreso este mes.' };
+    }
+    if (gastos > ingresos) {
+        return { clase: 'estado--bad', texto: 'En riesgo', msg: `Ya gastaste ${formatCurrency(gastos - ingresos)} más de lo que ingresaste.` };
+    }
+    if (dia >= 4) {
+        const proyectado = gastos / fraccion;
+        if (proyectado > ingresos) {
+            return { clase: 'estado--warn', texto: 'Atención', msg: `Al ritmo actual terminarías el mes con un déficit de ${formatCurrency(proyectado - ingresos)}.` };
         }
-    } catch (e) { /* sin historial: se usa el gasto actual */ }
-
-    return Math.max(Number(gastoActual) || 0, promedio);
+        return { clase: 'estado--ok', texto: 'Saludable', msg: `Al ritmo actual terminarías el mes con ${formatCurrency(ingresos - proyectado)} libres.` };
+    }
+    return { clase: 'estado--ok', texto: 'Saludable', msg: `Vas bien: has gastado el ${Math.round((gastos / ingresos) * 100)}% de tus ingresos.` };
 }
 
-function getPatrimonioEstado(meses) {
-    if (meses < 0) return { clase: 'patrimonio--rojo', texto: 'En riesgo' };
-    if (meses < 1) return { clase: 'patrimonio--amarillo', texto: 'Frágil' };
-    if (meses < 3) return { clase: 'patrimonio--verde', texto: 'En construcción' };
-    if (meses < 6) return { clase: 'patrimonio--verde', texto: 'Sólido' };
-    if (meses < 12) return { clase: 'patrimonio--verde', texto: 'Casi libre' };
-    return { clase: 'patrimonio--verde', texto: 'Libre' };
-}
-
-function renderPatrimonioWidget(patrimonio, gastoBase) {
+function renderPatrimonioWidget({ ingresos, gastos, deudas }) {
     const container = document.getElementById('finance-main');
     if (!container) return;
 
     const oldWidget = document.getElementById('patrimonio-widget');
     if (oldWidget) oldWidget.remove();
 
+    const hoy = new Date();
+    const dia = hoy.getDate();
+    const diasDelMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
+
+    const estado = calcularEstadoMes(ingresos, gastos, dia, diasDelMes);
+
+    const libre = ingresos - gastos;
+    const pctGastado = ingresos > 0 ? (gastos / ingresos) * 100 : (gastos > 0 ? 100 : 0);
+    const anchoBarra = Math.max(0, Math.min(100, pctGastado));
+    const marcaMes = (dia / diasDelMes) * 100;
+    const tasaAhorro = ingresos > 0 ? `${Math.round((libre / ingresos) * 100)}%` : '—';
+
     const widget = document.createElement('div');
     widget.id = 'patrimonio-widget';
-    widget.className = 'patrimonio-widget';
-
-    let html;
-    if (!(gastoBase > 0)) {
-        html =
-            '<div class="patrimonio-top"><span class="patrimonio-label">Colchón financiero</span></div>' +
-            '<div class="patrimonio-sub">Registra tus gastos para calcular cuántos meses cubre tu patrimonio.</div>';
-    } else {
-        const meses = patrimonio / gastoBase;
-        const estado = getPatrimonioEstado(meses);
-        const pct = Math.max(0, Math.min(100, (meses / PATRIMONIO_META_MESES) * 100));
-        const mesesTxt = (meses < 0 ? '−' : '') + Math.abs(meses).toFixed(1);
-        const sub = meses < 0
-            ? 'Déficit de ' + formatCurrency(Math.abs(patrimonio)) + ' sobre un gasto base de ' + formatCurrency(gastoBase) + '/mes.'
-            : 'Sobre un gasto base de ' + formatCurrency(gastoBase) + '/mes.';
-
-        html =
-            '<div class="patrimonio-top">' +
-                '<span class="patrimonio-label">Colchón financiero</span>' +
-                '<span class="patrimonio-estado ' + estado.clase + '">' + estado.texto + '</span>' +
-            '</div>' +
-            '<div class="patrimonio-valor ' + estado.clase + '">' + mesesTxt + '<span class="patrimonio-unidad"> meses</span></div>' +
-            '<div class="patrimonio-sub">' + sub + '</div>' +
-            '<div class="patrimonio-bar-track"><div class="patrimonio-bar-fill ' + estado.clase + '" style="width:' + pct.toFixed(1) + '%;"></div></div>' +
-            '<div class="patrimonio-bar-ticks">' +
-                '<span style="left:0">0</span>' +
-                '<span style="left:25%">3</span>' +
-                '<span style="left:50%">6</span>' +
-                '<span style="left:100%">12</span>' +
-            '</div>';
-    }
-
-    widget.innerHTML = html;
+    widget.className = 'estado-widget';
+    widget.innerHTML = `
+        <div class="estado-top">
+            <span class="estado-label">Estado del mes</span>
+            <span class="estado-pill ${estado.clase}">${estado.texto}</span>
+        </div>
+        <div class="estado-msg">${estado.msg}</div>
+        <div class="estado-bar" role="img" aria-label="Gastado ${Math.round(pctGastado)}% de los ingresos, día ${dia} de ${diasDelMes}">
+            <div class="estado-bar-fill ${estado.clase}" style="width:${anchoBarra.toFixed(1)}%;"></div>
+            <div class="estado-bar-now" style="left:${marcaMes.toFixed(1)}%;" title="Hoy"></div>
+        </div>
+        <div class="estado-legend">
+            <span>${ingresos > 0 ? `Gastado ${Math.round(pctGastado)}% de tus ingresos` : 'Sin ingresos registrados'}</span>
+            <span>Día ${dia} de ${diasDelMes}</span>
+        </div>
+        <div class="estado-stats">
+            <div class="estado-stat">
+                <span class="estado-stat-value ${libre < 0 ? 'text-debt' : ''}">${fmtCorto(libre)}</span>
+                <span class="estado-stat-label">Libre del mes</span>
+            </div>
+            <div class="estado-stat">
+                <span class="estado-stat-value ${libre < 0 ? 'text-debt' : ''}">${tasaAhorro}</span>
+                <span class="estado-stat-label">Tasa de ahorro</span>
+            </div>
+            <div class="estado-stat">
+                <span class="estado-stat-value">${fmtCorto(deudas)}</span>
+                <span class="estado-stat-label">Deudas</span>
+            </div>
+        </div>
+    `;
 
     const summaryGrid = container.querySelector('.summary-grid');
     if (summaryGrid && summaryGrid.nextSibling) {

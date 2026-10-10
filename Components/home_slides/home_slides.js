@@ -3,20 +3,20 @@
  * COMPONENTE: HOME SLIDES (imágenes motivacionales en Inicio)
  * ==========================================
  * Un carrusel al inicio de la pestaña Inicio que va rotando tus
- * imágenes motivacionales. Cada imagen se muestra COMPLETA y centrada
- * (sin recortarla), sobre un fondo difuminado de la misma imagen.
+ * imágenes motivacionales. Cada imagen ocupa TODO el ancho del
+ * contenedor (recortada y centrada si su proporción es distinta).
  *
  * Comportamiento:
  *   - Rota solo cada SLIDE_INTERVAL_MS. Empieza en una imagen al azar.
  *   - No rota (para no perderte la imagen) si el mouse está encima, si
- *     estás tocando/deslizando, si la app está en segundo plano, si no
- *     estás viendo Inicio o si lo pausas con el botón de pausa.
+ *     estás tocando/deslizando, si la app está en segundo plano o si no
+ *     estás viendo Inicio.
  *   - Navegación manual: deslizar con el dedo, puntos de abajo o
  *     flechas ← → del teclado (con el carrusel enfocado).
  *   - Con una sola imagen no rota ni muestra puntos.
  *
  * Gestión (botones arriba a la derecha de la imagen):
- *   pausa/reanudar · agregar imagen · eliminar la imagen actual.
+ *   agregar imagen · eliminar la imagen actual.
  * Igual que el resto de la app, solo se escribe el NOMBRE del archivo,
  * que debe existir en assets/images/.
  *
@@ -45,7 +45,6 @@
     let _timer = null;
     let _loaded = false;
     let _tablaDisponible = true;
-    let _userPaused = false;
     let _hovering = false;
     let _touching = false;
 
@@ -96,8 +95,6 @@
     /* ==========================================
        RENDER
        ========================================== */
-    const ICON_PAUSE = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg>';
-    const ICON_PLAY = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="7 4 20 12 7 20 7 4"></polygon></svg>';
     const ICON_ADD = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
     const ICON_TRASH = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>';
 
@@ -126,9 +123,7 @@
 
         const slidesHtml = _slides.map((s, i) => `
             <figure class="hs-slide${i === _index ? ' hs-slide--active' : ''}" aria-hidden="${i === _index ? 'false' : 'true'}">
-                <img class="hs-bg" src="assets/images/${esc(s.image_filename)}" alt="" aria-hidden="true"
-                    ${i === _index ? '' : 'loading="lazy"'} decoding="async" draggable="false">
-                <img class="hs-img" src="assets/images/${esc(s.image_filename)}" alt="Imagen motivacional"
+                <img src="assets/images/${esc(s.image_filename)}" alt="Imagen motivacional"
                     ${i === _index ? '' : 'loading="lazy"'} decoding="async" draggable="false" onerror="handleImgFallback(this)">
             </figure>`).join('');
 
@@ -138,18 +133,11 @@
                     aria-label="Ir a la imagen ${i + 1} de ${_slides.length}"></button>`).join('')}</div>`
             : '';
 
-        const pausaHtml = _slides.length > 1
-            ? `<button type="button" class="hs-btn" id="hs-pause-btn" data-action="pause"
-                aria-label="${_userPaused ? 'Reanudar rotación' : 'Pausar rotación'}" aria-pressed="${_userPaused}"
-                title="${_userPaused ? 'Reanudar' : 'Pausar'}">${_userPaused ? ICON_PLAY : ICON_PAUSE}</button>`
-            : '';
-
         root.innerHTML = `
             <section class="hs" role="region" aria-roledescription="carousel" aria-label="Imágenes motivacionales" tabindex="0">
                 <div class="hs-viewport">
                     ${slidesHtml}
                     <div class="hs-controls">
-                        ${pausaHtml}
                         <button type="button" class="hs-btn" data-action="add" aria-label="Agregar imagen" title="Agregar imagen">${ICON_ADD}</button>
                         <button type="button" class="hs-btn" data-action="delete" aria-label="Eliminar imagen actual" title="Eliminar esta imagen">${ICON_TRASH}</button>
                     </div>
@@ -171,7 +159,6 @@
             switch (btn.dataset.action) {
                 case 'add': return addSlide();
                 case 'delete': return deleteCurrentSlide();
-                case 'pause': return togglePause();
                 case 'goto': return goTo(Number(btn.dataset.i), true);
             }
         });
@@ -232,7 +219,7 @@
 
     function tick() {
         if (_slides.length < 2) return;
-        if (_userPaused || _hovering || _touching || document.hidden) return;
+        if (_hovering || _touching || document.hidden) return;
 
         const home = document.getElementById('view-home');
         if (!home || !home.classList.contains('active')) return;
@@ -243,18 +230,6 @@
     function restartTimer() {
         clearInterval(_timer);
         _timer = _slides.length > 1 ? setInterval(tick, SLIDE_INTERVAL_MS) : null;
-    }
-
-    function togglePause() {
-        _userPaused = !_userPaused;
-        const btn = document.getElementById('hs-pause-btn');
-        if (btn) {
-            btn.innerHTML = _userPaused ? ICON_PLAY : ICON_PAUSE;
-            btn.setAttribute('aria-pressed', String(_userPaused));
-            btn.setAttribute('aria-label', _userPaused ? 'Reanudar rotación' : 'Pausar rotación');
-            btn.title = _userPaused ? 'Reanudar' : 'Pausar';
-        }
-        if (!_userPaused) restartTimer();
     }
 
     document.addEventListener('visibilitychange', () => {

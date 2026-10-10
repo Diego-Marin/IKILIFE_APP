@@ -33,7 +33,7 @@
 
         <header class="main-header">
             <div class="logo-area">
-                <span class="brand-name">IKILIFE</span>
+                <button type="button" class="brand-name" onclick="goToHome()" aria-label="Ir a Inicio" title="Inicio">IKILIFE</button>
             </div>
 
             <div class="header-actions">
@@ -78,7 +78,8 @@
                 <!-- 🖼️ Imágenes motivacionales (carrusel) -->
                 <div id="home-slides-container"></div>
 
-                <div id="habit-legend-yesterday"></div>
+                <!-- Espejo del alma: hábitos de hoy + balance emocional -->
+                <div id="espejo-alma-container"></div>
 
                 <!-- Progreso Semanal + Anual (fusionado) -->
                 <div class="progress-fusion-card">
@@ -109,6 +110,8 @@
                     <div id="fusion-footer" class="progress-fusion-footer">Quedan -- días para terminar el año</div>
                 </div>
 
+                <div id="habit-legend-yesterday"></div>
+
                 <!-- Dashboard del Día: Estado + Planes próximos -->
                 <div class="today-dashboard">
                     <div class="today-dashboard-header">
@@ -119,7 +122,6 @@
                     <div id="home-upcoming-plans"></div>
                 </div>
 
-                <div id="espejo-alma-container"></div>
 
 
 
