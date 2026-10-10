@@ -3,7 +3,8 @@
  * COMPONENTE: HOME SLIDES (imágenes motivacionales en Inicio)
  * ==========================================
  * Un carrusel al inicio de la pestaña Inicio que va rotando tus
- * imágenes motivacionales (con una frase opcional encima).
+ * imágenes motivacionales. Cada imagen se muestra COMPLETA y centrada
+ * (sin recortarla), sobre un fondo difuminado de la misma imagen.
  *
  * Comportamiento:
  *   - Rota solo cada SLIDE_INTERVAL_MS. Empieza en una imagen al azar.
@@ -23,9 +24,10 @@
  *   CREATE TABLE home_slides (
  *     id bigint generated always as identity PRIMARY KEY,
  *     image_filename text NOT NULL,
- *     caption text,
  *     created_at timestamptz DEFAULT now()
  *   );
+ *   (Si tu tabla ya tiene la columna "caption" de una versión anterior,
+ *   ya no se usa: ALTER TABLE home_slides DROP COLUMN IF EXISTS caption;)
  *   (Si usas RLS en tus otras tablas, agrega la misma política aquí.)
  *
  * REQUIERE en index.html:
@@ -124,9 +126,10 @@
 
         const slidesHtml = _slides.map((s, i) => `
             <figure class="hs-slide${i === _index ? ' hs-slide--active' : ''}" aria-hidden="${i === _index ? 'false' : 'true'}">
-                <img src="assets/images/${esc(s.image_filename)}" alt="${esc(s.caption || 'Imagen motivacional')}"
+                <img class="hs-bg" src="assets/images/${esc(s.image_filename)}" alt="" aria-hidden="true"
+                    ${i === _index ? '' : 'loading="lazy"'} decoding="async" draggable="false">
+                <img class="hs-img" src="assets/images/${esc(s.image_filename)}" alt="Imagen motivacional"
                     ${i === _index ? '' : 'loading="lazy"'} decoding="async" draggable="false" onerror="handleImgFallback(this)">
-                ${s.caption ? `<figcaption class="hs-caption">${esc(s.caption)}</figcaption>` : ''}
             </figure>`).join('');
 
         const dotsHtml = _slides.length > 1
@@ -265,11 +268,9 @@
         const archivo = prompt('Nombre del archivo de imagen (debe estar en assets/images/):');
         if (!archivo || archivo.trim() === '') return;
 
-        const frase = prompt('Frase para mostrar sobre la imagen (opcional, déjala vacía si no quieres):', '');
-
         const { data, error } = await _supabase
             .from('home_slides')
-            .insert([{ image_filename: archivo.trim(), caption: frase && frase.trim() ? frase.trim() : null }])
+            .insert([{ image_filename: archivo.trim() }])
             .select();
 
         if (error) {

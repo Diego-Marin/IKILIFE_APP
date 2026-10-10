@@ -213,95 +213,163 @@
 
 /**
  * ==========================================
- * PANEL DE LA META: avance y pasos
+ * PANEL DE LA META: nivel y pasos
  * ==========================================
- * Mismo lenguaje que el resto de la app: borde de 1px, sin sombras.
- * El elemento grande es el porcentaje de avance.
+ * Cerrado es una sola línea discreta (nivel + barra fina) para que las
+ * imágenes sigan siendo lo principal. Abierto muestra los pasos en una
+ * lista plana, sin títulos de sección.
  */
-.vision-tab-pct {
-    font-weight: 600;
-    opacity: 0.65;
+.vision-panel {
+    margin: 0 0 4px;
 }
 
-.vision-panel {
+.vision-panel-head {
+    width: 100%;
     display: flex;
-    flex-direction: column;
+    align-items: center;
     gap: 12px;
-    margin: 8px 0 12px;
-    padding: 14px 16px;
+    padding: 10px 2px;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    text-align: left;
+}
+
+.vision-panel-level {
+    flex-shrink: 0;
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--text-dark);
+}
+
+.vision-panel-level-name {
+    margin-left: 6px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.vision-panel-level--up {
+    color: var(--primary-green);
+    animation: visionLevelUp 0.6s ease;
+}
+
+@keyframes visionLevelUp {
+    0% { transform: scale(0.9); opacity: 0.4; }
+    60% { transform: scale(1.06); opacity: 1; }
+    100% { transform: scale(1); }
+}
+
+.vision-panel-bar {
+    display: block;
+    flex: 1;
+    height: 3px;
+}
+
+.vision-panel-bar .ik-bar-fill {
+    display: block;
+}
+
+.vision-panel-chev {
+    flex-shrink: 0;
+    transition: transform 0.25s ease;
+}
+
+.vision-panel-chev.open {
+    transform: rotate(180deg);
+}
+
+.vision-panel-head:hover .vision-panel-chev {
+    color: var(--text-dark);
+}
+
+.vision-panel-head:focus-visible {
+    outline: 2px solid var(--primary-green);
+    outline-offset: 2px;
+    border-radius: 8px;
+}
+
+.vision-panel-body {
+    margin: 0 0 8px;
+    padding: 4px 14px 12px;
     border: 1px solid var(--border-color);
     border-radius: 14px;
 }
 
-.vision-panel-top {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-}
-
-.vision-panel-pct {
-    font-size: 2rem;
-    font-weight: 800;
-    line-height: 1;
-    color: var(--text-dark);
-    font-variant-numeric: tabular-nums;
-}
-
-.vision-panel-label {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--text-muted);
-}
-
-.vision-panel-bar {
-    height: 6px;
-    margin-top: -4px;
-}
-
-.vision-panel-sub {
-    margin-top: -4px;
-    font-size: 0.72rem;
-    color: var(--text-muted);
-}
-
-.vision-panel-empty {
-    font-size: 0.78rem;
+.vision-panel-note {
+    padding: 8px 0 6px;
+    font-size: 0.74rem;
     line-height: 1.45;
     color: var(--text-muted);
 }
 
-.vision-section {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding-top: 10px;
-    border-top: 1px solid var(--border-color);
-}
-
-.vision-section-title {
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: var(--text-dark);
-}
-
-.vision-steps,
-.vision-reps {
+/* ---------- Lista plana de pasos ---------- */
+.vision-list {
     list-style: none;
     display: flex;
     flex-direction: column;
 }
 
-/* ---------- Pasos de una sola vez ---------- */
+.vision-step,
+.vision-rep,
+.vision-qty {
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.vision-list > li:last-child {
+    border-bottom: none;
+}
+
 .vision-step {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--border-color);
 }
 
-.vision-step:last-child {
-    border-bottom: none;
+.vision-rep,
+.vision-qty {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.vision-row-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.vision-row-side {
+    flex-shrink: 0;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.vision-row-side--ok {
+    color: var(--primary-green);
+}
+
+.vision-step-title {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.88rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--text-dark);
+    overflow-wrap: anywhere;
+}
+
+.vision-step-title--editable {
+    cursor: pointer;
+    border-bottom: 1px dashed var(--border-color);
+}
+
+.vision-step--done .vision-step-title {
+    color: var(--text-muted);
+    text-decoration: line-through;
 }
 
 .vision-check {
@@ -337,22 +405,6 @@
     opacity: 1;
 }
 
-.vision-step-title {
-    flex: 1;
-    min-width: 0;
-    font-size: 0.88rem;
-    font-weight: 600;
-    line-height: 1.3;
-    color: var(--text-dark);
-    cursor: pointer;
-    overflow-wrap: anywhere;
-}
-
-.vision-step--done .vision-step-title {
-    color: var(--text-muted);
-    text-decoration: line-through;
-}
-
 .vision-step-del {
     flex-shrink: 0;
     width: 26px;
@@ -371,53 +423,7 @@
     color: #e74c3c;
 }
 
-.vision-done-toggle {
-    align-self: flex-start;
-    padding: 4px 0;
-    border: none;
-    background: transparent;
-    color: var(--text-muted);
-    font-size: 0.74rem;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.vision-done-toggle:hover {
-    color: var(--primary-green);
-}
-
-/* ---------- Pasos que se repiten ---------- */
-.vision-rep {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.vision-rep:last-child {
-    border-bottom: none;
-}
-
-.vision-rep-top {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.vision-rep-info {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px 12px;
-    font-size: 0.7rem;
-    color: var(--text-muted);
-}
-
-.vision-rep-count--ok {
-    font-weight: 700;
-    color: var(--primary-green);
-}
-
+/* ---------- Se repite: chips de la semana ---------- */
 .vision-rep-days {
     display: flex;
     gap: 4px;
@@ -426,7 +432,7 @@
 .vision-day-chip {
     flex: 1 1 0;
     min-width: 0;
-    height: 30px;
+    height: 28px;
     padding: 0;
     border-radius: 8px;
     border: 1px solid var(--border-color);
@@ -458,32 +464,81 @@
     cursor: default;
 }
 
-/* ---------- Agregar paso ---------- */
-.vision-add-step-btn {
-    align-self: flex-start;
-    padding: 7px 14px;
-    border-radius: 20px;
-    border: 1px dashed var(--border-color);
-    background: transparent;
-    color: var(--text-muted);
-    font-size: 0.76rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all var(--transition);
+/* ---------- Cantidad ---------- */
+.vision-qty-line {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
 }
 
-.vision-add-step-btn:hover {
-    border-style: solid;
-    border-color: var(--primary-green);
+.vision-qty-amount {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--text-dark);
+    font-variant-numeric: tabular-nums;
+}
+
+.vision-qty-of {
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.vision-qty-bar {
+    height: 4px;
+}
+
+/* ---------- Acciones de texto ---------- */
+.vision-actions {
+    display: flex;
+    gap: 18px;
+    padding-top: 10px;
+}
+
+.vision-link-btn {
+    padding: 4px 0;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.vision-link-btn:hover {
+    color: var(--text-dark);
+}
+
+.vision-link-btn--accent {
     color: var(--primary-green);
 }
 
+.vision-link-btn--accent:hover {
+    color: var(--primary-green);
+    text-decoration: underline;
+}
+
+/* ---------- Formulario ---------- */
 .vision-add-form {
     display: flex;
     flex-direction: column;
     gap: 8px;
     padding-top: 10px;
-    border-top: 1px solid var(--border-color);
+}
+
+.vision-add-extra {
+    display: flex;
+    gap: 8px;
+}
+
+.vision-add-extra .vision-add-input {
+    flex: 1;
+    min-width: 0;
+}
+
+.vision-add-extra .vision-add-unit {
+    flex: 0 0 88px;
 }
 
 .vision-add-input,
@@ -533,4 +588,13 @@
 .vision-add-cancel:hover {
     color: var(--text-dark);
     border-color: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .vision-panel-level--up {
+        animation: none;
+    }
+    .vision-panel-chev {
+        transition: none;
+    }
 }

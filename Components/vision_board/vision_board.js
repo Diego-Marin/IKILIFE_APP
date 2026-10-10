@@ -14,17 +14,21 @@
  * Para volver atrás se usa la barra inferior o la tecla Esc. Doble clic
  * en un tab = renombrar; clic derecho = eliminar.
  *
- * PASOS DE CADA META
- * Debajo de los tabs, cada meta tiene su lista de pasos para ir
- * chuleando y ver el avance de eso que estás proyectando (ej. la moto:
- * sacar papeles, llevarla donde mamá, preguntar impuestos). Hay dos tipos:
- *   - "Una vez": se chulea y queda hecho. Alimentan la barra de avance
- *     (3 de 5 pasos = 60%).
- *   - "Se repiten": todos los días o N veces por semana. Se chulean por
- *     día (L M M J V S D, igual que Hábitos) y muestran cuántas llevas
- *     esta semana, la racha (si es diaria) y el total de veces.
- * Si una meta solo tiene pasos repetidos, la barra mide la semana.
- * Los pasos hechos se agrupan bajo "Hechos" para no alargar el panel.
+ * PASOS Y NIVEL DE CADA META
+ * Bajo los tabs hay una línea discreta con el nivel de la meta; al
+ * tocarla se despliegan sus pasos (por defecto está cerrada para que
+ * las imágenes sean lo primero que ves). Hay tres tipos de paso, cada
+ * uno se mide a su manera:
+ *   - Una vez (ej. sacar papeles): se chulea y queda hecho = 1 logro.
+ *   - Se repite (todos los días o N veces por semana): se chulea por
+ *     día (L M M J V S D). Cada SEMANA en que cumples la frecuencia
+ *     = 1 logro.
+ *   - Cantidad (ej. juntar $5.000.000): fijas la meta y vas sumando
+ *     aportes. Cada 25% alcanzado = 1 logro (4 por paso).
+ * Los logros de todos los pasos suben el NIVEL de la meta: el nivel n
+ * empieza en (n-1)² logros (1, 4, 9, 16...). Al subir de nivel el
+ * indicador te lo celebra un momento. "Editar" muestra los botones
+ * para renombrar/eliminar pasos y corregir el total de una cantidad.
  *
  * TABLAS REQUERIDAS EN SUPABASE:
  *   CREATE TABLE vision_metas (
@@ -48,9 +52,12 @@
  *     id bigint generated always as identity PRIMARY KEY,
  *     meta_id bigint NOT NULL REFERENCES vision_metas(id) ON DELETE CASCADE,
  *     title text NOT NULL,
- *     tipo text NOT NULL DEFAULT 'unica',   -- 'unica' | 'repetida'
+ *     tipo text NOT NULL DEFAULT 'unica',   -- 'unica' | 'repetida' | 'cantidad'
  *     veces_semana int,                     -- repetida: 7 = diaria, 1-6 = N por semana
  *     done_at timestamptz,                  -- unica: cuándo se completó
+ *     meta_cantidad numeric,                -- cantidad: lo que quieres alcanzar
+ *     actual numeric DEFAULT 0,             -- cantidad: lo que llevas
+ *     unidad text,                          -- cantidad: '$', 'km', 'páginas'...
  *     created_at timestamptz DEFAULT now()
  *   );
  *
@@ -62,6 +69,12 @@
  *     UNIQUE (tarea_id, fecha)
  *   );
  *   (Si usas RLS en tus otras tablas, agrega la misma política aquí.)
+ *
+ *   -- Si vision_tareas ya existía (sin los pasos de tipo cantidad):
+ *   ALTER TABLE vision_tareas
+ *     ADD COLUMN IF NOT EXISTS meta_cantidad numeric,
+ *     ADD COLUMN IF NOT EXISTS actual numeric DEFAULT 0,
+ *     ADD COLUMN IF NOT EXISTS unidad text;
  *
  *   -- Ya no se usa (vínculo hábito ↔ meta, versión anterior):
  *   --   DROP TABLE IF EXISTS vision_habit_links;
@@ -84,12 +97,16 @@
 
     // Pasos de cada meta.
     const DIAS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+    const NIVELES = ['Semilla', 'Brote', 'Raíz', 'Tallo', 'Hoja', 'Rama', 'Árbol', 'Bosque'];
     let _tareas = [];                // filas de vision_tareas (todas las metas)
     let _logs = {};                  // { [tareaId]: Set('YYYY-MM-DD') } solo repetidas
     let _tareasDisponibles = true;   // false si faltan las tablas
+    let _open = false;               // panel de pasos desplegado
+    let _editMode = false;           // muestra renombrar / eliminar
     let _formOpen = false;
-    let _showDone = false;
-    let _draft = { title: '', freq: 'unica' };
+    let _draft = { title: '', freq: 'unica', meta: '', unidad: '$' };
+    let _levelUp = null;             // { metaId, text } aviso temporal de nivel
+    let _levelUpTimer = null;
 
     function esc(text) {
         return String(text == null ? '' : text)
@@ -173,7 +190,6 @@
         renderPanel();   // primero lo que ya se sabe, para que no se vea vacío
 
         await loadTareas();
-        renderTabs();    // ahora con el % de cada meta
         renderPanel();
     }
 
@@ -189,13 +205,6 @@
             btn.className = 'vision-tab-btn' + (meta.id === _activeMetaId ? ' vision-tab-active' : '');
             btn.dataset.metaId = meta.id;
             btn.textContent = meta.name;
-            const resumen = resumenMeta(meta.id);
-            if (resumen.hayPasos) {
-                const pct = document.createElement('span');
-                pct.className = 'vision-tab-pct';
-                pct.textContent = ` ${resumen.pct}%`;
-                btn.appendChild(pct);
-            }
             btn.addEventListener('click', () => switchVisionMetaTab(meta.id));
             btn.addEventListener('dblclick', () => editVisionMetaName(meta.id, meta.name));
             btn.addEventListener('contextmenu', (e) => {
@@ -230,7 +239,7 @@
             b.classList.toggle('vision-tab-active', Number(b.dataset.metaId) === id);
         });
         _formOpen = false;
-        _showDone = false;
+        _editMode = false;
         renderPanel();
         renderFeed();
     };
@@ -290,7 +299,7 @@
     }
 
     /* ==========================================
-       PASOS DE LA META
+       PASOS Y NIVEL DE LA META
        ========================================== */
     function toISO(d) {
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -300,17 +309,19 @@
         return (typeof getFechaHoyISO === 'function') ? getFechaHoyISO() : toISO(new Date());
     }
 
-    function addDias(iso, n) {
+    // Lunes de la semana a la que pertenece una fecha 'YYYY-MM-DD'.
+    function lunesDe(iso) {
         const [y, m, d] = iso.split('-').map(Number);
-        return toISO(new Date(y, m - 1, d + n));
+        const fecha = new Date(y, m - 1, d);
+        const dia = fecha.getDay() === 0 ? 7 : fecha.getDay();
+        fecha.setDate(fecha.getDate() - dia + 1);
+        return toISO(fecha);
     }
 
     // Lunes a domingo de la semana actual.
     function fechasDeLaSemana() {
-        const d = new Date();
-        const dia = d.getDay() === 0 ? 7 : d.getDay();
-        d.setDate(d.getDate() - dia + 1);
         const fechas = [];
+        const d = new Date(lunesDe(hoyISO()) + 'T00:00:00');
         for (let i = 0; i < 7; i++) {
             fechas.push(toISO(d));
             d.setDate(d.getDate() + 1);
@@ -318,16 +329,18 @@
         return fechas;
     }
 
-    // Días seguidos cumplidos. Si hoy aún no se marca, la racha no se
-    // rompe: se cuenta desde ayer.
-    function calcRacha(fechas, hoy) {
-        let cursor = fechas.has(hoy) ? hoy : addDias(hoy, -1);
-        let n = 0;
-        while (fechas.has(cursor)) {
-            n++;
-            cursor = addDias(cursor, -1);
-        }
-        return n;
+    // Acepta "1.200.000", "1,5", "1500"... (en es-CO el punto separa miles).
+    function parseNumero(texto) {
+        let t = String(texto == null ? '' : texto).replace(/[^\d.,-]/g, '');
+        if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.');
+        else if (/^-?\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
+        return parseFloat(t);
+    }
+
+    function fmtCantidad(n, unidad) {
+        const txt = (Number(n) || 0).toLocaleString('es-CO', { maximumFractionDigits: 2 });
+        if (unidad === '$') return `$${txt}`;
+        return unidad ? `${txt} ${unidad}` : txt;
     }
 
     async function loadTareas() {
@@ -371,34 +384,72 @@
         }
     }
 
-    function resumenMeta(metaId) {
-        const mias = _tareas.filter(t => t.meta_id === metaId);
-        const unicas = mias.filter(t => t.tipo !== 'repetida');
-        const reps = mias.filter(t => t.tipo === 'repetida');
-        const hechas = unicas.filter(t => t.done_at).length;
-
-        const semana = fechasDeLaSemana();
-        const hoy = hoyISO();
-        let semHechas = 0;
-        let semMeta = 0;
-        reps.forEach(t => {
-            const set = _logs[t.id] || new Set();
-            const veces = semana.filter(f => f <= hoy && set.has(f)).length;
-            semHechas += Math.min(veces, t.veces_semana || 7);
-            semMeta += t.veces_semana || 7;
+    /* ---------- Logros y nivel ---------- */
+    // Semanas (lunes a domingo) en las que se cumplió la frecuencia.
+    function semanasCumplidas(t) {
+        const set = _logs[t.id];
+        if (!set || set.size === 0) return 0;
+        const veces = t.veces_semana || 7;
+        const porSemana = {};
+        set.forEach(f => {
+            const k = lunesDe(f);
+            porSemana[k] = (porSemana[k] || 0) + 1;
         });
+        return Object.values(porSemana).filter(n => n >= veces).length;
+    }
 
-        let pct = 0;
-        let etiqueta = '';
-        if (unicas.length > 0) {
-            pct = Math.round((hechas / unicas.length) * 100);
-            etiqueta = hechas === unicas.length ? 'Todos los pasos listos' : `${hechas} de ${unicas.length} pasos`;
-        } else if (reps.length > 0) {
-            pct = semMeta > 0 ? Math.round((semHechas / semMeta) * 100) : 0;
-            etiqueta = `${semHechas} de ${semMeta} esta semana`;
+    function logrosDe(t) {
+        if (t.tipo === 'repetida') return semanasCumplidas(t);
+        if (t.tipo === 'cantidad') {
+            const meta = Number(t.meta_cantidad) || 0;
+            if (meta <= 0) return 0;
+            return Math.min(4, Math.floor(((Number(t.actual) || 0) / meta) * 4 + 1e-9));
         }
+        return t.done_at ? 1 : 0;
+    }
 
-        return { unicas, reps, hechas, semHechas, semMeta, pct, etiqueta, hayPasos: mias.length > 0 };
+    function pasoCompleto(t) {
+        if (t.tipo === 'repetida') return false;   // nunca "termina"
+        if (t.tipo === 'cantidad') return (Number(t.meta_cantidad) || 0) > 0 && (Number(t.actual) || 0) >= Number(t.meta_cantidad);
+        return !!t.done_at;
+    }
+
+    // El nivel n empieza en (n-1)² logros: 0, 1, 4, 9, 16...
+    function calcNivel(logros) {
+        const n = Math.floor(Math.sqrt(logros)) + 1;
+        const base = (n - 1) ** 2;
+        const siguiente = n ** 2;
+        return {
+            nivel: n,
+            nombre: NIVELES[Math.min(n - 1, NIVELES.length - 1)],
+            pct: Math.round(((logros - base) / (siguiente - base)) * 100),
+            faltan: siguiente - logros,
+        };
+    }
+
+    function infoMeta(metaId) {
+        const mias = _tareas.filter(t => t.meta_id === metaId);
+        const logros = mias.reduce((acc, t) => acc + logrosDe(t), 0);
+        const finitos = mias.filter(t => t.tipo !== 'repetida');
+        return {
+            mias,
+            logros,
+            completa: finitos.length > 0 && finitos.every(pasoCompleto),
+            ...calcNivel(logros),
+        };
+    }
+
+    // Si tras un cambio la meta subió de nivel, lo celebra un momento.
+    function avisarSiSubio(metaId, nivelAntes) {
+        const ahora = infoMeta(metaId);
+        if (ahora.nivel > nivelAntes) {
+            _levelUp = { metaId, text: `¡Nivel ${ahora.nivel}: ${ahora.nombre}!` };
+            clearTimeout(_levelUpTimer);
+            _levelUpTimer = setTimeout(() => {
+                _levelUp = null;
+                renderPanel();
+            }, 3500);
+        }
     }
 
     /* ==========================================
@@ -407,6 +458,18 @@
     function frecuenciaTexto(veces) {
         if (veces >= 7) return 'Todos los días';
         return veces === 1 ? '1 vez por semana' : `${veces} veces por semana`;
+    }
+
+    function tituloHtml(t) {
+        return _editMode
+            ? `<span class="vision-step-title vision-step-title--editable" data-action="edit" data-id="${t.id}" title="Editar">${esc(t.title)}</span>`
+            : `<span class="vision-step-title">${esc(t.title)}</span>`;
+    }
+
+    function borrarHtml(t) {
+        return _editMode
+            ? `<button type="button" class="vision-step-del" data-action="delete" data-id="${t.id}" aria-label="Eliminar paso" title="Eliminar">×</button>`
+            : '';
     }
 
     function renderPaso(t) {
@@ -418,8 +481,8 @@
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"
                         stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                 </button>
-                <span class="vision-step-title" data-action="edit" data-id="${t.id}" title="Clic para editar">${esc(t.title)}</span>
-                <button type="button" class="vision-step-del" data-action="delete" data-id="${t.id}" aria-label="Eliminar paso" title="Eliminar">×</button>
+                ${tituloHtml(t)}
+                ${borrarHtml(t)}
             </li>`;
     }
 
@@ -429,7 +492,6 @@
         const hoy = hoyISO();
         const veces = t.veces_semana || 7;
         const estaSemana = semana.filter(f => f <= hoy && set.has(f)).length;
-        const racha = veces >= 7 ? calcRacha(set, hoy) : 0;
 
         const chips = semana.map((fecha, i) => {
             const futuro = fecha > hoy;
@@ -443,17 +505,34 @@
 
         return `
             <li class="vision-rep">
-                <div class="vision-rep-top">
-                    <span class="vision-step-title" data-action="edit" data-id="${t.id}" title="Clic para editar">${esc(t.title)}</span>
-                    <button type="button" class="vision-step-del" data-action="delete" data-id="${t.id}" aria-label="Eliminar paso" title="Eliminar">×</button>
-                </div>
-                <div class="vision-rep-info">
-                    <span>${frecuenciaTexto(veces)}</span>
-                    <span class="vision-rep-count${estaSemana >= veces ? ' vision-rep-count--ok' : ''}">${estaSemana} de ${veces} esta semana</span>
-                    ${racha > 1 ? `<span>Racha de ${racha} días</span>` : ''}
-                    <span>${set.size} en total</span>
+                <div class="vision-row-top">
+                    ${tituloHtml(t)}
+                    <span class="vision-row-side${estaSemana >= veces ? ' vision-row-side--ok' : ''}" title="${frecuenciaTexto(veces)}">${estaSemana}/${veces}</span>
+                    ${borrarHtml(t)}
                 </div>
                 <div class="vision-rep-days">${chips}</div>
+            </li>`;
+    }
+
+    function renderCantidad(t) {
+        const meta = Number(t.meta_cantidad) || 0;
+        const actual = Number(t.actual) || 0;
+        const pct = meta > 0 ? Math.min(100, Math.round((actual / meta) * 100)) : 0;
+        const u = t.unidad || '';
+
+        return `
+            <li class="vision-qty">
+                <div class="vision-row-top">
+                    ${tituloHtml(t)}
+                    ${borrarHtml(t)}
+                </div>
+                <div class="vision-qty-line">
+                    <span class="vision-qty-amount">${esc(fmtCantidad(actual, u))} <span class="vision-qty-of">de ${esc(fmtCantidad(meta, u))}</span></span>
+                    ${_editMode
+                        ? `<button type="button" class="vision-link-btn" data-action="set-total" data-id="${t.id}">Corregir total</button>`
+                        : `<button type="button" class="vision-link-btn vision-link-btn--accent" data-action="aportar" data-id="${t.id}">+ Aportar</button>`}
+                </div>
+                <div class="ik-bar-track vision-qty-bar"><div class="ik-bar-fill ik-bar-fill--green" style="width:${pct}%;"></div></div>
             </li>`;
     }
 
@@ -467,13 +546,23 @@
             ['4', '4 veces por semana'],
             ['5', '5 veces por semana'],
             ['6', '6 veces por semana'],
+            ['cantidad', 'Alcanzar una cantidad'],
         ].map(([v, txt]) => `<option value="${v}"${_draft.freq === v ? ' selected' : ''}>${txt}</option>`).join('');
+
+        const extra = _draft.freq === 'cantidad' ? `
+            <div class="vision-add-extra">
+                <input type="text" id="vision-add-meta" class="vision-add-input" inputmode="decimal" autocomplete="off"
+                    placeholder="Meta, ej. 5.000.000" value="${esc(_draft.meta)}" aria-label="Cantidad que quieres alcanzar">
+                <input type="text" id="vision-add-unidad" class="vision-add-input vision-add-unit" maxlength="12" autocomplete="off"
+                    placeholder="Unidad" value="${esc(_draft.unidad)}" aria-label="Unidad (por ejemplo $ o km)">
+            </div>` : '';
 
         return `
             <div class="vision-add-form">
                 <input type="text" id="vision-add-title" class="vision-add-input" maxlength="120"
                     placeholder="Ej. Sacar los papeles" value="${esc(_draft.title)}" autocomplete="off">
-                <select id="vision-add-freq" class="vision-add-select" aria-label="Frecuencia">${opciones}</select>
+                <select id="vision-add-freq" class="vision-add-select" aria-label="Tipo de paso">${opciones}</select>
+                ${extra}
                 <div class="vision-add-actions">
                     <button type="button" class="vision-add-submit" data-action="add-submit">Agregar</button>
                     <button type="button" class="vision-add-cancel" data-action="add-cancel">Listo</button>
@@ -494,64 +583,68 @@
         el.style.display = '';
 
         if (!_tareasDisponibles) {
-            el.innerHTML = `<div class="vision-panel-empty">Para agregar pasos falta crear las tablas <strong>vision_tareas</strong> y <strong>vision_tarea_logs</strong> en Supabase. El SQL está al inicio de vision_board.js.</div>`;
+            el.innerHTML = `<div class="vision-panel-note">Para agregar pasos falta crear las tablas <strong>vision_tareas</strong> y <strong>vision_tarea_logs</strong> en Supabase. El SQL está al inicio de vision_board.js.</div>`;
             return;
         }
 
-        const r = resumenMeta(meta.id);
-        const pendientes = r.unicas.filter(t => !t.done_at);
-        const hechos = r.unicas.filter(t => t.done_at);
+        const info = infoMeta(meta.id);
+        const subio = _levelUp && _levelUp.metaId === meta.id;
 
-        const cabecera = r.hayPasos ? `
-            <div class="vision-panel-top">
-                <span class="vision-panel-pct">${r.pct}%</span>
-                <span class="vision-panel-label">${esc(r.etiqueta)}</span>
-            </div>
-            <div class="ik-bar-track vision-panel-bar">
-                <div class="ik-bar-fill ik-bar-fill--green" style="width:${r.pct}%;"></div>
-            </div>
-            ${(r.unicas.length > 0 && r.reps.length > 0)
-                ? `<div class="vision-panel-sub">Constancia de la semana: ${r.semHechas} de ${r.semMeta}</div>` : ''}
-        ` : '';
+        const etiqueta = subio
+            ? `<span class="vision-panel-level vision-panel-level--up">${esc(_levelUp.text)}</span>`
+            : `<span class="vision-panel-level">Nivel ${info.nivel}<span class="vision-panel-level-name">${info.nombre}</span></span>`;
 
-        const seccionPasos = (pendientes.length + hechos.length) > 0 ? `
-            <div class="vision-section">
-                <div class="vision-section-title">Pasos</div>
-                ${pendientes.length > 0
-                    ? `<ul class="vision-steps">${pendientes.map(renderPaso).join('')}</ul>`
-                    : `<div class="vision-panel-empty">No te queda ningún paso pendiente.</div>`}
-                ${hechos.length > 0 ? `
-                    <button type="button" class="vision-done-toggle" data-action="toggle-done">
-                        ${_showDone ? 'Ocultar' : 'Ver'} hechos (${hechos.length})
-                    </button>
-                    ${_showDone ? `<ul class="vision-steps">${hechos.map(renderPaso).join('')}</ul>` : ''}
-                ` : ''}
-            </div>` : '';
+        const cabecera = `
+            <button type="button" class="vision-panel-head" data-action="toggle-panel" aria-expanded="${_open}">
+                ${etiqueta}
+                <span class="ik-bar-track vision-panel-bar"><span class="ik-bar-fill ik-bar-fill--green" style="width:${info.pct}%;"></span></span>
+                <svg class="vision-panel-chev${_open ? ' open' : ''}" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>`;
 
-        const seccionRepetidos = r.reps.length > 0 ? `
-            <div class="vision-section">
-                <div class="vision-section-title">Se repiten</div>
-                <ul class="vision-reps">${r.reps.map(renderRepetido).join('')}</ul>
-            </div>` : '';
+        if (!_open) {
+            el.innerHTML = cabecera;
+            return;
+        }
 
-        const vacio = !r.hayPasos && !_formOpen
-            ? `<div class="vision-panel-empty">Agrega los pasos que te acercan a esta meta: cosas que haces una vez o que repites cada día o cada semana.</div>`
+        const nota = info.mias.length === 0
+            ? 'Agrega pasos: cosas que haces una vez, que repites cada semana o una cantidad por juntar.'
+            : `${info.logros} ${info.logros === 1 ? 'logro' : 'logros'}, faltan ${info.faltan} para el nivel ${info.nivel + 1}.${info.completa ? ' Todos los pasos listos.' : ''}`;
+
+        const orden = [...info.mias.filter(t => !pasoCompleto(t)), ...info.mias.filter(pasoCompleto)];
+        const lista = orden.length > 0
+            ? `<ul class="vision-list">${orden.map(t =>
+                t.tipo === 'repetida' ? renderRepetido(t) : t.tipo === 'cantidad' ? renderCantidad(t) : renderPaso(t)
+            ).join('')}</ul>`
             : '';
+
+        const acciones = _formOpen ? renderForm() : `
+            <div class="vision-actions">
+                <button type="button" class="vision-link-btn vision-link-btn--accent" data-action="show-form">+ Agregar paso</button>
+                ${info.mias.length > 0
+                    ? `<button type="button" class="vision-link-btn" data-action="toggle-edit">${_editMode ? 'Listo' : 'Editar'}</button>`
+                    : ''}
+            </div>`;
 
         el.innerHTML = `
             ${cabecera}
-            ${seccionPasos}
-            ${seccionRepetidos}
-            ${vacio}
-            ${_formOpen
-                ? renderForm()
-                : `<button type="button" class="vision-add-step-btn" data-action="show-form">+ Agregar paso</button>`}
-        `;
+            <div class="vision-panel-body">
+                <div class="vision-panel-note">${nota}</div>
+                ${lista}
+                ${acciones}
+            </div>`;
     }
 
     function onPanelInput(e) {
-        if (e.target.id === 'vision-add-title') _draft.title = e.target.value;
-        if (e.target.id === 'vision-add-freq') _draft.freq = e.target.value;
+        switch (e.target.id) {
+            case 'vision-add-title': _draft.title = e.target.value; break;
+            case 'vision-add-meta': _draft.meta = e.target.value; break;
+            case 'vision-add-unidad': _draft.unidad = e.target.value; break;
+            case 'vision-add-freq':
+                _draft.freq = e.target.value;
+                renderPanel();   // muestra u oculta los campos de cantidad
+                break;
+        }
     }
 
     async function onPanelClick(e) {
@@ -560,13 +653,19 @@
         const id = btn.dataset.id ? Number(btn.dataset.id) : null;
 
         switch (btn.dataset.action) {
+            case 'toggle-panel':
+                _open = !_open;
+                if (!_open) { _formOpen = false; _editMode = false; }
+                return renderPanel();
+            case 'toggle-edit':
+                _editMode = !_editMode;
+                return renderPanel();
             case 'toggle-unica': return toggleUnica(id);
             case 'toggle-dia': return toggleDia(id, btn.dataset.fecha);
+            case 'aportar': return aportar(id);
+            case 'set-total': return corregirTotal(id);
             case 'edit': return editarPaso(id);
             case 'delete': return eliminarPaso(id);
-            case 'toggle-done':
-                _showDone = !_showDone;
-                return renderPanel();
             case 'show-form':
                 _formOpen = true;
                 renderPanel();
@@ -583,13 +682,26 @@
         const title = (_draft.title || '').trim();
         if (!title || !_activeMetaId) return;
 
-        const repetida = _draft.freq !== 'unica';
-        const fila = {
-            meta_id: _activeMetaId,
-            title,
-            tipo: repetida ? 'repetida' : 'unica',
-            veces_semana: repetida ? Number(_draft.freq) : null,
-        };
+        const nivelAntes = infoMeta(_activeMetaId).nivel;
+        const fila = { meta_id: _activeMetaId, title };
+
+        if (_draft.freq === 'cantidad') {
+            const meta = parseNumero(_draft.meta);
+            if (!(meta > 0)) {
+                alert('Escribe la cantidad que quieres alcanzar (un número mayor a 0).');
+                return;
+            }
+            fila.tipo = 'cantidad';
+            fila.meta_cantidad = meta;
+            fila.actual = 0;
+            fila.unidad = (_draft.unidad || '').trim() || null;
+        } else if (_draft.freq === 'unica') {
+            fila.tipo = 'unica';
+            fila.veces_semana = null;
+        } else {
+            fila.tipo = 'repetida';
+            fila.veces_semana = Number(_draft.freq);
+        }
 
         const { data, error } = await _supabase.from('vision_tareas').insert([fila]).select();
         if (error) {
@@ -599,13 +711,14 @@
 
         if (data && data[0]) {
             _tareas.push(data[0]);
-            if (repetida) _logs[data[0].id] = new Set();
+            if (fila.tipo === 'repetida') _logs[data[0].id] = new Set();
         }
 
         // Se queda abierto para agregar varios pasos seguidos.
         _draft.title = '';
+        _draft.meta = '';
+        avisarSiSubio(_activeMetaId, nivelAntes);
         renderPanel();
-        renderTabs();
         document.getElementById('vision-add-title')?.focus();
     }
 
@@ -613,28 +726,33 @@
         const t = _tareas.find(x => x.id === id);
         if (!t) return;
 
+        const nivelAntes = infoMeta(t.meta_id).nivel;
         const anterior = t.done_at;
         t.done_at = anterior ? null : new Date().toISOString();
+        avisarSiSubio(t.meta_id, nivelAntes);
         renderPanel();
-        renderTabs();
 
         const { error } = await _supabase.from('vision_tareas').update({ done_at: t.done_at }).eq('id', id);
         if (error) {
             t.done_at = anterior;
+            _levelUp = null;
             renderPanel();
-            renderTabs();
             alert('Error al actualizar el paso: ' + error.message);
         }
     }
 
     async function toggleDia(id, fecha) {
+        const t = _tareas.find(x => x.id === id);
+        if (!t) return;
+
         if (!_logs[id]) _logs[id] = new Set();
         const set = _logs[id];
         const estaba = set.has(fecha);
 
+        const nivelAntes = infoMeta(t.meta_id).nivel;
         if (estaba) set.delete(fecha); else set.add(fecha);
+        avisarSiSubio(t.meta_id, nivelAntes);
         renderPanel();
-        renderTabs();
 
         const consulta = estaba
             ? _supabase.from('vision_tarea_logs').delete().eq('tarea_id', id).eq('fecha', fecha)
@@ -643,10 +761,56 @@
 
         if (error) {
             if (estaba) set.add(fecha); else set.delete(fecha);
+            _levelUp = null;
             renderPanel();
-            renderTabs();
             alert('Error al registrar el día: ' + error.message);
         }
+    }
+
+    async function setActual(t, valor) {
+        const nivelAntes = infoMeta(t.meta_id).nivel;
+        const anterior = t.actual;
+        t.actual = valor;
+        avisarSiSubio(t.meta_id, nivelAntes);
+        renderPanel();
+
+        const { error } = await _supabase.from('vision_tareas').update({ actual: valor }).eq('id', t.id);
+        if (error) {
+            t.actual = anterior;
+            _levelUp = null;
+            renderPanel();
+            alert('Error al guardar la cantidad: ' + error.message);
+        }
+    }
+
+    async function aportar(id) {
+        const t = _tareas.find(x => x.id === id);
+        if (!t) return;
+
+        const txt = prompt(`¿Cuánto sumas a "${t.title}"? (con un número negativo se resta)`, '');
+        if (txt === null) return;
+
+        const n = parseNumero(txt);
+        if (!Number.isFinite(n) || n === 0) {
+            if (txt.trim() !== '') alert('Escribe un número válido.');
+            return;
+        }
+        await setActual(t, Math.max(0, (Number(t.actual) || 0) + n));
+    }
+
+    async function corregirTotal(id) {
+        const t = _tareas.find(x => x.id === id);
+        if (!t) return;
+
+        const txt = prompt(`Total acumulado de "${t.title}":`, String(Number(t.actual) || 0));
+        if (txt === null) return;
+
+        const n = parseNumero(txt);
+        if (!Number.isFinite(n) || n < 0) {
+            alert('Escribe un número válido (0 o mayor).');
+            return;
+        }
+        await setActual(t, n);
     }
 
     async function editarPaso(id) {
@@ -668,7 +832,7 @@
     async function eliminarPaso(id) {
         const t = _tareas.find(x => x.id === id);
         if (!t) return;
-        if (!confirm(`¿Eliminar el paso "${t.title}"${t.tipo === 'repetida' ? ' y todo su registro' : ''}?`)) return;
+        if (!confirm(`¿Eliminar el paso "${t.title}"${t.tipo !== 'unica' ? ' y todo su registro' : ''}?`)) return;
 
         const { error } = await _supabase.from('vision_tareas').delete().eq('id', id);
         if (error) {
@@ -678,7 +842,6 @@
         _tareas = _tareas.filter(x => x.id !== id);
         delete _logs[id];
         renderPanel();
-        renderTabs();
     }
 
     window.addVisionMeta = async function () {
