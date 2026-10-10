@@ -460,18 +460,21 @@ async function calcularPromedioHistorico(tableName) {
  * Balance MENSUAL de Loves vs Odios (reinicia cada mes).
  * Suma los valores de loves_registros y odios_registros del mes
  * vigente y devuelve el % que representa cada uno del total.
+ * offsetMeses: 0 = mes actual, -1 = mes anterior, -2 = hace dos meses...
+ * (lo usa el espejo del alma al deslizar para ver meses pasados).
  */
-async function calcularBalanceMensualLovesOdios() {
+async function calcularBalanceMensualLovesOdios(offsetMeses = 0) {
     const hoy = new Date();
-    const yyyy = hoy.getFullYear();
-    const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+    const ref = new Date(hoy.getFullYear(), hoy.getMonth() + offsetMeses, 1);
+    const yyyy = ref.getFullYear();
+    const mm = String(ref.getMonth() + 1).padStart(2, '0');
     const inicioMes = `${yyyy}-${mm}-01`;
     // Antes esto era un "31" fijo, lo cual genera una fecha inválida
     // (ej. 2026-09-31) en cualquier mes con menos de 31 días — Supabase
     // rechaza esa fecha y la consulta vuelve vacía en silencio, por lo
     // que los registros nuevos de ese mes (Positivos/Negativos) nunca
     // se contaban. Ahora se calcula el último día real del mes.
-    const ultimoDiaMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
+    const ultimoDiaMes = new Date(yyyy, ref.getMonth() + 1, 0).getDate();
     const finMes = `${yyyy}-${mm}-${String(ultimoDiaMes).padStart(2, '0')}`;
 
     const [lovesRes, odiosRes] = await Promise.all([
@@ -676,40 +679,35 @@ function calcularFocoAtencion({ lovesPct, odiosPct, hayDatosEmocionales, habitos
  *   competencia (ambos % suman 100, se ve quién va ganando)
  * · Hábitos Hoy: barra split ✅ Hechos (verde) vs ⬜ Pendientes (rojo)
  */
-async function loadEspejoDelAlma() {
-    const container = document.getElementById('espejo-alma-container');
-    if (!container) return;
+/* ---------- Historial de meses del balance emocional ----------
+   Deslizando el dedo sobre la tarjeta del balance (o con las flechas
+   ‹ ›) se ven los meses anteriores. Al volver a cargar el espejo (por
+   ejemplo al regresar a Inicio) se vuelve al mes actual. */
+let _espejoMesOffset = 0;      // 0 = mes actual, -1 = anterior...
+let _espejoReq = 0;            // descarta respuestas viejas si deslizas rápido
+const ESPEJO_MESES_ATRAS_MAX = 24;
 
-    const [balanceMes, habitosHoy] = await Promise.all([
-        calcularBalanceMensualLovesOdios(),
-        calcularHabitosHoy(),
-    ]);
+function etiquetaMesEspejo(offset) {
+    const hoy = new Date();
+    const fecha = new Date(hoy.getFullYear(), hoy.getMonth() + offset, 1);
+    const mes = new Intl.DateTimeFormat('es-CO', { month: 'long' }).format(fecha);
+    const nombre = mes.charAt(0).toUpperCase() + mes.slice(1);
+    return fecha.getFullYear() === hoy.getFullYear() ? nombre : `${nombre} ${fecha.getFullYear()}`;
+}
 
-    const hPctDone = habitosHoy.pct;
-    const hPctPending = 100 - habitosHoy.pct;
+// Contenido interno de .espejo-emo-body (mes visible + barra + chips).
+function espejoEmoBodyHTML(balanceMes, offset) {
+    const hayAtras = offset > -ESPEJO_MESES_ATRAS_MAX;
+    const hayAdelante = offset < 0;
 
-    // Anillo SVG para "Hábitos de hoy" (r=32 → circunferencia ≈ 201.06).
-    const RADIO = 32;
-    const CIRCUNFERENCIA = 2 * Math.PI * RADIO;
-    const offsetHabitos = CIRCUNFERENCIA - (hPctDone / 100) * CIRCUNFERENCIA;
-
-    // Veredicto de la "competencia" del mes: quién va ganando entre
-    // positivos y negativos, en palabras simples (no solo un %).
-    let veredicto;
-    if (balanceMes.total === 0) {
-        veredicto = 'Aún no hay registros este mes.';
-    } else if (balanceMes.lovesPct > balanceMes.odiosPct) {
-        veredicto = `Van ganando los positivos (${balanceMes.lovesPct}% vs ${balanceMes.odiosPct}%).`;
-    } else if (balanceMes.odiosPct > balanceMes.lovesPct) {
-        veredicto = `Van ganando los negativos (${balanceMes.odiosPct}% vs ${balanceMes.lovesPct}%).`;
-    } else {
-        veredicto = `Vas empatado este mes (${balanceMes.lovesPct}% y ${balanceMes.odiosPct}%).`;
-    }
-
-    container.innerHTML = `
-            <div class="espejo-emo-card">
-                <div class="espejo-emo-body">
-                    <div class="espejo-emo-label">Balance emocional del mes</div>
+    return `
+                    <div class="espejo-emo-label">
+                        <button type="button" class="espejo-emo-nav${hayAtras ? '' : ' espejo-emo-nav--off'}" data-espejo-dir="-1"
+                            aria-label="Mes anterior"${hayAtras ? '' : ' disabled'}>‹</button>
+                        <span class="espejo-emo-month">${etiquetaMesEspejo(offset)}</span>
+                        <button type="button" class="espejo-emo-nav${hayAdelante ? '' : ' espejo-emo-nav--off'}" data-espejo-dir="1"
+                            aria-label="Mes siguiente"${hayAdelante ? '' : ' disabled'}>›</button>
+                    </div>
 
                     <div class="espejo-emo-vs-row">
                         <span class="espejo-emo-vs-side espejo-emo-vs-side--love">❤️ Positivos <strong>${balanceMes.lovesPct}%</strong></span>
@@ -721,16 +719,94 @@ async function loadEspejoDelAlma() {
                         <div class="espejo-emo-bar-fill espejo-emo-bar-fill--odio" style="width:${balanceMes.odiosPct}%;"></div>
                     </div>
 
-                    <div class="espejo-emo-verdict">${veredicto}</div>
-
                     <div class="espejo-emo-stats">
                         ${balanceMes.total > 0
                             ? `<span class="espejo-emo-chip espejo-emo-chip--love">❤️ ${balanceMes.sumLoves} pts</span>
                                <span class="espejo-emo-chip espejo-emo-chip--odio">💢 ${balanceMes.sumOdios} pts</span>
                                <span class="espejo-emo-chip">${balanceMes.total} registros</span>`
-                            : ''}
+                            : '<span class="espejo-emo-chip">Sin registros</span>'}
                     </div>
-                </div>
+    `;
+}
+
+async function cambiarMesEspejo(delta) {
+    const nuevo = _espejoMesOffset + delta;
+    if (nuevo > 0 || nuevo < -ESPEJO_MESES_ATRAS_MAX) return;
+
+    const req = ++_espejoReq;
+    const balance = await calcularBalanceMensualLovesOdios(nuevo);
+    if (req !== _espejoReq) return;
+
+    const body = document.querySelector('#espejo-alma-container .espejo-emo-body');
+    if (!body) return;
+
+    _espejoMesOffset = nuevo;
+    body.innerHTML = espejoEmoBodyHTML(balance, nuevo);
+
+    // Pequeño deslizamiento de entrada según la dirección.
+    body.classList.remove('espejo-emo-body--older', 'espejo-emo-body--newer');
+    void body.offsetWidth;
+    body.classList.add(delta < 0 ? 'espejo-emo-body--older' : 'espejo-emo-body--newer');
+}
+
+// Un solo juego de listeners en el contenedor (sobrevive a los re-renders).
+function bindEspejoGestos() {
+    const cont = document.getElementById('espejo-alma-container');
+    if (!cont || cont.dataset.espejoBound) return;
+    cont.dataset.espejoBound = '1';
+
+    let x0 = 0;
+    let y0 = 0;
+    let enTarjeta = false;
+
+    cont.addEventListener('touchstart', (e) => {
+        enTarjeta = !!e.target.closest('.espejo-emo-card');
+        if (!enTarjeta) return;
+        x0 = e.changedTouches[0].clientX;
+        y0 = e.changedTouches[0].clientY;
+    }, { passive: true });
+
+    cont.addEventListener('touchend', (e) => {
+        if (!enTarjeta) return;
+        enTarjeta = false;
+        const dx = e.changedTouches[0].clientX - x0;
+        const dy = e.changedTouches[0].clientY - y0;
+        // Deslizar a la derecha = mes anterior; a la izquierda = mes siguiente.
+        if (Math.abs(dx) >= 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+            cambiarMesEspejo(dx > 0 ? -1 : 1);
+        }
+    }, { passive: true });
+
+    cont.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-espejo-dir]');
+        if (btn && !btn.disabled) cambiarMesEspejo(Number(btn.dataset.espejoDir));
+    });
+}
+
+async function loadEspejoDelAlma() {
+    const container = document.getElementById('espejo-alma-container');
+    if (!container) return;
+
+    bindEspejoGestos();
+    _espejoMesOffset = 0;
+    _espejoReq++;
+
+    const [balanceMes, habitosHoy] = await Promise.all([
+        calcularBalanceMensualLovesOdios(0),
+        calcularHabitosHoy(),
+    ]);
+
+    const hPctDone = habitosHoy.pct;
+    const hPctPending = 100 - habitosHoy.pct;
+
+    // Anillo SVG para "Hábitos de hoy" (r=32 → circunferencia ≈ 201.06).
+    const RADIO = 32;
+    const CIRCUNFERENCIA = 2 * Math.PI * RADIO;
+    const offsetHabitos = CIRCUNFERENCIA - (hPctDone / 100) * CIRCUNFERENCIA;
+
+    container.innerHTML = `
+            <div class="espejo-emo-card">
+                <div class="espejo-emo-body">${espejoEmoBodyHTML(balanceMes, 0)}</div>
             </div>
 
             <div class="espejo-section espejo-section--habitos espejo-section--ring">
