@@ -1,2359 +1,371 @@
 /**
  * ==========================================
- * VARIABLES CSS
+ * COMPONENTE: MOOD TRACKER — ESTILOS
+ * (Sentimientos › Positivos / Negativos + Espejo del Alma)
  * ==========================================
+ * IMPORTANTE: este archivo REEMPLAZA al mood_tracker.css anterior, que
+ * era una copia de styles.css y no tenía ninguna regla .mood-* ni
+ * .sent-* (por eso Sentimientos se veía sin estilos). Las variables
+ * (--white, --border-color, etc.) y las reglas base siguen viniendo de
+ * styles.css, que se carga antes.
  */
-:root {
-    color-scheme: dark;
-    --primary-green: #74C08A;
-    --bg-light: #121212;
-    --bg-header: #242424;
-    --text-dark: #EAEAEA;
-    --text-muted: #888888;
-    --white: #1C1C1C;
-    --border-color: #2D2D2D;
-    --transition: 0.25s ease;
-}
 
-/**
- * ==========================================
- * ESTILOS BASE
- * ==========================================
- */
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-}
-
-body {
-    background-color: var(--bg-light);
-    color: var(--text-dark);
-    min-height: 100vh;
-    transition: background-color var(--transition), color var(--transition);
-    line-height: 1.5;
-}
-
-.container {
-    width: 100%;
-    padding: 24px 20px;
-    max-width: 600px;
-    margin: 0 auto;
-}
-
-/**
- * ==========================================
- * COMPONENTES DE CABECERA
- * ==========================================
- */
-header.main-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 28px;
-    position: relative; 
-}
-
-.logo-area {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.brand-name {
-    font-size: 2.8rem;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-}
-
-/* El logo es un botón que lleva a Inicio: se le quita el aspecto de botón. */
-button.brand-name {
-    margin: 0;
-    padding: 0;
-    border: none;
-    background: none;
-    color: inherit;
-    font-family: inherit;
-    line-height: inherit;
-    text-align: left;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-}
-
-button.brand-name:focus-visible {
-    outline: 2px solid var(--primary-green);
-    outline-offset: 4px;
-    border-radius: 6px;
-}
-
-.header-actions {
-    display: flex;
-    align-items: center;
-    gap: 14px; 
-}
-
-/* Botón de Tema */
-.icon-btn {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    color: var(--text-dark);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 6px;
-    border-radius: 6px;
-    transition: background-color var(--transition), color var(--transition);
-}
-
-.icon-btn:hover {
-    background-color: var(--border-color);
-}
-
-/*
-    NUEVO: botón de exportar SQL con el MISMO lenguaje visual que el
-    botón "Historial (SQL)" de Brain Dump / Loves / Odios / Sentimientos
-    (fondo transparente, borde de 1px, texto oscuro), pero en versión
-    compacta para poder vivir dentro de la cabecera angosta de
-    Hábitos, junto a las flechas de semana, sin romper el layout.
-*/
-.sql-btn-compact {
-    display: inline-flex;
-    align-items: center;
+/* ==========================================
+   SUB-TABS: Positivos | Negativos
+   (control segmentado de 2 columnas)
+   ========================================== */
+.sent-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 4px;
-    background-color: transparent;
+    padding: 4px;
+    margin: 0 0 12px;
+    border-radius: 14px;
     border: 1px solid var(--border-color);
-    color: var(--text-dark);
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.3px;
-    padding: 5px 8px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background-color var(--transition), color var(--transition);
-}
-
-.sql-btn-compact:hover {
     background-color: var(--bg-header);
 }
 
-/* Contenedor y Botón de Perfil */
-.profile-menu-container {
-    position: relative;
-}
-
-.dropdown-header {
-    padding: 10px 12px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    background-color: transparent;
-    border-bottom: 1px solid var(--border-color);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.dropdown-item {
-    padding: 10px 12px;
-    background: transparent;
+.sent-tab-btn {
+    min-width: 0;
+    padding: 10px 8px;
     border: none;
-    text-align: left;
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--text-dark);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     cursor: pointer;
-    transition: background-color var(--transition);
+    transition: background-color var(--transition), color var(--transition);
 }
 
-.dropdown-item:hover {
-    background-color: var(--bg-light);
+@media (hover: hover) {
+    .sent-tab-btn:not(.sent-tab-active):hover {
+        color: var(--text-dark);
+    }
 }
 
-.text-danger {
-    color: #e74c3c;
+.sent-tab-btn.sent-tab-active {
+    background-color: var(--text-dark);
+    color: var(--bg-light);
 }
 
-.text-danger:hover {
-    background-color: rgba(231, 76, 60, 0.05);
+.sent-tab-btn:focus-visible {
+    outline: 2px solid var(--primary-green);
+    outline-offset: 2px;
 }
 
-/**
- * ==========================================
- * TABS "CAMINO" (Hábitos / Sentimientos)
- * ==========================================
- * Igual patrón que .tabs/.tab-btn pero con cuadros más grandes: más
- * padding, ícono destacado arriba y texto debajo, para que se sientan
- * como las dos puertas de entrada principales de esta pestaña.
- */
-.camino-tabs {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
+/* ==========================================
+   CABECERA: botón "+" a la izquierda, Guardar / bloqueo a la derecha
+   ========================================== */
+.mood-minimal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     gap: 10px;
-    padding: 0 0 16px;
-    margin-bottom: 8px;
+    padding: 0 0 12px;
 }
 
-.camino-tab-btn {
+.mood-save-slot {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    min-height: 34px;
+}
+
+.mood-save-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--primary-green), #4fae6d);
+    color: #0f1a13;
+    font-size: 0.8rem;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 3px 10px rgba(116, 192, 138, 0.3);
+    transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.mood-save-btn:hover {
+    box-shadow: 0 4px 14px rgba(116, 192, 138, 0.45);
+}
+
+.mood-save-btn:active {
+    transform: scale(0.96);
+}
+
+.mood-save-btn:focus-visible {
+    outline: 2px solid var(--primary-green);
+    outline-offset: 2px;
+}
+
+.mood-lock-banner {
+    padding: 7px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-header);
+    color: var(--text-muted);
+    font-size: 0.74rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+/* ==========================================
+   LISTA DE TARJETAS
+   ========================================== */
+.mood-grid {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    min-width: 0;
-    padding: 16px 12px;
+    gap: 10px;
+    list-style: none;
+}
+
+.mood-card {
+    --mood-accent: var(--primary-green);
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+    padding: 10px;
     border-radius: 14px;
     border: 1px solid var(--border-color);
     background-color: var(--white);
-    color: var(--text-muted);
-    cursor: pointer;
-    transition: all var(--transition);
+    transition: border-color var(--transition), opacity var(--transition);
 }
 
-.camino-tab-icon {
-    font-size: 1.6rem;
-    line-height: 1;
+.mood-card--love {
+    --mood-accent: #e0479e;
 }
 
-.camino-tab-label {
-    font-size: 0.85rem;
-    font-weight: 700;
-    text-align: center;
-    line-height: 1.2;
-    overflow-wrap: break-word;
-    word-break: break-word;
-    hyphens: auto;
+.mood-card--odio {
+    --mood-accent: #e74c3c;
 }
 
-/*
-    NUEVO: mobile fix. Con 4 columnas fijas, etiquetas largas como
-    "SALUD EMOCIONAL" o "SENTIMIENTOS" no cabían en pantallas angostas
-    y rompían el grid (texto desbordado/superpuesto). Se reduce a 3 y
-    luego a 2 columnas, con tipografía e íconos más chicos, antes de
-    que eso pase.
-*/
-@media (max-width: 480px) {
-    .camino-tabs {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 8px;
-    }
-    .camino-tab-btn {
-        padding: 12px 6px;
-        gap: 4px;
-    }
-    .camino-tab-icon {
-        font-size: 1.3rem;
-    }
-    .camino-tab-label {
-        font-size: 0.66rem;
-        letter-spacing: 0.1px;
-    }
+.mood-card--sentimiento {
+    --mood-accent: var(--primary-green);
 }
 
-@media (max-width: 340px) {
-    .camino-tabs {
-        grid-template-columns: repeat(2, 1fr);
-    }
+.mood-card:not(.mood-card--locked):hover {
+    border-color: var(--mood-accent);
 }
 
-.camino-tab-btn:hover {
-    border-color: var(--text-muted);
-    color: var(--text-dark);
-}
-
-.camino-tab-active {
-    background-color: var(--text-dark);
-    border-color: var(--text-dark);
-    color: var(--bg-light);
-}
-
-.camino-tab-active:hover {
-    color: var(--bg-light);
-}
-
-.camino-tab-btn--add {
-    border-style: dashed;
-    color: var(--text-muted);
-    background-color: transparent;
-}
-
-.camino-tab-btn--add:hover {
-    border-color: var(--primary-green);
-    color: var(--primary-green);
-}
-
-/* Variante de 2 botones (Finanzas / Compras): ocupa todo el ancho en cualquier pantalla. */
-.camino-tabs--2 {
-    grid-template-columns: repeat(2, 1fr);
-}
-
-/**
- * ==========================================
- * PROGRESO SEMANAL
- * ==========================================
- */
-
-
-
-
-
-
-
-
-.progress-bar-segmented {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
-    height: 4px; 
-    margin-bottom: 8px;
-}
-
-.day-segment {
-    border-radius: 2px; 
-    background-color: var(--border-color);
-    transition: background-color var(--transition), opacity var(--transition);
-}
-
-div.day-segment.past {
-    background-color: var(--text-muted);
-    opacity: 0.4;
-}
-
-div.day-segment.today {
-    background-color: var(--primary-green);
-    opacity: 1; 
-}
-
-div.day-segment.future {
-    background-color: var(--border-color);
-    opacity: 1;
-}
-
-.progress-labels {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
-}
-
-.progress-labels span {
-    font-size: 0.65rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-align: center;
-}
-
-/**
- * ==========================================
- * BARRAS DE PROGRESO UNIFICADAS (IK-BAR)
- * ==========================================
- * Sistema unico de barras usado por Finanzas,
- * Espejo del Alma y Compras.
- */
-.ik-bar-track {
-    width: 100%;
-    height: 10px;
-    border-radius: 5px;
-    background-color: var(--border-color);
-    overflow: hidden;
-    box-shadow: inset 0 1px 2px rgba(0,0,0,0.08);
-}
-
-.ik-bar-fill {
-    height: 100%;
-    border-radius: 5px;
-    transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.ik-bar-fill--green {
-    background: linear-gradient(to right, #74C08A, #16a34a);
-}
-
-.ik-bar-fill--love {
-    background: linear-gradient(to right, #f28cc0, #e0479e);
-}
-
-.ik-bar-fill--odio {
-    background: linear-gradient(to right, #f0776a, #e74c3c);
-}
-
-.ik-bar-fill--over {
-    background: linear-gradient(to right, #e74c3c, #c0392b);
-}
-
-.ik-bar-fill--neutral {
-    background: linear-gradient(to right, #74C08A, #2ecc71);
-}
-
-/*
-    NUEVO (2026-08-16): variante "split" de la barra, para mostrar un
-    balance de dos valores que suman 100% uno al lado del otro (ej.
-    % de hábitos cumplidos vs no cumplidos), en vez de un solo
-    progreso. Se usa en Espejo del Alma para el balance histórico de
-    Hábitos: .ik-bar-fill--green a la izquierda (cumplidos) y
-    .ik-bar-fill--over a la derecha (no cumplidos).
-*/
-.ik-bar-track--split {
-    display: flex;
-}
-
-.ik-bar-track--split .ik-bar-fill {
-    border-radius: 0;
-    flex-shrink: 0;
-}
-
-.ik-bar-track--split .ik-bar-fill:first-child {
-    border-radius: 5px 0 0 5px;
-}
-
-.ik-bar-track--split .ik-bar-fill:last-child {
-    border-radius: 0 5px 5px 0;
-}
-
-
-/**
- * ==========================================
- * TARJETA "HOY": STATE BAR + FRASE MOTIVACIONAL
- * ==========================================
- * Encapsula visualmente el state bar y la frase motivacional en un
- * solo bloque (un único borde/fondo exterior), aunque cada uno sigue
- * gobernado por su propia lógica en JS (renderStateBar / loadDailyQuote).
- */
-.today-info-card {
-    background-color: transparent;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 16px;
-    margin-bottom: 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-}
-
-
-
-
-/**
- * ==========================================
- * CONTENEDORES DE CATEGORÍA (ESTILO PLANO)
- * ==========================================
- */
-.category {
-    background: transparent;
-    margin-bottom: 24px;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    overflow: hidden;
-}
-
-.category-header {
-    padding: 12px 16px;
-    font-weight: 600;
-    background-color: transparent;
-    border-bottom: 1px solid var(--border-color);
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--text-muted);
-}
-
-.item-list-header { 
-    background-color: transparent; 
-    border-bottom: 1px solid var(--border-color);
-}
-
-/**
- * ==========================================
- * CUADRÍCULA DE HÁBITOS
- * ==========================================
- */
-.habit-grid {
-    display: grid;
-    grid-template-columns: 4.5fr repeat(7, 1fr); 
-    align-items: center;
-    gap: 4px;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.habit-grid:last-child {
-    border-bottom: none;
-}
-
-.item-name {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--text-dark);
-    line-height: 1.3;
-    padding-right: 12px;
-    word-break: break-word;
-}
-
-.habit-img {
-    width: 34px;
-    height: 34px;
-    flex-shrink: 0;
-    border-radius: 8px;
+.mood-img {
+    flex: 0 0 64px;
+    width: 64px;
+    height: 64px;
+    align-self: center;
     object-fit: cover;
-    cursor: pointer;
-}
-
-.day-label {
-    font-size: 0.65rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-align: center;
-}
-
-.add-habit-btn {
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    gap: 6px;
-    background-color: var(--text-dark); 
-    color: var(--bg-light); 
-    font-size: 0.8rem;
-    font-weight: 600;
-    cursor: pointer;
-    padding: 6px 12px;
-    border-radius: 6px;
-    border: none;
-    letter-spacing: 0.5px;
-    width: max-content;
-}
-
-.add-habit-btn:hover {
-    opacity: 0.85;
-}
-
-.add-habit-btn span {
-    font-size: 1.1rem;
-    line-height: 1;
-    font-weight: 500;
-    display: inline-block;
-    transform: translateY(-1px);
-}
-
-.status-circle {
-    width: 18px; 
-    height: 18px;
-    border-radius: 50%;
-    border: 1.5px solid var(--border-color);
-    margin: 0 auto;
-    cursor: pointer;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
-}
-
-.status-circle[style*="var(--primary-green)"] {
-    border-color: var(--primary-green) !important;
-}
-
-/**
- * ==========================================
- * UTILIDADES
- * ==========================================
- */
-.hidden { display: none; }
-.view-content { display: none; }
-.view-content.active { display: block; }
-
-/**
- * ==========================================
- * CABECERAS SECUNDARIAS DE LISTA
- * ==========================================
- */
-.escuela-header,
-.idea-header,
-.plan-list-header,
-.love-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 16px;
-    background-color: transparent; 
-    border-bottom: 1px solid var(--border-color);
-}
-
-.escuela-header {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-}
-
-/**
- * ==========================================
- * FILAS COMUNES
- * ==========================================
- */
-.escuela-grid,
-.love-row {
-    display: grid;
-    align-items: center;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.love-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-}
-
-.escuela-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-}
-
-.idea-row {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border-color);
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.escuela-grid:last-child,
-.love-row:last-child,
-.idea-row:last-child {
-    border-bottom: none;
-}
-
-.header-label {
-    font-size: 0.65rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-align: right;
-    text-transform: uppercase;
-}
-
-/* Progress & Text */
-.progress-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    cursor: pointer;
-    transition: opacity var(--transition);
-}
-
-.progress-wrapper:hover {
-    opacity: 0.8;
-}
-
-.progress-bar-container {
-    flex-grow: 1;
-    height: 12px;
-    background-color: var(--border-color);
-    border-radius: 6px;
-    overflow: hidden;
-    position: relative;
-}
-
-.progress-bar-fill {
-    height: 100%;
-    background-color: var(--primary-green);
-    transition: width 0.3s ease;
-}
-
-.progress-text {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--text-dark);
-    min-width: 45px;
-    text-align: right;
-}
-
-.idea-content, .love-content {
-    font-size: 0.85rem;
-    color: var(--text-dark);
-    line-height: 1.4;
-    word-break: break-word;
-    min-width: 0;
-}
-
-.idea-content { cursor: pointer; }
-.love-content { flex-grow: 1; cursor: pointer; }
-
-.idea-date {
-    font-size: 0.65rem;
-    color: var(--text-muted);
-    text-transform: uppercase;
-}
-
-.love-counter-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background-color: transparent;
-    border: 1px solid var(--border-color);
-    color: var(--text-dark);
-    padding: 4px 12px;
-    border-radius: 16px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all var(--transition);
-    min-width: 55px;
-    justify-content: center;
-}
-
-.love-counter-btn:hover {
-    background-color: transparent; 
-    border-color: #e74c3c;
-    color: #e74c3c;
-}
-
-.love-counter-btn svg {
-    color: #e74c3c; 
-    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.love-counter-btn:active svg {
-    transform: scale(1.3); 
-}
-
-
-/* ==========================================
- * SUB-TABS 
- * ========================================== */
-.finance-sub-tabs,
-.sub-tabs-container {
-    display: flex;
-    justify-content: center;
-    gap: 32px;
-    margin-bottom: 0; 
-    border-bottom: 1px solid var(--border-color);
-    padding: 8px 0 0 0; 
-    background-color: transparent; 
-}
-
-.sub-tab-btn {
-    position: relative;
-    background: transparent;
-    border: none;
-    border-bottom: 3px solid transparent;
-    padding: 8px 12px 12px 12px;
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: var(--text-muted);
-    cursor: pointer;
-    transition: all var(--transition);
-    margin-bottom: -1px; 
-    box-shadow: none;
-    border-radius: 0;
-}
-
-.sub-tab-btn:not(:last-child):after {
-    content: "";
-    position: absolute;
-    right: -16px; 
-    top: 50%;
-    transform: translateY(-50%);
-    height: 14px;
-    width: 2px;
-    background-color: var(--text-muted); 
-    opacity: 0.3;
-    pointer-events: none; 
-}
-
-.sub-tab-btn:hover:not(.active) {
-    color: var(--text-dark);
-    border-bottom-color: var(--border-color);
-}
-
-.sub-tab-btn.active {
-    color: var(--text-dark);
-    border-bottom-color: var(--primary-green);
-}
-
-/* NOTA: las secciones CSS "Bloques y Subtareas" e "Inversiones y
-   Cuotas" (.bloque-*, .inversion-*, .cuota-*, .task-checkbox,
-   .task-done) se eliminaron el 2026-08-16 por ser código muerto: sus
-   componentes JS correspondientes ya no existen (ver main.js) y
-   ningún elemento del HTML actual usa estas clases. */
-
-
-
-
-
-
-
-/**
- * ==========================================
- * SECCIÓN MÉTRICAS (KPI MEJORADOS)
- * ==========================================
- */
-
-.metrics-kpi-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 24px;
-}
-
-.kpi-card {
+    border-radius: 12px;
     background-color: var(--bg-header);
-    border: none;
-    border-radius: 12px;
-    padding: 20px 16px;
-    text-align: center;
-    transition: transform var(--transition);
 }
 
-.kpi-label {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 8px;
-    font-weight: 700;
-}
-
-.kpi-value {
-    font-size: 2rem;
-    font-weight: 800;
-    color: var(--primary-green);
-    line-height: 1;
-}
-
-.kpi-highlight {
-    color: var(--text-dark);
-}
-
-.minimal-daily-list {
-    padding: 8px 16px;
-    background-color: transparent;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-}
-
-.daily-row {
-    display: grid;
-    grid-template-columns: 105px 1fr 50px; 
-    align-items: center;
-    gap: 16px;
-    padding: 12px 0;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.daily-row:last-child {
-    border-bottom: none;
-}
-
-.daily-date {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    font-weight: 500;
-}
-
-.daily-bar-bg {
-    height: 4px;
-    background-color: var(--border-color);
-    border-radius: 2px;
-    overflow: hidden;
-    width: 100%;
-}
-
-.daily-bar-fill {
-    height: 100%;
-    background-color: var(--primary-green);
-    border-radius: 2px;
-    transition: width 0.5s ease;
-}
-
-.daily-pct {
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: var(--text-dark);
-    text-align: right;
-}
-
-/* Cuadrícula de Pasiones (NUEVO) */
-.loves-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 16px;
-    padding: 16px;
-}
-
-.passion-card {
-    position: relative;
-    aspect-ratio: 1/1;
-    border-radius: 12px;
-    overflow: hidden;
-    cursor: pointer;
-    border: 2px solid var(--border-color);
-    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.passion-card:hover { transform: scale(1.02); }
-
-.passion-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    filter: brightness(0.6);
-}
-
-.passion-info {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    padding: 10px;
-    color: white;
-    background: linear-gradient(transparent, rgba(0,0,0,0.7));
-}
-
-.passion-name { font-size: 0.8rem; font-weight: 700; display: block; }
-.passion-count { font-size: 1.2rem; font-weight: 800; color: var(--primary-green); }
-
-/*
-    NUEVO: tarjetas de Compras — meta de ahorro por item. Layout en
-    fila (imagen a la izquierda, info a la derecha) para que la foto
-    no se vea recortada: nombre arriba, barra de progreso, y debajo de
-    la barra el ahorro actual y el precio objetivo (cada uno
-    clickeable por separado). Clic en el nombre edita el nombre; clic
-    derecho elimina.
-*/
-.compras-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.compra-card {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 12px;
-    border-radius: 12px;
-    cursor: default;
-    border: 2px solid var(--border-color);
-    background-color: var(--white);
-    transition: border-color var(--transition);
-}
-
-.compra-card--lista {
-    border-color: var(--primary-green);
-}
-
-.compra-img {
-    width: 92px;
-    height: 92px;
-    flex-shrink: 0;
-    border-radius: 12px;
-    object-fit: cover;
-    display: block;
-}
-
-.compra-info {
+.mood-info {
     flex: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    justify-content: center;
+    gap: 8px;
 }
 
-.compra-top-row {
+.mood-top-row {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     justify-content: space-between;
-    gap: 6px;
+    gap: 8px;
 }
 
-.compra-name {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--text-dark);
-    cursor: pointer;
+.mood-name {
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    cursor: pointer;
 }
 
-.compra-ready-badge {
-    font-size: 0.62rem;
+.mood-value {
+    flex-shrink: 0;
+    font-size: 1.15rem;
     font-weight: 800;
-    color: var(--primary-green);
-    white-space: nowrap;
-    flex-shrink: 0;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--mood-accent);
 }
 
-.compra-progress-track {
-    composes: ik-bar-track;
-}
-
-.compra-progress-fill {
-    composes: ik-bar-fill;
-}
-
-.compra-progress-fill--lista {
-    composes: ik-bar-fill--green;
-}
-
-
-/* Fila debajo de la barra: ahorro actual (izq) y precio objetivo (der),
-   cada uno es su propio botón para que quede claro que se puede editar. */
-
-.compra-progress-row {
+/* ---------- Chips numerados (1..5 o 1..10) ---------- */
+.mood-chip-row {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 6px;
-}
-
-.compra-progress-row .ik-bar-track {
-    flex: 1;
-    min-width: 0;
-    width: auto;
-}
-
-.compra-amount-btn {
-    font-size: 0.72rem;
-    font-weight: 700;
-    border: none;
-    background: none;
-    padding: 0;
-    cursor: pointer;
-    white-space: nowrap;
-    flex-shrink: 0;
-}
-
-.compra-amount-ahorro {
-    color: var(--primary-green);
-}
-
-.compra-amount-meta {
-    color: var(--text-muted);
-}
-
-.compra-amount-meta--vacio {
-    text-decoration: underline dotted;
-}
-
-.compra-amounts-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-}
-
-.compra-input {
-    flex: 1;
-    min-width: 0;
-    max-width: 110px;
-    padding: 5px 6px;
-    text-align: center;
-    border: 1px dashed var(--text-muted);
-    border-radius: 6px;
-    font-size: 0.72rem;
-    font-family: inherit;
-    font-weight: 700;
-    background-color: transparent;
-    color: var(--text-dark);
-    transition: all var(--transition);
-}
-
-.compra-input:hover,
-.compra-input:focus {
-    outline: none;
-    border-style: solid;
-    border-color: var(--primary-green);
-    background-color: transparent;
-}
-
-.compra-input::-webkit-outer-spin-button,
-.compra-input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-/*
-    NUEVO: variante visual para las tarjetas de Odios. Reutilizan la
-    estructura de .passion-card, pero con un acento rojo en el borde
-    y en el contador, para diferenciarlas de Loves de un vistazo.
-*/
-.odio-card {
-    border-color: rgba(231, 76, 60, 0.35);
-}
-
-.odio-card .passion-count {
-    color: #e74c3c !important;
-}
-
-/*
-    NUEVO: tarjetas de "Planes". Cada tarjeta muestra el plan, su
-    fecha y, en grande, los días que faltan para el evento.
-*/
-.plan-card {
-    border-bottom: 1px solid var(--border-color);
-}
-
-.plan-card--open .plan-card-main {
-    background-color: var(--bg-header);
-}
-
-.plan-card-main {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 14px 16px;
-    cursor: pointer;
-}
-
-.plan-card-main:hover {
-    background-color: var(--bg-header);
-}
-
-.plan-card-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.plan-card-title-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.plan-card-title {
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--text-dark);
-}
-
-.plan-card-title:hover {
-    text-decoration: underline;
-}
-
-.plan-card-caret {
-    font-size: 0.7rem;
-    color: var(--text-muted);
-    flex-shrink: 0;
-}
-
-.plan-card-date {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    margin-top: 2px;
-}
-
-/* Panel expandible con la checklist de "cosas" del plan */
-.plan-items-panel {
-    padding: 4px 16px 16px 16px;
-    cursor: default;
-    animation: fadeInDown 0.2s ease;
-}
-
-.plan-items-list {
-    display: flex;
-    flex-direction: column;
     gap: 4px;
-    margin-bottom: 10px;
 }
 
-.plan-item-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 8px;
-    border-radius: 8px;
-    background: var(--bg-header);
-}
-
-.plan-item-row--done .plan-item-text {
-    text-decoration: line-through;
-    color: var(--text-muted);
-}
-
-.plan-item-check {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    font-size: 1rem;
+.mood-chip {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 28px;
     padding: 0;
-    line-height: 1;
-    flex-shrink: 0;
-}
-
-.plan-item-text {
-    flex: 1;
-    font-size: 0.9rem;
-    color: var(--text-dark);
-    word-break: break-word;
-}
-
-.plan-item-delete {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    font-size: 1.1rem;
-    line-height: 1;
-    color: var(--text-muted);
-    padding: 0 4px;
-    flex-shrink: 0;
-}
-
-.plan-item-delete:hover {
-    color: #e74c3c;
-}
-
-.plan-item-add-btn {
-    background: transparent;
-    border: 1px dashed var(--border-color);
     border-radius: 8px;
-    color: var(--text-muted);
-    font-size: 0.85rem;
-    font-weight: 600;
-    padding: 8px 12px;
-    width: 100%;
-    cursor: pointer;
-}
-
-.plan-item-add-btn:hover {
-    border-color: var(--primary-green);
-    color: var(--primary-green);
-}
-
-@keyframes fadeInDown {
-    from { opacity: 0; transform: translateY(-6px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.plan-countdown {
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-width: 76px;
-    padding: 6px 10px;
-    border-radius: 12px;
-    background: var(--bg-header);
-    text-align: center;
-}
-
-.plan-countdown-num {
-    display: block;
-    font-size: 1.9rem;
-    font-weight: 800;
-    line-height: 1;
-    color: var(--primary-green);
-}
-
-.plan-countdown-label {
-    display: block;
-    font-size: 0.65rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    color: var(--text-muted);
-    margin-top: 2px;
-}
-
-.plan-countdown-soon .plan-countdown-num {
-    color: #e67e22;
-}
-
-.plan-countdown-today {
-    background: linear-gradient(135deg, var(--primary-green), #2ecc71);
-}
-
-.plan-countdown-today .plan-countdown-num {
-    color: var(--white);
-    font-size: 1.1rem;
-}
-
-.plan-countdown-past {
-    background: transparent;
-    opacity: 0.55;
-}
-
-.plan-countdown-past .plan-countdown-num {
-    color: var(--text-muted);
-}
-
-/* Animación de "Me gusta" */
-.pop-animation { animation: pop 0.3s ease; }
-@keyframes pop {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
-}
-
-
-.project-card {
-    background: var(--bg-header);
-    padding: 20px;
-    border-radius: 12px;
-    margin-bottom: 16px;
-}
-
-.project-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 10px;
-}
-
-.progress-track {
-    height: 8px;
-    background: var(--border-color);
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-.progress-fill {
-    height: 100%;
-    background: var(--primary-green);
-    width: 0%; /* Se actualizará con JS */
-    transition: width 1s ease-in-out;
-}
-
-/* ELEMENTO DE SEMANAS DEL AÑO  */
-
-
-/**
- * ==========================================
- * TARJETA FUSIONADA: SEMANA + AÑO
- * ==========================================
- */
-.progress-fusion-card {
-    background: linear-gradient(135deg, var(--bg-header) 0%, transparent 100%);
     border: 1px solid var(--border-color);
-    border-radius: 18px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-}
-
-.progress-fusion-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    flex-wrap: wrap;
-    row-gap: 4px;
-    margin-bottom: 16px;
-}
-
-.progress-fusion-header span:first-child {
-    font-size: 0.85rem;
-    font-weight: 800;
-    color: var(--text-dark);
-    letter-spacing: 0.2px;
-}
-
-.progress-fusion-date {
-    font-size: 0.75rem;
-    font-weight: 500;
+    background-color: var(--bg-light);
     color: var(--text-muted);
-    text-transform: capitalize;
-    white-space: nowrap;
+    font-size: 0.74rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
 
-.progress-fusion-divider {
-    height: 1px;
-    background-color: var(--border-color);
-    margin: 14px 0;
+@media (hover: hover) {
+    .mood-chip:not(:disabled):not(.mood-chip--active):hover {
+        border-color: var(--chip-color, var(--mood-accent));
+        color: var(--text-dark);
+    }
 }
 
-.fusion-weeks-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
+.mood-chip:active:not(:disabled) {
+    transform: scale(0.92);
 }
 
-.fusion-weeks-grid .week-box {
-    width: 12px;
-    height: 12px;
-    border-radius: 3px;
-    background-color: var(--border-color);
-    transition: background-color var(--transition), transform 0.2s ease;
+.mood-chip--active {
+    background-color: var(--chip-color, var(--mood-accent));
+    border-color: var(--chip-color, var(--mood-accent));
+    color: #fff;
 }
 
-.fusion-weeks-grid .week-box:hover {
-    transform: scale(1.3);
+.mood-chip:focus-visible {
+    outline: 2px solid var(--chip-color, var(--mood-accent));
+    outline-offset: 1px;
 }
 
-.fusion-weeks-grid .week-box.passed {
-    background-color: var(--primary-green);
-    opacity: 0.7;
-}
-
-.fusion-weeks-grid .week-box.current {
-    background-color: var(--text-dark);
-    box-shadow: 0 0 0 2px var(--bg-light), 0 0 0 3px var(--text-dark);
-}
-
-.progress-fusion-footer {
-    margin-top: 10px;
-    font-size: 0.7rem;
-    font-weight: 500;
+.mood-date {
+    font-size: 0.68rem;
+    font-weight: 600;
     color: var(--text-muted);
-    text-align: right;
-    letter-spacing: 0.2px;
 }
 
-.weeks-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 10px;
-    margin-bottom: 4px;
+.mood-date--locked {
+    color: var(--mood-accent);
 }
 
-.week-box {
-    width: 16px;
-    height: 16px;
-    border-radius: 4px;
-    background-color: var(--border-color);
-    transition: background-color var(--transition), transform 0.2s ease;
+/* ---------- Sección bloqueada tras guardar ---------- */
+.mood-card--locked {
+    opacity: 0.6;
 }
 
-.week-box:hover {
-    transform: scale(1.2);
+.mood-card--locked .mood-chip {
+    cursor: not-allowed;
 }
 
-.week-box.passed {
-    background-color: var(--primary-green);
-    opacity: 0.8;
-}
-
-.week-box.current {
-    background-color: var(--text-dark);
-    box-shadow: 0 0 0 2px var(--bg-light), 0 0 0 4px var(--text-dark);
-}
-
-/*
-    NUEVO: variante en rojo para el progreso del curso de inglés.
-    Reutiliza la misma cuadrícula .weeks-grid / .week-box, pero con
-    las clases "english-passed" y "english-current" en vez de
-    "passed" / "current", para no mezclarlas con el progreso del año.
-*/
-.week-box.english-passed {
-    background-color: #e74c3c;
+.mood-card--locked .mood-chip--active {
     opacity: 0.85;
-}
-
-.week-box.english-current {
-    background-color: #e74c3c;
-    box-shadow: 0 0 0 2px var(--bg-light), 0 0 0 4px #e74c3c;
-}
-
-/* Título del bloque "Progreso del Año" con subtítulo de días restantes */
-
-
-
-
-
-/**
- * ==========================================
- * PROGRESO DEL AÑO EMBEBIDO EN WEEKLY-PROGRESS
- * ==========================================
- */
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* Tarjeta separada del Progreso del Año */
-
-
-
-
-
-
-
-
-/**
- * ==========================================
- * TOP 3 MEJORES HÁBITOS / LOVES (MÉTRICAS)
- * ==========================================
- */
-
- #list-habits {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 16px;
-    margin: 0;
-}
-
-/* Listas de hábitos por categoría dentro de "Hábitos" (antes "Camino"):
-   sin padding lateral (ya lo aporta .container) y con gap entre
-   tarjetas en vez de depender de márgenes propios de cada card. */
-.habits-list {
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 0;
-    margin: 0;
-}
-
-.top-habits-wrapper {
-    border-top: 1px solid var(--border-color);
-    margin-top: 16px;
-}
-
-.top-habits-list {
-    padding: 8px 16px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.top-habit-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-}
-
-.top-habit-medal {
-    font-size: 1.1rem;
-    line-height: 1;
-}
-
-.top-habit-name {
-    flex-grow: 1;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text-dark);
-    word-break: break-word;
-}
-
-.top-habit-count {
-    font-size: 0.8rem;
-    font-weight: 800;
-    color: var(--primary-green);
-    white-space: nowrap;
-}
-
-.top-habit-empty {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    padding: 8px 12px;
-}
-
-/**
- * ==========================================
- * NUEVO: EVOLUCIÓN EMOCIONAL (GRÁFICO DE BARRAS, 14 DÍAS)
- * ==========================================
- * Mini gráfico de barras hecho en CSS puro (sin canvas ni librerías
- * externas) que muestra el promedio diario de Sentimientos u Odios de
- * los últimos 14 días. Cada barra crece desde abajo según el
- * promedio (0-10 -> 0-100% de alto).
- */
-.emotion-chart {
-    display: flex;
-    align-items: flex-end;
-    gap: 4px;
-    height: 110px;
-    padding: 8px 16px 16px;
-    overflow-x: auto;
-}
-
-.emotion-bar {
-    flex: 1;
-    min-width: 16px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-end;
-    height: 100%;
-    gap: 4px;
-}
-
-.emotion-bar-track {
-    width: 100%;
-    max-width: 14px;
-    height: 84px;
-    background: var(--bg-header);
-    border-radius: 4px;
-    display: flex;
-    align-items: flex-end;
-    overflow: hidden;
-}
-
-.emotion-bar-fill {
-    width: 100%;
-    min-height: 2px;
-    border-radius: 4px 4px 0 0;
-    transition: height 0.3s ease;
-}
-
-.emotion-bar-label {
-    font-size: 0.55rem;
-    color: var(--text-muted);
-    white-space: nowrap;
-}
-
-.emotion-avg-badge {
-    font-size: 0.85rem;
-    font-weight: 800;
-    color: var(--primary-green);
-    background: var(--bg-header);
-    padding: 3px 10px;
-    border-radius: 20px;
-    white-space: nowrap;
-}
-
-.emotion-avg-badge--odio {
-    color: #e74c3c;
-}
-
-/**
- * ==========================================
- * NUEVO: PENSAMIENTO ALEATORIO (BRAIN DUMP)
- * ==========================================
- */
-.random-idea-box {
-    padding: 16px;
-    border-bottom: 1px solid var(--border-color);
-    background: linear-gradient(to right, var(--bg-header), var(--white));
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-}
-
-.random-idea-label {
-    font-size: 0.65rem;
-    font-weight: 700;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 8px;
-}
-
-.random-idea-text {
-    font-size: 0.9rem;
-    font-weight: 600;
-    font-style: italic;
-    color: var(--text-dark);
-    line-height: 1.4;
-}
-
-/*
-    NUEVO: fecha de creación del pensamiento aleatorio, debajo del
-    texto de la idea.
-*/
-.random-idea-date {
-    font-size: 0.65rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    margin-top: 6px;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-/**
- * ==========================================
- * STATE BAR - OPTIMIZADO Y LLAMATIVO
- * ==========================================
- * Cada tarjeta es ahora un contenedor en columna: arriba el resumen
- * (icono + nombre + hora) y, si el usuario hizo clic para abrirlo,
- * el menú de sugerencias aparece anidado DEBAJO de esa misma tarjeta
- * (no como un elemento flotante aparte al final de la lista).
- */
-
-.ikilife-state-card {
-    background: linear-gradient(to right, var(--bg-header), var(--white));
-    border: 1px solid var(--border-color);
-    border-left: 6px solid var(--border-color); /* Ligeramente más grueso para más presencia */
-    border-radius: 12px; /* Un poco más redondeado para modernizar */
-    padding: 16px 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    margin-bottom: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); /* Sombra suave para que "flote" */
-    transition: transform 0.2s ease, border-left-color 0.3s ease;
-    cursor: pointer;
-    width: 100%;
-    max-width: 100%;
-    overflow: hidden; /* evita que un nombre muy largo empuje el ancho de la card */
-    box-sizing: border-box;
-}
-
-.state-card-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    min-width: 0;
-    flex-wrap: nowrap;
 }
 
 @media (max-width: 380px) {
-    .state-card-top {
-        flex-wrap: wrap;
-        gap: 6px;
+    .mood-card {
+        gap: 10px;
+        padding: 8px;
     }
-    .state-time {
-        width: 100%;
-        text-align: left;
-        margin-top: 2px;
+    .mood-img {
+        flex-basis: 52px;
+        width: 52px;
+        height: 52px;
+    }
+    .mood-chip {
+        height: 26px;
+        font-size: 0.68rem;
+        border-radius: 6px;
+    }
+    .mood-chip-row {
+        gap: 3px;
     }
 }
 
-.state-info {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    overflow: hidden;
-    min-width: 0; /* clave para que el texto largo pueda truncarse/ajustarse */
-    flex: 1 1 140px;
-}
-
-/* Icono más grande para impacto visual */
-.state-info span:first-child {
-    font-size: 1.6rem;
-    line-height: 1;
-    flex-shrink: 0;
-}
-
-.state-label {
-    font-size: clamp(0.8rem, 2.5vw, 0.95rem);
-    font-weight: 700;
-    color: var(--text-dark);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 1.3;
-    min-width: 0;
-    flex: 1;
-}
-
-.state-time {
-    font-family: monospace;
-    font-size: clamp(0.9rem, 2.5vw, 1.1rem);
-    font-weight: 800;
-    color: var(--text-dark);
-    background: rgba(0,0,0,0.03); /* Fondo sutil para el tiempo */
-    padding: 4px 8px;
-    border-radius: 6px;
-    flex-shrink: 0;
-    white-space: nowrap;
-}
-
-/* Colores de estado más vibrantes */
-.state-work { border-left-color: #e67e22 !important; }
-.state-grow { border-left-color: var(--primary-green) !important; }
-.state-sleep { border-left-color: #34495e !important; }
-.state-free { border-left-color: #9b59b6 !important; }
-
-/**
- * ==========================================
- * STATE BAR - LISTA DE TARJETAS DE ESTADO
- * ==========================================
- * Solo se muestran las tarjetas vigentes para la hora actual, cada
- * una ocupando el ancho TOTAL del contenedor principal para que se
- * vean armónicas con el resto de la interfaz (igual de anchas que el
- * progreso semanal, los tabs, etc.). Si hay varias activas a la vez
- * (rangos solapados a propósito), se apilan una debajo de otra.
- */
-.state-bar-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 10px;
-    margin-bottom: 24px;
-}
-
-.state-bar-grid .ikilife-state-card {
-    margin-bottom: 0;
-    min-height: 64px;
-    width: 100%;
-    min-width: 0;
-}
-
-/**
- * ==========================================
- * STATE BAR - DROPDOWN ANIDADO
- * ==========================================
- * Ya no es un elemento flotante aparte: vive DENTRO de la tarjeta
- * que lo abrió, justo debajo de su encabezado. Por eso solo se
- * inserta en el HTML cuando está realmente abierto (no necesita una
- * clase .hidden) y usa un fondo semitransparente para integrarse con
- * el color de la tarjeta en vez de una caja blanca independiente.
- */
-.state-dropdown {
-    background-color: rgba(255, 255, 255, 0.55);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 8px;
-    margin-top: 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    cursor: default;
-    background-color: rgba(0, 0, 0, 0.2);
-}
-
-.state-dropdown-title {
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: 6px 10px 8px;
-    border-bottom: 1px solid var(--border-color);
-    margin-bottom: 4px;
-}
-
-.state-dropdown-item {
-    background: transparent;
-    border: none;
-    text-align: left;
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--text-dark);
-    padding: 8px 10px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background-color var(--transition);
-}
-
-.state-dropdown-item:hover {
-    background-color: rgba(255, 255, 255, 0.08);
-}
-
-.state-dropdown-empty {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    padding: 8px 10px;
-}
-
-/**
- * ==========================================
- * HABITOS - CARDS ESTILO MOOD
- * ==========================================
- * Cada habito es una card con imagen a la izquierda,
- * nombre arriba y chips de dias debajo.
- */
-/*
-    Mismo radio de borde y grosor que .camino-tab-btn (14px / 1px)
-    para que pasar de las tabs a la lista de hábitos se sienta como
-    una única vista coherente en vez de dos estilos distintos.
-*/
-.habit-card {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 12px;
-    border-radius: 14px;
-    border: 1px solid var(--border-color);
-    background-color: var(--white);
-    transition: opacity var(--transition), border-color var(--transition);
-}
-
-.habit-card-img {
-    width: 92px;
-    height: 92px;
-    flex-shrink: 0;
-    border-radius: 12px;
-    object-fit: cover;
-}
-
-.habit-card-info {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.habit-card-top {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 8px;
-}
-
-.habit-card-name {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--text-dark);
-    cursor: pointer;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    line-height: 1.25;
-}
-
-.habit-card-streak {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--primary-green);
-    flex-shrink: 0;
-}
-
-.habit-day-row {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
-}
-
-.habit-day-chip {
-    width: 100%;
-    height: 26px;
-    min-width: 0;
-    border-radius: 6px;
-    border: 1px solid var(--border-color);
-    background-color: var(--bg-light);
-    color: var(--text-muted);
-    font-size: 0.62rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all var(--transition);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-}
-
-.habit-day-chip:hover {
-    border-color: var(--primary-green);
-}
-
-.habit-day-chip--done {
-    background-color: var(--primary-green);
-    border-color: var(--primary-green);
-    color: var(--white);
-}
-
-.habit-day-chip--today {
-    border-color: var(--text-dark);
-    border-width: 2px;
-}
-
-.habit-day-chip--future {
-    opacity: 0.35;
-    cursor: default;
-}
-
-.habit-card-meta {
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--text-muted);
-}
-
-/**
- * ==========================================
- * LEYENDA DE HÁBITOS DEL DÍA ANTERIOR
- * ==========================================
- */
-.habit-legend-box {
-    background: linear-gradient(to right, var(--bg-header), var(--white));
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 16px;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    animation: fadeInDown 0.3s ease;
-}
-
-.habit-legend--pending {
-    border-left: 4px solid #e67e22;
-}
-
-.habit-legend-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 6px;
-}
-
-.habit-legend-icon {
-    font-size: 1.3rem;
-    line-height: 1;
-}
-
-.habit-legend-title {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--text-dark);
-}
-
-.habit-legend-text {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    line-height: 1.4;
-    margin: 0;
-}
-
-.habit-legend-text strong {
-    color: var(--text-dark);
-    font-weight: 700;
-}
-
-.habit-legend-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 10px;
-}
-
-.habit-legend-tag {
-    display: inline-block;
-    padding: 4px 10px;
-    border-radius: 20px;
-    background-color: var(--bg-header);
-    border: 1px solid var(--border-color);
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--text-dark);
-}
-
-
-/**
- * ==========================================
- * DASHBOARD DE INICIO (HOY) — UNIFICADO
- * ==========================================
- */
-.today-dashboard {
-    background: linear-gradient(135deg, var(--bg-header) 0%, transparent 100%);
-    border: 1px solid var(--border-color);
-    border-radius: 18px;
-    margin-bottom: 20px;
-    overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-}
-
-.today-dashboard-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 14px 16px;
-    border-bottom: 1px solid var(--border-color);
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: var(--text-dark);
-}
-
-#today-clock {
-    font-family: monospace;
-    font-size: 1.3rem;
-    color: var(--text-dark);
-    font-weight: 800;
-    letter-spacing: 0.3px;
-}
-
-/* State Bar dentro del dashboard */
-.today-dashboard .state-bar-grid {
-    margin-bottom: 0;
-    padding: 12px 16px 12px;
-}
-
-.today-dashboard .ikilife-state-card:last-child {
-    margin-bottom: 0;
-}
-
-/* Planes próximos: GRID igual que State Bar para ancho idéntico */
-.home-upcoming-plans {
-    padding: 0 16px 16px;
-}
-
-.home-plans-list {
-    gap: 10px;
-    display: grid;
-    grid-template-columns: 1fr;
-    padding: 12px 16px 12px;
-}
-
-.home-plan-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 16px 20px;
-    min-height: 64px;
-    border-radius: 12px;
-    background: linear-gradient(to right, var(--bg-header), var(--white));
-    border: 1px solid var(--border-color);
-    border-left: 6px solid var(--primary-green);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    box-sizing: border-box !important;
-    width: 100%;
-    max-width: 100%;
-    overflow: hidden;
-    margin: 0;
-    cursor: pointer;
-    transition: transform 0.2s ease, border-color 0.3s ease, box-shadow 0.2s ease;
-}
-
-.home-plan-item:hover {
-    transform: translateY(-1px);
-    border-color: var(--text-muted);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
-}
-
-.home-plan-info {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
-
-.home-plan-title {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--text-dark);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.home-plan-date {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    margin-top: 1px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.home-plan-badge {
-    font-size: 0.7rem;
-    font-weight: 800;
-    padding: 4px 10px;
-    border-radius: 20px;
-    white-space: nowrap;
-    flex-shrink: 0;
-}
-
-.home-plan-badge--today {
-    background: linear-gradient(135deg, var(--primary-green), #2ecc71);
-    color: white;
-}
-
-.home-plan-badge--soon {
-    background: rgba(230, 126, 34, 0.12);
-    color: #e67e22;
-    border: 1px solid rgba(230, 126, 34, 0.25);
-}
-
-/**
- * ==========================================
- * EL ESPEJO DEL ALMA — MINIMALISTA
- * ==========================================
- */
-/**
- * ==========================================
- * EL ESPEJO DEL ALMA — REDISEÑO
- * ==========================================
- * Card con un título propio, e icono + nombre + % grande por métrica
- * (en vez de barra partida en dos con 2 números encima y 2 debajo,
- * que se sentía repetitivo). Una sola barra de progreso por métrica
- * y un renglón de detalle debajo.
- */
-/* ---------- Hábitos de hoy: título grande + contador + barra a la
-   izquierda, anillo circular con el % a la derecha ---------- */
-.espejo-section--ring {
-    flex-direction: row;
-    align-items: center;
-    gap: 18px;
-}
-
-.espejo-habitos-texts {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.espejo-habitos-title {
-    font-size: 1.15rem;
-    font-weight: 800;
-    color: var(--text-dark);
-    line-height: 1.2;
-}
-
-.espejo-habitos-count {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text-muted);
-}
-
-.espejo-habitos-count-done {
-    color: #16a34a;
-    font-weight: 800;
-}
-
-.espejo-habitos-bar-track {
-    margin-top: 2px;
-}
-
-.espejo-ring-wrap {
-    position: relative;
-    width: 72px;
-    height: 72px;
-    flex-shrink: 0;
-}
-
-.espejo-ring-svg {
-    width: 72px;
-    height: 72px;
-    transform: rotate(-90deg);
-}
-
-.espejo-ring-track {
-    fill: none;
-    stroke: var(--border-color);
-    stroke-width: 7;
-}
-
-.espejo-ring-fill {
-    fill: none;
-    stroke: #16a34a;
-    stroke-width: 7;
-    stroke-linecap: round;
-    transition: stroke-dashoffset 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.espejo-ring-center {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.espejo-ring-pct {
-    font-size: 1.05rem;
-    font-weight: 800;
-    color: #16a34a;
-}
-
-.espejo-section {
-    display: flex;
-    flex-direction: row;
-    gap: 8px;
-}
-
-/* La sección de Hábitos ahora es su propia tarjeta (mismo tratamiento
-   visual que .espejo-emo-card, en verde en vez de rosa) en lugar de
-   un simple separador con border-top, para que las dos métricas se
-   vean como un único par de tarjetas coherente. */
-.espejo-section--habitos.espejo-section--ring {
-    margin-bottom: 20px;
-    padding: 16px;
-    border-radius: 16px;
-    background: linear-gradient(135deg, rgba(22, 163, 74, 0.10) 0%, rgba(116, 192, 138, 0.05) 100%);
-    border: 1px solid rgba(22, 163, 74, 0.22);
-}
-
-.espejo-bar-track {
-    width: 100%;
-    height: 8px;
-    border-radius: 4px;
-    overflow: hidden;
-    background: var(--border-color);
-}
-
-.espejo-bar-fill {
-    height: 100%;
-    border-radius: 4px;
-    transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.espejo-bar-fill--habitos { background: linear-gradient(90deg, #74C08A, #16a34a); }
-
-/**
- * ---------- Balance emocional del mes: competencia Positivos vs Negativos ----------
- * En vez de un solo % sin contexto, se ve como una barra partida en
- * dos (igual patrón que Hábitos de hoy): un lado para Positivos y
- * otro para Negativos, ambos suman 100%, así se nota de un vistazo
- * quién va ganando.
- */
+/* ==========================================
+   ESPEJO DEL ALMA — BALANCE EMOCIONAL (.espejo-emo-card)
+   ==========================================
+   Rediseño: fondo con brillo rosa (Positivos, izquierda) y rojo
+   (Negativos, derecha) que refleja la barra partida; porcentajes
+   grandes alineados a su lado; selector de mes en píldora; barra
+   con segmentos separados; chips como mini-tarjetas.
+   Estas reglas se cargan DESPUÉS de styles.css y lo sobrescriben.
+   ========================================== */
 .espejo-emo-card {
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 12px;
+    padding: 14px 16px 16px;
+    border-radius: 18px;
+    border: 1px solid rgba(224, 71, 158, 0.22);
+    background:
+        radial-gradient(120% 100% at 0% 0%, rgba(224, 71, 158, 0.16) 0%, transparent 60%),
+        radial-gradient(120% 100% at 100% 100%, rgba(231, 76, 60, 0.12) 0%, transparent 60%),
+        var(--white);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
     touch-action: pan-y;
     -webkit-user-select: none;
     user-select: none;
-    margin-bottom: 20px;
-    padding: 16px;
-    border-radius: 16px;
-    background: linear-gradient(135deg, rgba(224, 71, 158, 0.10) 0%, rgba(242, 140, 192, 0.05) 100%);
-    border: 1px solid rgba(224, 71, 158, 0.22);
 }
 
 .espejo-emo-body {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
 }
 
-/* Mes que se está viendo (desliza o usa ‹ › para cambiar de mes). */
+/* ---------- Selector de mes ---------- */
 .espejo-emo-label {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    margin-bottom: -2px;
+    gap: 6px;
+    margin: 0;
 }
 
 .espejo-emo-month {
-    min-width: 8.5em;
+    min-width: 9em;
     text-align: center;
-    font-size: 0.74rem;
-    font-weight: 700;
-    letter-spacing: 0.3px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.9px;
+    text-transform: uppercase;
     color: var(--text-muted);
 }
 
 .espejo-emo-nav {
-    width: 26px;
-    height: 26px;
-    padding: 0;
+    width: 28px;
+    height: 28px;
+    padding: 0 0 2px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border: none;
     border-radius: 50%;
-    background: transparent;
+    background-color: rgba(255, 255, 255, 0.06);
     color: var(--text-muted);
-    font-size: 1.2rem;
+    font-size: 1.15rem;
     line-height: 1;
     cursor: pointer;
+    transition: background-color var(--transition), color var(--transition), transform 0.15s ease;
 }
 
 .espejo-emo-nav:hover:not(:disabled) {
+    background-color: rgba(255, 255, 255, 0.12);
     color: var(--text-dark);
+}
+
+.espejo-emo-nav:active:not(:disabled) {
+    transform: scale(0.9);
+}
+
+.espejo-emo-nav:focus-visible {
+    outline: 2px solid var(--primary-green);
+    outline-offset: 2px;
 }
 
 .espejo-emo-nav--off {
@@ -2361,77 +373,95 @@ div.day-segment.future {
     pointer-events: none;
 }
 
-.espejo-emo-body--older {
-    animation: espejoSlideOlder 0.25s ease;
-}
-
-.espejo-emo-body--newer {
-    animation: espejoSlideNewer 0.25s ease;
-}
-
-@keyframes espejoSlideOlder {
-    from { opacity: 0.2; transform: translateX(-14px); }
-    to { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes espejoSlideNewer {
-    from { opacity: 0.2; transform: translateX(14px); }
-    to { opacity: 1; transform: translateX(0); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .espejo-emo-body--older,
-    .espejo-emo-body--newer {
-        animation: none;
-    }
-}
-
+/* ---------- Porcentajes: Positivos ← → Negativos ---------- */
 .espejo-emo-vs-row {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
-    gap: 10px;
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: var(--text-muted);
+    align-items: flex-end;
+    gap: 12px;
+}
+
+.espejo-emo-vs-side {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    line-height: 1.1;
+}
+
+.espejo-emo-vs-side--odio {
+    align-items: flex-end;
+    text-align: right;
 }
 
 .espejo-emo-vs-side strong {
-    font-size: 1rem;
+    font-size: 2rem;
     font-weight: 800;
+    letter-spacing: -0.5px;
+    font-variant-numeric: tabular-nums;
+    transition: opacity 0.4s ease;
 }
 
-.espejo-emo-vs-side--love strong { color: #e0479e; }
-.espejo-emo-vs-side--odio strong { color: #e74c3c; }
+.espejo-emo-vs-side--love strong {
+    color: #e0479e;
+}
 
+.espejo-emo-vs-side--odio strong {
+    color: #e74c3c;
+}
+
+.espejo-emo-vs-name {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+/* El lado que va ganando brilla; el otro baja de intensidad. */
+.espejo-emo-vs-side--lead strong {
+    text-shadow: 0 0 18px currentColor;
+}
+
+.espejo-emo-vs-row:has(.espejo-emo-vs-side--lead) .espejo-emo-vs-side:not(.espejo-emo-vs-side--lead) strong {
+    opacity: 0.55;
+}
+
+/* ---------- Barra partida ---------- */
 .espejo-emo-bar-track {
     width: 100%;
-    height: 10px;
+    height: 12px;
     border-radius: 999px;
     overflow: hidden;
-    background: var(--border-color);
+    background-color: rgba(255, 255, 255, 0.07);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 .espejo-emo-bar-track--split {
     display: flex;
+    gap: 3px;
 }
 
 .espejo-emo-bar-fill {
     height: 100%;
+    flex-shrink: 1;
+    border-radius: 999px;
     transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Un lado en 0% no deja hueco de separación. */
+.espejo-emo-bar-fill[style*="width:0%"] {
+    margin-left: -3px;
 }
 
 .espejo-emo-bar-fill--love {
     background: linear-gradient(90deg, #f28cc0, #e0479e);
-    border-radius: 999px 0 0 999px;
 }
 
 .espejo-emo-bar-fill--odio {
     background: linear-gradient(90deg, #e74c3c, #c0392b);
-    border-radius: 0 999px 999px 0;
 }
 
-/* Los chips se reparten todo el ancho de la tarjeta. */
+/* ---------- Chips (puntos / registros) ---------- */
 .espejo-emo-stats {
     display: flex;
     gap: 6px;
@@ -2440,16 +470,55 @@ div.day-segment.future {
 .espejo-emo-chip {
     flex: 1 1 0;
     min-width: 0;
+    padding: 7px 8px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background-color: rgba(255, 255, 255, 0.04);
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    font-weight: 700;
     text-align: center;
     white-space: nowrap;
-    font-size: 0.68rem;
-    font-weight: 700;
-    padding: 5px 9px;
-    border-radius: 999px;
-    background: var(--white);
-    color: var(--text-muted);
-    border: 1px solid rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.espejo-emo-chip--love { color: #e0479e; }
-.espejo-emo-chip--odio { color: #e74c3c; }
+.espejo-emo-chip--love {
+    color: #e0479e;
+    border-color: rgba(224, 71, 158, 0.28);
+    background-color: rgba(224, 71, 158, 0.1);
+}
+
+.espejo-emo-chip--odio {
+    color: #e74c3c;
+    border-color: rgba(231, 76, 60, 0.28);
+    background-color: rgba(231, 76, 60, 0.1);
+}
+
+/* Estado vacío ("Sin registros"): ocupa todo el ancho, discreto. */
+.espejo-emo-chip:only-child {
+    border-style: dashed;
+    background-color: transparent;
+}
+
+@media (max-width: 380px) {
+    .espejo-emo-card {
+        padding: 12px 12px 14px;
+    }
+    .espejo-emo-vs-side strong {
+        font-size: 1.7rem;
+    }
+    .espejo-emo-chip {
+        font-size: 0.64rem;
+        padding: 6px 4px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .espejo-emo-bar-fill,
+    .espejo-emo-vs-side strong,
+    .mood-chip,
+    .mood-save-btn {
+        transition: none;
+    }
+}

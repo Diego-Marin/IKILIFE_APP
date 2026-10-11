@@ -697,20 +697,12 @@ function etiquetaMesEspejo(offset) {
 
 // Contenido interno de .espejo-emo-body (mes visible + barra + chips).
 function espejoEmoBodyHTML(balanceMes, offset) {
-    const hayAtras = offset > -ESPEJO_MESES_ATRAS_MAX;
-    const hayAdelante = offset < 0;
 
     return `
-                    <div class="espejo-emo-label">
-                        <button type="button" class="espejo-emo-nav${hayAtras ? '' : ' espejo-emo-nav--off'}" data-espejo-dir="-1"
-                            aria-label="Mes anterior"${hayAtras ? '' : ' disabled'}>‹</button>
-                        <span class="espejo-emo-month">${etiquetaMesEspejo(offset)}</span>
-                        <button type="button" class="espejo-emo-nav${hayAdelante ? '' : ' espejo-emo-nav--off'}" data-espejo-dir="1"
-                            aria-label="Mes siguiente"${hayAdelante ? '' : ' disabled'}>›</button>
-                    </div>
 
                     <div class="espejo-emo-vs-row">
                         <span class="espejo-emo-vs-side espejo-emo-vs-side--love"><strong>${balanceMes.lovesPct}%</strong><span class="espejo-emo-vs-name">❤️ Positivos</span></span>
+                        <span class="espejo-emo-month">${etiquetaMesEspejo(offset)}</span>
                         <span class="espejo-emo-vs-side espejo-emo-vs-side--odio"><strong>${balanceMes.odiosPct}%</strong><span class="espejo-emo-vs-name">Negativos 💢</span></span>
                     </div>
 
