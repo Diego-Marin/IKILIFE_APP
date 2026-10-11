@@ -292,43 +292,74 @@
 .estado-pill.estado--bad { color: #e74c3c; }
 .estado-pill.estado--none { color: var(--text-muted); }
 
-/* Barra: gasto sobre ingresos + marca del día del mes */
+/* Barra: gasto sobre ingresos.
+   La pista muestra tenues las zonas (verde → amarillo → naranja → rojo)
+   y el relleno las "enciende" hasta donde vas; el círculo marca el día
+   del mes en el que estás (si el relleno lo pasa, gastas más rápido
+   que el calendario). */
 .estado-bar {
     position: relative;
-    height: 6px;
-    border-radius: 3px;
-    background: var(--border-color);
+    height: 12px;
+    margin: 4px 0;
+    border-radius: 6px;
+    background: linear-gradient(90deg,
+        rgba(34, 197, 94, 0.16) 0%,
+        rgba(163, 230, 53, 0.16) 40%,
+        rgba(250, 204, 21, 0.16) 65%,
+        rgba(251, 146, 60, 0.16) 85%,
+        rgba(239, 68, 68, 0.16) 100%);
 }
 
 .estado-bar-fill {
     height: 100%;
-    border-radius: 3px;
-    background: var(--text-muted);
-    transition: width 0.5s ease;
+    border-radius: 6px;
+    background-image: linear-gradient(90deg, #22c55e 0%, #a3e635 40%, #facc15 65%, #fb923c 85%, #ef4444 100%);
+    background-repeat: no-repeat;
+    background-position: left center;
+    transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1), background-size 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
-
-.estado-bar-fill.estado--ok { background: #16a34a; }
-.estado-bar-fill.estado--warn { background: #e67e22; }
-.estado-bar-fill.estado--bad { background: #e74c3c; }
 
 .estado-bar-now {
     position: absolute;
-    top: -4px;
-    bottom: -4px;
-    width: 2px;
-    margin-left: -1px;
-    border-radius: 1px;
-    background: var(--text-dark);
+    top: 50%;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border-radius: 50%;
+    border: 2px solid var(--text-dark);
+    background: var(--white);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
 .estado-legend {
     display: flex;
     justify-content: space-between;
+    align-items: baseline;
     gap: 8px;
-    margin-top: -4px;
-    font-size: 0.7rem;
+    margin-top: -2px;
+    font-size: 0.72rem;
     font-weight: 600;
     color: var(--text-muted);
+}
+
+.estado-pct {
+    font-size: 0.95rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.estado-legend-day {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.estado-legend-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    border: 2px solid var(--text-dark);
+    box-sizing: border-box;
 }
 
 .estado-stats {

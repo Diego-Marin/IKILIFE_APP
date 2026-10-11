@@ -118,6 +118,13 @@
 }
 
 .vision-feed-item {
+    position: relative;
+    cursor: pointer;
+    touch-action: manipulation;          /* el doble toque no hace zoom */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
     break-inside: avoid;
     margin-bottom: 10px;
     border-radius: 14px;
@@ -129,6 +136,12 @@
 .vision-feed-img {
     width: 100%;
     display: block;
+    pointer-events: none;
+}
+
+.vision-feed-item:focus-visible {
+    outline: 2px solid var(--primary-green);
+    outline-offset: 2px;
 }
 
 /* Tile "Agregar imagen": misma columna del feed, mismo tamaño de
@@ -220,388 +233,75 @@
 
 /**
  * ==========================================
- * PANEL DE LA META: nivel y pasos
+ * CONTADOR "LA VIVÍ" (doble clic en una imagen)
  * ==========================================
- * Cerrado es una sola línea discreta (nivel + barra fina) para que las
- * imágenes sigan siendo lo principal. Abierto muestra los pasos en una
- * lista plana, sin títulos de sección.
+ * Insignia discreta en la esquina (solo si el contador es mayor a 0) y
+ * un corazón que aparece donde diste el doble clic.
  */
-.vision-panel {
-    margin: 0 0 4px;
-}
-
-.vision-panel-head {
-    width: 100%;
+.vision-feed-count {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 10px 2px;
+    gap: 4px;
+    padding: 4px 10px 4px 8px;
     border: none;
-    background: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    text-align: left;
-}
-
-.vision-panel-level {
-    flex-shrink: 0;
-    font-size: 0.8rem;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.55);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    color: #fff;
+    font-size: 0.76rem;
     font-weight: 800;
-    color: var(--text-dark);
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
 }
 
-.vision-panel-level-name {
-    margin-left: 6px;
-    font-weight: 600;
-    color: var(--text-muted);
+.vision-feed-count svg {
+    color: #ff5fa8;
 }
 
-.vision-panel-level--up {
-    color: var(--primary-green);
-    animation: visionLevelUp 0.6s ease;
+.vision-feed-count--bump {
+    animation: visionCountBump 0.35s ease;
 }
 
-@keyframes visionLevelUp {
-    0% { transform: scale(0.9); opacity: 0.4; }
-    60% { transform: scale(1.06); opacity: 1; }
+@keyframes visionCountBump {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.3); }
     100% { transform: scale(1); }
 }
 
-.vision-panel-bar {
-    display: block;
-    flex: 1;
-    height: 3px;
+.vision-heart-burst {
+    position: absolute;
+    z-index: 2;
+    width: 76px;
+    height: 76px;
+    margin: -38px 0 0 -38px;
+    color: #ff5fa8;
+    pointer-events: none;
+    filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.45));
+    animation: visionHeartBurst 0.75s ease-out forwards;
 }
 
-.vision-panel-bar .ik-bar-fill {
-    display: block;
-}
-
-.vision-panel-chev {
-    flex-shrink: 0;
-    transition: transform 0.25s ease;
-}
-
-.vision-panel-chev.open {
-    transform: rotate(180deg);
-}
-
-.vision-panel-head:hover .vision-panel-chev {
-    color: var(--text-dark);
-}
-
-.vision-panel-head:focus-visible {
-    outline: 2px solid var(--primary-green);
-    outline-offset: 2px;
-    border-radius: 8px;
-}
-
-.vision-panel-body {
-    margin: 0 0 8px;
-    padding: 4px 14px 12px;
-    border: 1px solid var(--border-color);
-    border-radius: 14px;
-}
-
-.vision-panel-note {
-    padding: 8px 0 6px;
-    font-size: 0.74rem;
-    line-height: 1.45;
-    color: var(--text-muted);
-}
-
-/* ---------- Lista plana de pasos ---------- */
-.vision-list {
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-}
-
-.vision-step,
-.vision-rep,
-.vision-qty {
-    padding: 9px 0;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.vision-list > li:last-child {
-    border-bottom: none;
-}
-
-.vision-step {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.vision-rep,
-.vision-qty {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.vision-row-top {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.vision-row-side {
-    flex-shrink: 0;
-    font-size: 0.74rem;
-    font-weight: 700;
-    color: var(--text-muted);
-    font-variant-numeric: tabular-nums;
-}
-
-.vision-row-side--ok {
-    color: var(--primary-green);
-}
-
-.vision-step-title {
-    flex: 1;
-    min-width: 0;
-    font-size: 0.88rem;
-    font-weight: 600;
-    line-height: 1.3;
-    color: var(--text-dark);
-    overflow-wrap: anywhere;
-}
-
-.vision-step-title--editable {
-    cursor: pointer;
-    border-bottom: 1px dashed var(--border-color);
-}
-
-.vision-step--done .vision-step-title {
-    color: var(--text-muted);
-    text-decoration: line-through;
-}
-
-.vision-check {
-    flex-shrink: 0;
-    width: 24px;
-    height: 24px;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 7px;
-    border: 2px solid var(--border-color);
-    background: transparent;
-    color: var(--white);
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-
-.vision-check svg {
-    opacity: 0;
-}
-
-.vision-check:hover {
-    border-color: var(--primary-green);
-}
-
-.vision-check.on {
-    background: var(--primary-green);
-    border-color: var(--primary-green);
-}
-
-.vision-check.on svg {
-    opacity: 1;
-}
-
-.vision-step-del {
-    flex-shrink: 0;
-    width: 26px;
-    height: 26px;
-    border: none;
-    border-radius: 50%;
-    background: transparent;
-    color: var(--text-muted);
-    font-size: 1.15rem;
-    line-height: 1;
-    cursor: pointer;
-}
-
-.vision-step-del:hover {
-    background: var(--bg-header);
-    color: #e74c3c;
-}
-
-/* ---------- Se repite: chips de la semana ---------- */
-.vision-rep-days {
-    display: flex;
-    gap: 4px;
-}
-
-.vision-day-chip {
-    flex: 1 1 0;
-    min-width: 0;
-    height: 28px;
-    padding: 0;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    background: transparent;
-    color: var(--text-muted);
-    font-size: 0.72rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-
-.vision-day-chip:hover:not(:disabled) {
-    border-color: var(--primary-green);
-}
-
-.vision-day-chip.today {
-    border-color: var(--text-muted);
-    color: var(--text-dark);
-}
-
-.vision-day-chip.on {
-    background: var(--primary-green);
-    border-color: var(--primary-green);
-    color: var(--white);
-}
-
-.vision-day-chip.future {
-    opacity: 0.35;
-    cursor: default;
-}
-
-/* ---------- Cantidad ---------- */
-.vision-qty-line {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 8px;
-}
-
-.vision-qty-amount {
-    font-size: 0.9rem;
-    font-weight: 800;
-    color: var(--text-dark);
-    font-variant-numeric: tabular-nums;
-}
-
-.vision-qty-of {
-    font-size: 0.74rem;
-    font-weight: 600;
-    color: var(--text-muted);
-}
-
-.vision-qty-bar {
-    height: 4px;
-}
-
-/* ---------- Acciones de texto ---------- */
-.vision-actions {
-    display: flex;
-    gap: 18px;
-    padding-top: 10px;
-}
-
-.vision-link-btn {
-    padding: 4px 0;
-    border: none;
-    background: none;
-    color: var(--text-muted);
-    font-size: 0.78rem;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.vision-link-btn:hover {
-    color: var(--text-dark);
-}
-
-.vision-link-btn--accent {
-    color: var(--primary-green);
-}
-
-.vision-link-btn--accent:hover {
-    color: var(--primary-green);
-    text-decoration: underline;
-}
-
-/* ---------- Formulario ---------- */
-.vision-add-form {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding-top: 10px;
-}
-
-.vision-add-extra {
-    display: flex;
-    gap: 8px;
-}
-
-.vision-add-extra .vision-add-input {
-    flex: 1;
-    min-width: 0;
-}
-
-.vision-add-extra .vision-add-unit {
-    flex: 0 0 88px;
-}
-
-.vision-add-input,
-.vision-add-select {
+.vision-heart-burst svg {
     width: 100%;
-    padding: 9px 12px;
-    border-radius: 10px;
-    border: 1px solid var(--border-color);
-    background-color: var(--white);
-    color: var(--text-dark);
-    font-family: inherit;
-    font-size: 0.85rem;
+    height: 100%;
+    display: block;
 }
 
-.vision-add-input:focus,
-.vision-add-select:focus {
-    outline: none;
-    border-color: var(--primary-green);
-}
-
-.vision-add-actions {
-    display: flex;
-    gap: 8px;
-}
-
-.vision-add-submit,
-.vision-add-cancel {
-    padding: 7px 16px;
-    border-radius: 8px;
-    font-size: 0.78rem;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.vision-add-submit {
-    border: 1px solid var(--primary-green);
-    background: var(--primary-green);
-    color: var(--bg-light);
-}
-
-.vision-add-cancel {
-    border: 1px solid var(--border-color);
-    background: transparent;
-    color: var(--text-muted);
-}
-
-.vision-add-cancel:hover {
-    color: var(--text-dark);
-    border-color: var(--text-muted);
+@keyframes visionHeartBurst {
+    0% { transform: scale(0.3); opacity: 0; }
+    25% { transform: scale(1.1); opacity: 1; }
+    60% { transform: scale(0.95); opacity: 1; }
+    100% { transform: scale(1.2) translateY(-16px); opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .vision-panel-level--up {
+    .vision-feed-count--bump {
         animation: none;
     }
-    .vision-panel-chev {
-        transition: none;
+    .vision-heart-burst {
+        animation: none;
     }
 }

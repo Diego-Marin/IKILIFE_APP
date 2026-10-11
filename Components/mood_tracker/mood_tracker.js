@@ -710,8 +710,8 @@ function espejoEmoBodyHTML(balanceMes, offset) {
                     </div>
 
                     <div class="espejo-emo-vs-row">
-                        <span class="espejo-emo-vs-side espejo-emo-vs-side--love">❤️ Positivos <strong>${balanceMes.lovesPct}%</strong></span>
-                        <span class="espejo-emo-vs-side espejo-emo-vs-side--odio">Negativos <strong>${balanceMes.odiosPct}%</strong> 💢</span>
+                        <span class="espejo-emo-vs-side espejo-emo-vs-side--love"><strong>${balanceMes.lovesPct}%</strong><span class="espejo-emo-vs-name">❤️ Positivos</span></span>
+                        <span class="espejo-emo-vs-side espejo-emo-vs-side--odio"><strong>${balanceMes.odiosPct}%</strong><span class="espejo-emo-vs-name">Negativos 💢</span></span>
                     </div>
 
                     <div class="espejo-emo-bar-track espejo-emo-bar-track--split">

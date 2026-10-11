@@ -486,6 +486,24 @@ function fmtCorto(n) {
     return `${signo}$${(abs / 1000000).toFixed(1).replace('.0', '').replace('.', ',')} M`;
 }
 
+// Color de la barra en un punto (0-100% de los ingresos gastados): el mismo
+// degradado verde → amarillo → naranja → rojo que dibuja la barra en CSS.
+const ESTADO_COLORES = [[0, [34, 197, 94]], [40, [163, 230, 53]], [65, [250, 204, 21]], [85, [251, 146, 60]], [100, [239, 68, 68]]];
+
+function colorEnBarra(pct, alfa = 1) {
+    const p = Math.max(0, Math.min(100, pct));
+    for (let i = 1; i < ESTADO_COLORES.length; i++) {
+        const [p1, c1] = ESTADO_COLORES[i];
+        if (p <= p1) {
+            const [p0, c0] = ESTADO_COLORES[i - 1];
+            const t = (p - p0) / (p1 - p0);
+            const rgb = c0.map((v, k) => Math.round(v + (c1[k] - v) * t));
+            return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alfa})`;
+        }
+    }
+    return `rgba(239, 68, 68, ${alfa})`;
+}
+
 function calcularEstadoMes(ingresos, gastos, dia, diasDelMes) {
     const fraccion = dia / diasDelMes;
 
@@ -523,7 +541,13 @@ function renderPatrimonioWidget({ ingresos, gastos, deudas }) {
 
     const libre = ingresos - gastos;
     const pctGastado = ingresos > 0 ? (gastos / ingresos) * 100 : (gastos > 0 ? 100 : 0);
-    const anchoBarra = Math.max(0, Math.min(100, pctGastado));
+    // Sin gastos no hay relleno; con gastos nunca menos de 3% para que se vea.
+    const anchoBarra = pctGastado <= 0 ? 0 : Math.max(3, Math.min(100, pctGastado));
+    // El degradado se estira al ancho TOTAL de la barra: la punta del
+    // relleno muestra el color que corresponde a ese punto.
+    const tamanoDegradado = anchoBarra > 0 ? (10000 / anchoBarra).toFixed(1) : 100;
+    const colorPunta = colorEnBarra(pctGastado);
+    const brilloPunta = colorEnBarra(pctGastado, 0.45);
     const marcaMes = (dia / diasDelMes) * 100;
     const tasaAhorro = ingresos > 0 ? `${Math.round((libre / ingresos) * 100)}%` : '—';
 
@@ -537,12 +561,14 @@ function renderPatrimonioWidget({ ingresos, gastos, deudas }) {
         </div>
         <div class="estado-msg">${estado.msg}</div>
         <div class="estado-bar" role="img" aria-label="Gastado ${Math.round(pctGastado)}% de los ingresos, día ${dia} de ${diasDelMes}">
-            <div class="estado-bar-fill ${estado.clase}" style="width:${anchoBarra.toFixed(1)}%;"></div>
+            <div class="estado-bar-fill" style="width:${anchoBarra.toFixed(1)}%;background-size:${tamanoDegradado}% 100%;box-shadow:0 0 12px ${brilloPunta};"></div>
             <div class="estado-bar-now" style="left:${marcaMes.toFixed(1)}%;" title="Hoy"></div>
         </div>
         <div class="estado-legend">
-            <span>${ingresos > 0 ? `Gastado ${Math.round(pctGastado)}% de tus ingresos` : 'Sin ingresos registrados'}</span>
-            <span>Día ${dia} de ${diasDelMes}</span>
+            <span>${ingresos > 0
+                ? `<strong class="estado-pct" style="color:${colorPunta};">${Math.round(pctGastado)}%</strong> de tus ingresos gastado`
+                : 'Sin ingresos registrados'}</span>
+            <span class="estado-legend-day"><i class="estado-legend-dot"></i>Día ${dia} de ${diasDelMes}</span>
         </div>
         <div class="estado-stats">
             <div class="estado-stat">

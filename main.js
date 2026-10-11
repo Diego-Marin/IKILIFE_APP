@@ -1018,7 +1018,7 @@ const TABLAS_EXPORTABLES = [
     'odios_registros', 'sentimientos_logs', 'sentimientos_registros',
     'ideas_logs', 'compras_logs', 'finance_logs',
     'inversiones_logs', 'journal_logs', 'bloques_logs', 'planes_logs','english_classes',
-    'vision_metas', 'vision_meta_images', 'vision_tareas', 'vision_tarea_logs', 'home_slides'
+    'vision_metas', 'vision_meta_images', 'home_slides'
 ];
 
 

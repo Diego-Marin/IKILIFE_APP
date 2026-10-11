@@ -14,21 +14,14 @@
  * Para volver atrás se usa la barra inferior o la tecla Esc. Doble clic
  * en un tab = renombrar; clic derecho = eliminar.
  *
- * PASOS Y NIVEL DE CADA META
- * Bajo los tabs hay una línea discreta con el nivel de la meta; al
- * tocarla se despliegan sus pasos (por defecto está cerrada para que
- * las imágenes sean lo primero que ves). Hay tres tipos de paso, cada
- * uno se mide a su manera:
- *   - Una vez (ej. sacar papeles): se chulea y queda hecho = 1 logro.
- *   - Se repite (todos los días o N veces por semana): se chulea por
- *     día (L M M J V S D). Cada SEMANA en que cumples la frecuencia
- *     = 1 logro.
- *   - Cantidad (ej. juntar $5.000.000): fijas la meta y vas sumando
- *     aportes. Cada 25% alcanzado = 1 logro (4 por paso).
- * Los logros de todos los pasos suben el NIVEL de la meta: el nivel n
- * empieza en (n-1)² logros (1, 4, 9, 16...). Al subir de nivel el
- * indicador te lo celebra un momento. "Editar" muestra los botones
- * para renombrar/eliminar pasos y corregir el total de una cantidad.
+ * CONTADOR DE CADA IMAGEN
+ * Cada imagen del feed tiene su propio contador de "veces vivida".
+ * Cuando vives o cumples lo que muestra esa foto, das DOBLE CLIC (o
+ * doble toque en el celular) sobre ella: aparece un corazón, el
+ * contador sube en 1 y se muestra en una insignia en la esquina de la
+ * imagen (solo cuando es mayor a 0). Enter con la imagen enfocada
+ * también suma. Tocar la insignia permite corregir el número (0 la
+ * quita). Clic derecho / mantener presionado sobre la imagen la elimina.
  *
  * TABLAS REQUERIDAS EN SUPABASE:
  *   CREATE TABLE vision_metas (
@@ -44,39 +37,17 @@
  *     id bigint generated always as identity PRIMARY KEY,
  *     meta_id bigint REFERENCES vision_metas(id) ON DELETE CASCADE,
  *     image_filename text NOT NULL,
+ *     veces integer NOT NULL DEFAULT 0,   -- cuántas veces la has vivido
  *     created_at timestamptz DEFAULT now()
  *   );
  *
- *   -- NUEVAS: pasos de cada meta y su registro diario.
- *   CREATE TABLE vision_tareas (
- *     id bigint generated always as identity PRIMARY KEY,
- *     meta_id bigint NOT NULL REFERENCES vision_metas(id) ON DELETE CASCADE,
- *     title text NOT NULL,
- *     tipo text NOT NULL DEFAULT 'unica',   -- 'unica' | 'repetida' | 'cantidad'
- *     veces_semana int,                     -- repetida: 7 = diaria, 1-6 = N por semana
- *     done_at timestamptz,                  -- unica: cuándo se completó
- *     meta_cantidad numeric,                -- cantidad: lo que quieres alcanzar
- *     actual numeric DEFAULT 0,             -- cantidad: lo que llevas
- *     unidad text,                          -- cantidad: '$', 'km', 'páginas'...
- *     created_at timestamptz DEFAULT now()
- *   );
+ *   -- Si vision_meta_images ya existía (sin el contador):
+ *   ALTER TABLE vision_meta_images
+ *     ADD COLUMN IF NOT EXISTS veces integer NOT NULL DEFAULT 0;
  *
- *   CREATE TABLE vision_tarea_logs (
- *     id bigint generated always as identity PRIMARY KEY,
- *     tarea_id bigint NOT NULL REFERENCES vision_tareas(id) ON DELETE CASCADE,
- *     fecha date NOT NULL,
- *     created_at timestamptz DEFAULT now(),
- *     UNIQUE (tarea_id, fecha)
- *   );
- *   (Si usas RLS en tus otras tablas, agrega la misma política aquí.)
- *
- *   -- Si vision_tareas ya existía (sin los pasos de tipo cantidad):
- *   ALTER TABLE vision_tareas
- *     ADD COLUMN IF NOT EXISTS meta_cantidad numeric,
- *     ADD COLUMN IF NOT EXISTS actual numeric DEFAULT 0,
- *     ADD COLUMN IF NOT EXISTS unidad text;
- *
- *   -- Ya no se usa (vínculo hábito ↔ meta, versión anterior):
+ *   -- Ya no se usan (versiones anteriores: pasos y vínculo con hábitos):
+ *   --   DROP TABLE IF EXISTS vision_tarea_logs;
+ *   --   DROP TABLE IF EXISTS vision_tareas;
  *   --   DROP TABLE IF EXISTS vision_habit_links;
  *
  * Si la tabla vision_metas ya existía de antes con "image_filename"
@@ -84,8 +55,7 @@
  * como está (ya no se usa) o eliminarse — no rompe nada:
  *   ALTER TABLE vision_metas DROP COLUMN IF EXISTS image_filename;
  *
- * USO: cargar después de main.js y de mood_tracker.js (usa _supabase,
- * getFechaHoyISO — definida en mood_tracker.js).
+ * USO: cargar después de main.js (usa _supabase y handleImgFallback).
  */
 (function () {
     let _loaded = false;
@@ -95,18 +65,10 @@
     let _imagesByMeta = {}; // { [metaId]: [{id, image_filename}, ...] }
     let _activeMetaId = null;
 
-    // Pasos de cada meta.
-    const DIAS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
-    const NIVELES = ['Semilla', 'Brote', 'Raíz', 'Tallo', 'Hoja', 'Rama', 'Árbol', 'Bosque'];
-    let _tareas = [];                // filas de vision_tareas (todas las metas)
-    let _logs = {};                  // { [tareaId]: Set('YYYY-MM-DD') } solo repetidas
-    let _tareasDisponibles = true;   // false si faltan las tablas
-    let _open = false;               // panel de pasos desplegado
-    let _editMode = false;           // muestra renombrar / eliminar
-    let _formOpen = false;
-    let _draft = { title: '', freq: 'unica', meta: '', unidad: '$' };
-    let _levelUp = null;             // { metaId, text } aviso temporal de nivel
-    let _levelUpTimer = null;
+    // Contador de cada imagen: guardados en orden por imagen, para que
+    // varios dobles clics seguidos no se pisen entre sí en la base.
+    const _pendingSaves = {};
+    const DOBLE_CLIC_MS = 320;
 
     function esc(text) {
         return String(text == null ? '' : text)
@@ -122,19 +84,8 @@
             <div class="vision-tabs-bar">
                 <div class="vision-tabs" id="vision-tabs"></div>
             </div>
-            <div class="vision-panel" id="vision-meta-panel"></div>
             <div class="vision-feed" id="vision-feed"></div>
         `;
-
-        const panel = root.querySelector('#vision-meta-panel');
-        panel.addEventListener('click', onPanelClick);
-        panel.addEventListener('input', onPanelInput);
-        panel.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && e.target.id === 'vision-add-title') {
-                e.preventDefault();
-                submitNuevoPaso();
-            }
-        });
 
         return root;
     }
@@ -187,10 +138,6 @@
 
         renderTabs();
         renderFeed();
-        renderPanel();   // primero lo que ya se sabe, para que no se vea vacío
-
-        await loadTareas();
-        renderPanel();
     }
 
     function renderTabs() {
@@ -238,9 +185,6 @@
         document.querySelectorAll('.vision-tab-btn').forEach(b => {
             b.classList.toggle('vision-tab-active', Number(b.dataset.metaId) === id);
         });
-        _formOpen = false;
-        _editMode = false;
-        renderPanel();
         renderFeed();
     };
 
@@ -267,10 +211,16 @@
             feedEl.appendChild(empty);
         } else {
             imagenes.forEach(img => {
-                const localImagePath = `assets/images/${img.image_filename}`;
                 const tile = document.createElement('div');
                 tile.className = 'vision-feed-item';
-                tile.innerHTML = `<img src="${localImagePath}" class="vision-feed-img" onerror="handleImgFallback(this)">`;
+                tile.tabIndex = 0;
+                tile.setAttribute('role', 'button');
+                tile.title = 'Doble clic: la viví';
+                tile.innerHTML = `<img src="assets/images/${esc(img.image_filename)}" class="vision-feed-img" alt="" draggable="false" onerror="handleImgFallback(this)">`;
+
+                actualizarContador(tile, img, false);
+                activarDobleClic(tile, img);
+
                 tile.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
                     deleteVisionImage(img.id, _activeMetaId);
@@ -299,549 +249,127 @@
     }
 
     /* ==========================================
-       PASOS Y NIVEL DE LA META
+       CONTADOR "LA VIVÍ" DE CADA IMAGEN
        ========================================== */
-    function toISO(d) {
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    }
+    const HEART_PATH = 'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z';
 
-    function hoyISO() {
-        return (typeof getFechaHoyISO === 'function') ? getFechaHoyISO() : toISO(new Date());
-    }
+    // Dibuja (o quita) la insignia con el número y deja listo el texto
+    // accesible de la imagen.
+    function actualizarContador(tile, img, animar) {
+        const n = Number(img.veces) || 0;
+        let badge = tile.querySelector('.vision-feed-count');
 
-    // Lunes de la semana a la que pertenece una fecha 'YYYY-MM-DD'.
-    function lunesDe(iso) {
-        const [y, m, d] = iso.split('-').map(Number);
-        const fecha = new Date(y, m - 1, d);
-        const dia = fecha.getDay() === 0 ? 7 : fecha.getDay();
-        fecha.setDate(fecha.getDate() - dia + 1);
-        return toISO(fecha);
-    }
-
-    // Lunes a domingo de la semana actual.
-    function fechasDeLaSemana() {
-        const fechas = [];
-        const d = new Date(lunesDe(hoyISO()) + 'T00:00:00');
-        for (let i = 0; i < 7; i++) {
-            fechas.push(toISO(d));
-            d.setDate(d.getDate() + 1);
-        }
-        return fechas;
-    }
-
-    // Acepta "1.200.000", "1,5", "1500"... (en es-CO el punto separa miles).
-    function parseNumero(texto) {
-        let t = String(texto == null ? '' : texto).replace(/[^\d.,-]/g, '');
-        if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.');
-        else if (/^-?\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
-        return parseFloat(t);
-    }
-
-    function fmtCantidad(n, unidad) {
-        const txt = (Number(n) || 0).toLocaleString('es-CO', { maximumFractionDigits: 2 });
-        if (unidad === '$') return `$${txt}`;
-        return unidad ? `${txt} ${unidad}` : txt;
-    }
-
-    async function loadTareas() {
-        const { data, error } = await _supabase
-            .from('vision_tareas')
-            .select('*')
-            .order('created_at', { ascending: true });
-
-        if (error) {
-            _tareasDisponibles = false;
-            _tareas = [];
-            _logs = {};
-            return;
-        }
-
-        _tareasDisponibles = true;
-        _tareas = data || [];
-        _logs = {};
-
-        const ids = _tareas.filter(t => t.tipo === 'repetida').map(t => t.id);
-        ids.forEach(id => { _logs[id] = new Set(); });
-        if (ids.length === 0) return;
-
-        const PAGE = 1000;
-        for (let from = 0; ; from += PAGE) {
-            const { data: logs, error: errLogs } = await _supabase
-                .from('vision_tarea_logs')
-                .select('tarea_id, fecha')
-                .in('tarea_id', ids)
-                .order('id', { ascending: true })
-                .range(from, from + PAGE - 1);
-            if (errLogs) {
-                console.error('Error cargando vision_tarea_logs:', errLogs.message);
-                break;
-            }
-            (logs || []).forEach(l => {
-                if (!_logs[l.tarea_id]) _logs[l.tarea_id] = new Set();
-                _logs[l.tarea_id].add(l.fecha);
-            });
-            if (!logs || logs.length < PAGE) break;
-        }
-    }
-
-    /* ---------- Logros y nivel ---------- */
-    // Semanas (lunes a domingo) en las que se cumplió la frecuencia.
-    function semanasCumplidas(t) {
-        const set = _logs[t.id];
-        if (!set || set.size === 0) return 0;
-        const veces = t.veces_semana || 7;
-        const porSemana = {};
-        set.forEach(f => {
-            const k = lunesDe(f);
-            porSemana[k] = (porSemana[k] || 0) + 1;
-        });
-        return Object.values(porSemana).filter(n => n >= veces).length;
-    }
-
-    function logrosDe(t) {
-        if (t.tipo === 'repetida') return semanasCumplidas(t);
-        if (t.tipo === 'cantidad') {
-            const meta = Number(t.meta_cantidad) || 0;
-            if (meta <= 0) return 0;
-            return Math.min(4, Math.floor(((Number(t.actual) || 0) / meta) * 4 + 1e-9));
-        }
-        return t.done_at ? 1 : 0;
-    }
-
-    function pasoCompleto(t) {
-        if (t.tipo === 'repetida') return false;   // nunca "termina"
-        if (t.tipo === 'cantidad') return (Number(t.meta_cantidad) || 0) > 0 && (Number(t.actual) || 0) >= Number(t.meta_cantidad);
-        return !!t.done_at;
-    }
-
-    // El nivel n empieza en (n-1)² logros: 0, 1, 4, 9, 16...
-    function calcNivel(logros) {
-        const n = Math.floor(Math.sqrt(logros)) + 1;
-        const base = (n - 1) ** 2;
-        const siguiente = n ** 2;
-        return {
-            nivel: n,
-            nombre: NIVELES[Math.min(n - 1, NIVELES.length - 1)],
-            pct: Math.round(((logros - base) / (siguiente - base)) * 100),
-            faltan: siguiente - logros,
-        };
-    }
-
-    function infoMeta(metaId) {
-        const mias = _tareas.filter(t => t.meta_id === metaId);
-        const logros = mias.reduce((acc, t) => acc + logrosDe(t), 0);
-        const finitos = mias.filter(t => t.tipo !== 'repetida');
-        return {
-            mias,
-            logros,
-            completa: finitos.length > 0 && finitos.every(pasoCompleto),
-            ...calcNivel(logros),
-        };
-    }
-
-    // Si tras un cambio la meta subió de nivel, lo celebra un momento.
-    function avisarSiSubio(metaId, nivelAntes) {
-        const ahora = infoMeta(metaId);
-        if (ahora.nivel > nivelAntes) {
-            _levelUp = { metaId, text: `¡Nivel ${ahora.nivel}: ${ahora.nombre}!` };
-            clearTimeout(_levelUpTimer);
-            _levelUpTimer = setTimeout(() => {
-                _levelUp = null;
-                renderPanel();
-            }, 3500);
-        }
-    }
-
-    /* ==========================================
-       PANEL DE LA META ACTIVA
-       ========================================== */
-    function frecuenciaTexto(veces) {
-        if (veces >= 7) return 'Todos los días';
-        return veces === 1 ? '1 vez por semana' : `${veces} veces por semana`;
-    }
-
-    function tituloHtml(t) {
-        return _editMode
-            ? `<span class="vision-step-title vision-step-title--editable" data-action="edit" data-id="${t.id}" title="Editar">${esc(t.title)}</span>`
-            : `<span class="vision-step-title">${esc(t.title)}</span>`;
-    }
-
-    function borrarHtml(t) {
-        return _editMode
-            ? `<button type="button" class="vision-step-del" data-action="delete" data-id="${t.id}" aria-label="Eliminar paso" title="Eliminar">×</button>`
-            : '';
-    }
-
-    function renderPaso(t) {
-        const hecho = !!t.done_at;
-        return `
-            <li class="vision-step${hecho ? ' vision-step--done' : ''}">
-                <button type="button" class="vision-check${hecho ? ' on' : ''}" data-action="toggle-unica" data-id="${t.id}"
-                    aria-pressed="${hecho}" aria-label="${hecho ? 'Desmarcar' : 'Marcar'} paso">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"
-                        stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                </button>
-                ${tituloHtml(t)}
-                ${borrarHtml(t)}
-            </li>`;
-    }
-
-    function renderRepetido(t) {
-        const set = _logs[t.id] || new Set();
-        const semana = fechasDeLaSemana();
-        const hoy = hoyISO();
-        const veces = t.veces_semana || 7;
-        const estaSemana = semana.filter(f => f <= hoy && set.has(f)).length;
-
-        const chips = semana.map((fecha, i) => {
-            const futuro = fecha > hoy;
-            const clases = 'vision-day-chip'
-                + (set.has(fecha) ? ' on' : '')
-                + (fecha === hoy ? ' today' : '')
-                + (futuro ? ' future' : '');
-            return `<button type="button" class="${clases}" data-action="toggle-dia" data-id="${t.id}" data-fecha="${fecha}"
-                ${futuro ? 'disabled' : ''} aria-pressed="${set.has(fecha)}">${DIAS[i]}</button>`;
-        }).join('');
-
-        return `
-            <li class="vision-rep">
-                <div class="vision-row-top">
-                    ${tituloHtml(t)}
-                    <span class="vision-row-side${estaSemana >= veces ? ' vision-row-side--ok' : ''}" title="${frecuenciaTexto(veces)}">${estaSemana}/${veces}</span>
-                    ${borrarHtml(t)}
-                </div>
-                <div class="vision-rep-days">${chips}</div>
-            </li>`;
-    }
-
-    function renderCantidad(t) {
-        const meta = Number(t.meta_cantidad) || 0;
-        const actual = Number(t.actual) || 0;
-        const pct = meta > 0 ? Math.min(100, Math.round((actual / meta) * 100)) : 0;
-        const u = t.unidad || '';
-
-        return `
-            <li class="vision-qty">
-                <div class="vision-row-top">
-                    ${tituloHtml(t)}
-                    ${borrarHtml(t)}
-                </div>
-                <div class="vision-qty-line">
-                    <span class="vision-qty-amount">${esc(fmtCantidad(actual, u))} <span class="vision-qty-of">de ${esc(fmtCantidad(meta, u))}</span></span>
-                    ${_editMode
-                        ? `<button type="button" class="vision-link-btn" data-action="set-total" data-id="${t.id}">Corregir total</button>`
-                        : `<button type="button" class="vision-link-btn vision-link-btn--accent" data-action="aportar" data-id="${t.id}">+ Aportar</button>`}
-                </div>
-                <div class="ik-bar-track vision-qty-bar"><div class="ik-bar-fill ik-bar-fill--green" style="width:${pct}%;"></div></div>
-            </li>`;
-    }
-
-    function renderForm() {
-        const opciones = [
-            ['unica', 'Una sola vez'],
-            ['7', 'Todos los días'],
-            ['1', '1 vez por semana'],
-            ['2', '2 veces por semana'],
-            ['3', '3 veces por semana'],
-            ['4', '4 veces por semana'],
-            ['5', '5 veces por semana'],
-            ['6', '6 veces por semana'],
-            ['cantidad', 'Alcanzar una cantidad'],
-        ].map(([v, txt]) => `<option value="${v}"${_draft.freq === v ? ' selected' : ''}>${txt}</option>`).join('');
-
-        const extra = _draft.freq === 'cantidad' ? `
-            <div class="vision-add-extra">
-                <input type="text" id="vision-add-meta" class="vision-add-input" inputmode="decimal" autocomplete="off"
-                    placeholder="Meta, ej. 5.000.000" value="${esc(_draft.meta)}" aria-label="Cantidad que quieres alcanzar">
-                <input type="text" id="vision-add-unidad" class="vision-add-input vision-add-unit" maxlength="12" autocomplete="off"
-                    placeholder="Unidad" value="${esc(_draft.unidad)}" aria-label="Unidad (por ejemplo $ o km)">
-            </div>` : '';
-
-        return `
-            <div class="vision-add-form">
-                <input type="text" id="vision-add-title" class="vision-add-input" maxlength="120"
-                    placeholder="Ej. Sacar los papeles" value="${esc(_draft.title)}" autocomplete="off">
-                <select id="vision-add-freq" class="vision-add-select" aria-label="Tipo de paso">${opciones}</select>
-                ${extra}
-                <div class="vision-add-actions">
-                    <button type="button" class="vision-add-submit" data-action="add-submit">Agregar</button>
-                    <button type="button" class="vision-add-cancel" data-action="add-cancel">Listo</button>
-                </div>
-            </div>`;
-    }
-
-    function renderPanel() {
-        const el = document.getElementById('vision-meta-panel');
-        if (!el) return;
-
-        const meta = _metas.find(m => m.id === _activeMetaId);
-        if (!meta) {
-            el.innerHTML = '';
-            el.style.display = 'none';
-            return;
-        }
-        el.style.display = '';
-
-        if (!_tareasDisponibles) {
-            el.innerHTML = `<div class="vision-panel-note">Para agregar pasos falta crear las tablas <strong>vision_tareas</strong> y <strong>vision_tarea_logs</strong> en Supabase. El SQL está al inicio de vision_board.js.</div>`;
-            return;
-        }
-
-        const info = infoMeta(meta.id);
-        const subio = _levelUp && _levelUp.metaId === meta.id;
-
-        const etiqueta = subio
-            ? `<span class="vision-panel-level vision-panel-level--up">${esc(_levelUp.text)}</span>`
-            : `<span class="vision-panel-level">Nivel ${info.nivel}<span class="vision-panel-level-name">${info.nombre}</span></span>`;
-
-        const cabecera = `
-            <button type="button" class="vision-panel-head" data-action="toggle-panel" aria-expanded="${_open}">
-                ${etiqueta}
-                <span class="ik-bar-track vision-panel-bar"><span class="ik-bar-fill ik-bar-fill--green" style="width:${info.pct}%;"></span></span>
-                <svg class="vision-panel-chev${_open ? ' open' : ''}" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </button>`;
-
-        if (!_open) {
-            el.innerHTML = cabecera;
-            return;
-        }
-
-        const nota = info.mias.length === 0
-            ? 'Agrega pasos: cosas que haces una vez, que repites cada semana o una cantidad por juntar.'
-            : `${info.logros} ${info.logros === 1 ? 'logro' : 'logros'}, faltan ${info.faltan} para el nivel ${info.nivel + 1}.${info.completa ? ' Todos los pasos listos.' : ''}`;
-
-        const orden = [...info.mias.filter(t => !pasoCompleto(t)), ...info.mias.filter(pasoCompleto)];
-        const lista = orden.length > 0
-            ? `<ul class="vision-list">${orden.map(t =>
-                t.tipo === 'repetida' ? renderRepetido(t) : t.tipo === 'cantidad' ? renderCantidad(t) : renderPaso(t)
-            ).join('')}</ul>`
-            : '';
-
-        const acciones = _formOpen ? renderForm() : `
-            <div class="vision-actions">
-                <button type="button" class="vision-link-btn vision-link-btn--accent" data-action="show-form">+ Agregar paso</button>
-                ${info.mias.length > 0
-                    ? `<button type="button" class="vision-link-btn" data-action="toggle-edit">${_editMode ? 'Listo' : 'Editar'}</button>`
-                    : ''}
-            </div>`;
-
-        el.innerHTML = `
-            ${cabecera}
-            <div class="vision-panel-body">
-                <div class="vision-panel-note">${nota}</div>
-                ${lista}
-                ${acciones}
-            </div>`;
-    }
-
-    function onPanelInput(e) {
-        switch (e.target.id) {
-            case 'vision-add-title': _draft.title = e.target.value; break;
-            case 'vision-add-meta': _draft.meta = e.target.value; break;
-            case 'vision-add-unidad': _draft.unidad = e.target.value; break;
-            case 'vision-add-freq':
-                _draft.freq = e.target.value;
-                renderPanel();   // muestra u oculta los campos de cantidad
-                break;
-        }
-    }
-
-    async function onPanelClick(e) {
-        const btn = e.target.closest('[data-action]');
-        if (!btn) return;
-        const id = btn.dataset.id ? Number(btn.dataset.id) : null;
-
-        switch (btn.dataset.action) {
-            case 'toggle-panel':
-                _open = !_open;
-                if (!_open) { _formOpen = false; _editMode = false; }
-                return renderPanel();
-            case 'toggle-edit':
-                _editMode = !_editMode;
-                return renderPanel();
-            case 'toggle-unica': return toggleUnica(id);
-            case 'toggle-dia': return toggleDia(id, btn.dataset.fecha);
-            case 'aportar': return aportar(id);
-            case 'set-total': return corregirTotal(id);
-            case 'edit': return editarPaso(id);
-            case 'delete': return eliminarPaso(id);
-            case 'show-form':
-                _formOpen = true;
-                renderPanel();
-                return document.getElementById('vision-add-title')?.focus();
-            case 'add-cancel':
-                _formOpen = false;
-                return renderPanel();
-            case 'add-submit':
-                return submitNuevoPaso();
-        }
-    }
-
-    async function submitNuevoPaso() {
-        const title = (_draft.title || '').trim();
-        if (!title || !_activeMetaId) return;
-
-        const nivelAntes = infoMeta(_activeMetaId).nivel;
-        const fila = { meta_id: _activeMetaId, title };
-
-        if (_draft.freq === 'cantidad') {
-            const meta = parseNumero(_draft.meta);
-            if (!(meta > 0)) {
-                alert('Escribe la cantidad que quieres alcanzar (un número mayor a 0).');
-                return;
-            }
-            fila.tipo = 'cantidad';
-            fila.meta_cantidad = meta;
-            fila.actual = 0;
-            fila.unidad = (_draft.unidad || '').trim() || null;
-        } else if (_draft.freq === 'unica') {
-            fila.tipo = 'unica';
-            fila.veces_semana = null;
+        if (n <= 0) {
+            if (badge) badge.remove();
         } else {
-            fila.tipo = 'repetida';
-            fila.veces_semana = Number(_draft.freq);
+            if (!badge) {
+                badge = document.createElement('button');
+                badge.type = 'button';
+                badge.className = 'vision-feed-count';
+                badge.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    corregirVeces(tile, img);
+                });
+                tile.appendChild(badge);
+            }
+            badge.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="${HEART_PATH}"></path></svg><span>${n}</span>`;
+            badge.title = 'Veces vivida (toca para corregir)';
+            badge.setAttribute('aria-label', `Vivida ${n} ${n === 1 ? 'vez' : 'veces'}. Toca para corregir`);
+
+            if (animar) {
+                badge.classList.remove('vision-feed-count--bump');
+                void badge.offsetWidth;
+                badge.classList.add('vision-feed-count--bump');
+            }
         }
 
-        const { data, error } = await _supabase.from('vision_tareas').insert([fila]).select();
-        if (error) {
-            alert('Error al guardar el paso: ' + error.message);
-            return;
-        }
-
-        if (data && data[0]) {
-            _tareas.push(data[0]);
-            if (fila.tipo === 'repetida') _logs[data[0].id] = new Set();
-        }
-
-        // Se queda abierto para agregar varios pasos seguidos.
-        _draft.title = '';
-        _draft.meta = '';
-        avisarSiSubio(_activeMetaId, nivelAntes);
-        renderPanel();
-        document.getElementById('vision-add-title')?.focus();
+        tile.setAttribute('aria-label',
+            `Imagen de la meta${n > 0 ? `, vivida ${n} ${n === 1 ? 'vez' : 'veces'}` : ''}. Doble clic o Enter para sumar una vez.`);
     }
 
-    async function toggleUnica(id) {
-        const t = _tareas.find(x => x.id === id);
-        if (!t) return;
+    // Doble clic con el mouse y doble toque en el celular con la misma
+    // lógica (dos toques seguidos y cercanos), sin depender de "dblclick",
+    // que no es confiable en móvil. Enter con la imagen enfocada también suma.
+    function activarDobleClic(tile, img) {
+        let ultimo = 0;
+        let ux = 0;
+        let uy = 0;
 
-        const nivelAntes = infoMeta(t.meta_id).nivel;
-        const anterior = t.done_at;
-        t.done_at = anterior ? null : new Date().toISOString();
-        avisarSiSubio(t.meta_id, nivelAntes);
-        renderPanel();
+        tile.addEventListener('pointerup', (e) => {
+            if (e.target.closest('.vision-feed-count')) return;
+            if (e.pointerType === 'mouse' && e.button !== 0) return;
 
-        const { error } = await _supabase.from('vision_tareas').update({ done_at: t.done_at }).eq('id', id);
-        if (error) {
-            t.done_at = anterior;
-            _levelUp = null;
-            renderPanel();
-            alert('Error al actualizar el paso: ' + error.message);
-        }
+            const ahora = Date.now();
+            const cerca = Math.hypot(e.clientX - ux, e.clientY - uy) < 40;
+            if (ahora - ultimo < DOBLE_CLIC_MS && cerca) {
+                ultimo = 0;
+                vivirImagen(tile, img, e);
+            } else {
+                ultimo = ahora;
+                ux = e.clientX;
+                uy = e.clientY;
+            }
+        });
+
+        tile.addEventListener('keydown', (e) => {
+            if (e.target !== tile) return;
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                vivirImagen(tile, img, null);
+            }
+        });
     }
 
-    async function toggleDia(id, fecha) {
-        const t = _tareas.find(x => x.id === id);
-        if (!t) return;
+    function lanzarCorazon(tile, evt) {
+        const rect = tile.getBoundingClientRect();
+        const x = evt && evt.clientX != null ? evt.clientX - rect.left : rect.width / 2;
+        const y = evt && evt.clientY != null ? evt.clientY - rect.top : rect.height / 2;
 
-        if (!_logs[id]) _logs[id] = new Set();
-        const set = _logs[id];
-        const estaba = set.has(fecha);
-
-        const nivelAntes = infoMeta(t.meta_id).nivel;
-        if (estaba) set.delete(fecha); else set.add(fecha);
-        avisarSiSubio(t.meta_id, nivelAntes);
-        renderPanel();
-
-        const consulta = estaba
-            ? _supabase.from('vision_tarea_logs').delete().eq('tarea_id', id).eq('fecha', fecha)
-            : _supabase.from('vision_tarea_logs').insert([{ tarea_id: id, fecha }]);
-        const { error } = await consulta;
-
-        if (error) {
-            if (estaba) set.add(fecha); else set.delete(fecha);
-            _levelUp = null;
-            renderPanel();
-            alert('Error al registrar el día: ' + error.message);
-        }
+        const el = document.createElement('span');
+        el.className = 'vision-heart-burst';
+        el.style.left = `${x}px`;
+        el.style.top = `${y}px`;
+        el.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="${HEART_PATH}"></path></svg>`;
+        tile.appendChild(el);
+        setTimeout(() => el.remove(), 800);
     }
 
-    async function setActual(t, valor) {
-        const nivelAntes = infoMeta(t.meta_id).nivel;
-        const anterior = t.actual;
-        t.actual = valor;
-        avisarSiSubio(t.meta_id, nivelAntes);
-        renderPanel();
-
-        const { error } = await _supabase.from('vision_tareas').update({ actual: valor }).eq('id', t.id);
-        if (error) {
-            t.actual = anterior;
-            _levelUp = null;
-            renderPanel();
-            alert('Error al guardar la cantidad: ' + error.message);
-        }
+    function vivirImagen(tile, img, evt) {
+        img.veces = (Number(img.veces) || 0) + 1;
+        actualizarContador(tile, img, true);
+        lanzarCorazon(tile, evt);
+        if (navigator.vibrate) navigator.vibrate(15);
+        guardarVeces(img);
     }
 
-    async function aportar(id) {
-        const t = _tareas.find(x => x.id === id);
-        if (!t) return;
-
-        const txt = prompt(`¿Cuánto sumas a "${t.title}"? (con un número negativo se resta)`, '');
+    function corregirVeces(tile, img) {
+        const txt = prompt('¿Cuántas veces has vivido esto? (0 quita el contador)', String(Number(img.veces) || 0));
         if (txt === null) return;
 
-        const n = parseNumero(txt);
-        if (!Number.isFinite(n) || n === 0) {
-            if (txt.trim() !== '') alert('Escribe un número válido.');
-            return;
-        }
-        await setActual(t, Math.max(0, (Number(t.actual) || 0) + n));
-    }
-
-    async function corregirTotal(id) {
-        const t = _tareas.find(x => x.id === id);
-        if (!t) return;
-
-        const txt = prompt(`Total acumulado de "${t.title}":`, String(Number(t.actual) || 0));
-        if (txt === null) return;
-
-        const n = parseNumero(txt);
+        const n = parseInt(txt, 10);
         if (!Number.isFinite(n) || n < 0) {
-            alert('Escribe un número válido (0 o mayor).');
+            alert('Escribe un número entero (0 o mayor).');
             return;
         }
-        await setActual(t, n);
+        img.veces = n;
+        actualizarContador(tile, img, false);
+        guardarVeces(img);
     }
 
-    async function editarPaso(id) {
-        const t = _tareas.find(x => x.id === id);
-        if (!t) return;
-
-        const nuevo = prompt('Editar paso:', t.title);
-        if (nuevo === null || nuevo.trim() === '' || nuevo.trim() === t.title) return;
-
-        const { error } = await _supabase.from('vision_tareas').update({ title: nuevo.trim() }).eq('id', id);
-        if (error) {
-            alert('Error al editar: ' + error.message);
-            return;
-        }
-        t.title = nuevo.trim();
-        renderPanel();
-    }
-
-    async function eliminarPaso(id) {
-        const t = _tareas.find(x => x.id === id);
-        if (!t) return;
-        if (!confirm(`¿Eliminar el paso "${t.title}"${t.tipo !== 'unica' ? ' y todo su registro' : ''}?`)) return;
-
-        const { error } = await _supabase.from('vision_tareas').delete().eq('id', id);
-        if (error) {
-            alert('Error al eliminar: ' + error.message);
-            return;
-        }
-        _tareas = _tareas.filter(x => x.id !== id);
-        delete _logs[id];
-        renderPanel();
+    // Las escrituras de una misma imagen se encadenan: así el último valor
+    // siempre es el que queda guardado aunque den varios dobles clics rápidos.
+    function guardarVeces(img) {
+        const previa = _pendingSaves[img.id] || Promise.resolve();
+        _pendingSaves[img.id] = previa.then(async () => {
+            const { error } = await _supabase
+                .from('vision_meta_images')
+                .update({ veces: Number(img.veces) || 0 })
+                .eq('id', img.id);
+            if (error) {
+                console.error('Error guardando el contador:', error.message);
+                alert('No se pudo guardar el contador: ' + error.message + '\n\n¿Ya creaste la columna "veces"? El SQL está al inicio de vision_board.js.');
+            }
+        });
     }
 
     window.addVisionMeta = async function () {
@@ -878,11 +406,10 @@
     };
 
     window.deleteVisionMeta = async function (id, name) {
-        const ok = confirm(`¿Eliminar la meta "${name}", sus imágenes y sus pasos?`);
+        const ok = confirm(`¿Eliminar la meta "${name}", y sus imágenes?`);
         if (!ok) return;
 
         await _supabase.from('vision_meta_images').delete().eq('meta_id', id);
-        await _supabase.from('vision_tareas').delete().eq('meta_id', id);
         const { error } = await _supabase.from('vision_metas').delete().eq('id', id);
         if (error) {
             alert('Error al eliminar: ' + error.message);

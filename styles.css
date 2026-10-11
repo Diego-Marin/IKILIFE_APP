@@ -2299,52 +2299,108 @@ div.day-segment.future {
 
 /**
  * ---------- Balance emocional del mes: competencia Positivos vs Negativos ----------
- * En vez de un solo % sin contexto, se ve como una barra partida en
- * dos (igual patrón que Hábitos de hoy): un lado para Positivos y
- * otro para Negativos, ambos suman 100%, así se nota de un vistazo
- * quién va ganando.
+ * Tarjeta plana y sobria (borde fino, sin degradados ni fondos de color):
+ * los dos porcentajes son lo principal, la barra los enfrenta y debajo
+ * van tres cifras separadas por líneas finas. Deslizar cambia de mes.
  */
 .espejo-emo-card {
+    touch-action: pan-y;
+    -webkit-user-select: none;
+    user-select: none;
     margin-bottom: 20px;
-    padding: 16px;
-    border-radius: 16px;
-    background: linear-gradient(135deg, rgba(224, 71, 158, 0.10) 0%, rgba(242, 140, 192, 0.05) 100%);
-    border: 1px solid rgba(224, 71, 158, 0.22);
+    padding: 14px 16px 12px;
+    border-radius: 14px;
+    border: 1px solid var(--border-color);
+    background: transparent;
 }
 
 .espejo-emo-body {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 14px;
 }
 
+/* Mes que se está viendo (desliza o usa ‹ › para cambiar de mes). */
 .espejo-emo-label {
-    font-size: 0.82rem;
-    font-weight: 700;
-    color: var(--text-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: -4px;
 }
 
-.espejo-emo-vs-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 10px;
-    font-size: 0.78rem;
+.espejo-emo-month {
+    min-width: 8.5em;
+    text-align: center;
+    font-size: 0.72rem;
     font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
     color: var(--text-muted);
 }
 
+.espejo-emo-nav {
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.espejo-emo-nav:hover:not(:disabled) {
+    color: var(--text-dark);
+}
+
+.espejo-emo-nav--off {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/* Los dos porcentajes: grandes, uno a cada lado. */
+.espejo-emo-vs-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 12px;
+}
+
+.espejo-emo-vs-side {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.espejo-emo-vs-side--odio {
+    align-items: flex-end;
+    text-align: right;
+}
+
 .espejo-emo-vs-side strong {
-    font-size: 1rem;
+    font-size: 2rem;
     font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.5px;
+    font-variant-numeric: tabular-nums;
+}
+
+.espejo-emo-vs-name {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
 }
 
 .espejo-emo-vs-side--love strong { color: #e0479e; }
 .espejo-emo-vs-side--odio strong { color: #e74c3c; }
 
+/* Barra partida en dos segmentos de color plano con una pequeña separación. */
 .espejo-emo-bar-track {
     width: 100%;
-    height: 10px;
+    height: 8px;
     border-radius: 999px;
     overflow: hidden;
     background: var(--border-color);
@@ -2352,44 +2408,67 @@ div.day-segment.future {
 
 .espejo-emo-bar-track--split {
     display: flex;
+    gap: 3px;
 }
 
 .espejo-emo-bar-fill {
     height: 100%;
+    border-radius: 999px;
     transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.espejo-emo-bar-fill--love {
-    background: linear-gradient(90deg, #f28cc0, #e0479e);
-    border-radius: 999px 0 0 999px;
-}
+.espejo-emo-bar-fill--love { background: #e0479e; }
+.espejo-emo-bar-fill--odio { background: #e74c3c; }
 
-.espejo-emo-bar-fill--odio {
-    background: linear-gradient(90deg, #e74c3c, #c0392b);
-    border-radius: 0 999px 999px 0;
-}
-
-.espejo-emo-verdict {
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: var(--text-dark);
-}
-
+/* Tres cifras repartidas en todo el ancho, separadas por líneas finas. */
 .espejo-emo-stats {
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
 }
 
 .espejo-emo-chip {
-    font-size: 0.68rem;
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0 4px;
+    text-align: center;
+    white-space: nowrap;
+    font-size: 0.74rem;
     font-weight: 700;
-    padding: 4px 9px;
-    border-radius: 999px;
-    background: var(--white);
     color: var(--text-muted);
-    border: 1px solid rgba(0, 0, 0, 0.06);
+    background: none;
+    border: none;
+    border-radius: 0;
+}
+
+.espejo-emo-chip + .espejo-emo-chip {
+    border-left: 1px solid var(--border-color);
 }
 
 .espejo-emo-chip--love { color: #e0479e; }
 .espejo-emo-chip--odio { color: #e74c3c; }
+
+.espejo-emo-body--older {
+    animation: espejoSlideOlder 0.25s ease;
+}
+
+.espejo-emo-body--newer {
+    animation: espejoSlideNewer 0.25s ease;
+}
+
+@keyframes espejoSlideOlder {
+    from { opacity: 0.2; transform: translateX(-14px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes espejoSlideNewer {
+    from { opacity: 0.2; transform: translateX(14px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .espejo-emo-body--older,
+    .espejo-emo-body--newer {
+        animation: none;
+    }
+}
