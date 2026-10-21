@@ -66,9 +66,7 @@
         if (target) target.classList.add('active');
 
         if (tabId === 'home') {
-            updateWeeklyProgress();
             if (typeof loadEspejoDelAlma === 'function') loadEspejoDelAlma();
-            if (typeof renderYearWeeks === 'function') renderYearWeeks();
             if (typeof loadHomeUpcomingPlans === 'function') loadHomeUpcomingPlans();
             if (typeof loadHomeSlides === 'function') loadHomeSlides();
         }
@@ -80,6 +78,8 @@
 }
 
         if (tabId === 'planes') {
+            updateWeeklyProgress();
+            if (typeof renderYearWeeks === 'function') renderYearWeeks();
             if (typeof loadPlanes === 'function') loadPlanes();
             if (typeof loadTareas === 'function') loadTareas();
         }

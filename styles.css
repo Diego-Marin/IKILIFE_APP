@@ -412,28 +412,6 @@ div.day-segment.future {
 
 /**
  * ==========================================
- * TARJETA "HOY": STATE BAR + FRASE MOTIVACIONAL
- * ==========================================
- * Encapsula visualmente el state bar y la frase motivacional en un
- * solo bloque (un único borde/fondo exterior), aunque cada uno sigue
- * gobernado por su propia lógica en JS (renderStateBar / loadDailyQuote).
- */
-.today-info-card {
-    background-color: transparent;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 16px;
-    margin-bottom: 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-}
-
-
-
-
-/**
- * ==========================================
  * CONTENEDORES DE CATEGORÍA (ESTILO PLANO)
  * ==========================================
  */
@@ -1682,183 +1660,6 @@ div.day-segment.future {
 
 /**
  * ==========================================
- * STATE BAR - OPTIMIZADO Y LLAMATIVO
- * ==========================================
- * Cada tarjeta es ahora un contenedor en columna: arriba el resumen
- * (icono + nombre + hora) y, si el usuario hizo clic para abrirlo,
- * el menú de sugerencias aparece anidado DEBAJO de esa misma tarjeta
- * (no como un elemento flotante aparte al final de la lista).
- */
-
-.ikilife-state-card {
-    background: linear-gradient(to right, var(--bg-header), var(--white));
-    border: 1px solid var(--border-color);
-    border-left: 6px solid var(--border-color); /* Ligeramente más grueso para más presencia */
-    border-radius: 12px; /* Un poco más redondeado para modernizar */
-    padding: 16px 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    margin-bottom: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); /* Sombra suave para que "flote" */
-    transition: transform 0.2s ease, border-left-color 0.3s ease;
-    cursor: pointer;
-    width: 100%;
-    max-width: 100%;
-    overflow: hidden; /* evita que un nombre muy largo empuje el ancho de la card */
-    box-sizing: border-box;
-}
-
-.state-card-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    min-width: 0;
-    flex-wrap: nowrap;
-}
-
-@media (max-width: 380px) {
-    .state-card-top {
-        flex-wrap: wrap;
-        gap: 6px;
-    }
-    .state-time {
-        width: 100%;
-        text-align: left;
-        margin-top: 2px;
-    }
-}
-
-.state-info {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    overflow: hidden;
-    min-width: 0; /* clave para que el texto largo pueda truncarse/ajustarse */
-    flex: 1 1 140px;
-}
-
-/* Icono más grande para impacto visual */
-.state-info span:first-child {
-    font-size: 1.6rem;
-    line-height: 1;
-    flex-shrink: 0;
-}
-
-.state-label {
-    font-size: clamp(0.8rem, 2.5vw, 0.95rem);
-    font-weight: 700;
-    color: var(--text-dark);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 1.3;
-    min-width: 0;
-    flex: 1;
-}
-
-.state-time {
-    font-family: monospace;
-    font-size: clamp(0.9rem, 2.5vw, 1.1rem);
-    font-weight: 800;
-    color: var(--text-dark);
-    background: rgba(0,0,0,0.03); /* Fondo sutil para el tiempo */
-    padding: 4px 8px;
-    border-radius: 6px;
-    flex-shrink: 0;
-    white-space: nowrap;
-}
-
-/* Colores de estado más vibrantes */
-.state-work { border-left-color: #e67e22 !important; }
-.state-grow { border-left-color: var(--primary-green) !important; }
-.state-sleep { border-left-color: #34495e !important; }
-.state-free { border-left-color: #9b59b6 !important; }
-
-/**
- * ==========================================
- * STATE BAR - LISTA DE TARJETAS DE ESTADO
- * ==========================================
- * Solo se muestran las tarjetas vigentes para la hora actual, cada
- * una ocupando el ancho TOTAL del contenedor principal para que se
- * vean armónicas con el resto de la interfaz (igual de anchas que el
- * progreso semanal, los tabs, etc.). Si hay varias activas a la vez
- * (rangos solapados a propósito), se apilan una debajo de otra.
- */
-.state-bar-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 10px;
-    margin-bottom: 24px;
-}
-
-.state-bar-grid .ikilife-state-card {
-    margin-bottom: 0;
-    min-height: 64px;
-    width: 100%;
-    min-width: 0;
-}
-
-/**
- * ==========================================
- * STATE BAR - DROPDOWN ANIDADO
- * ==========================================
- * Ya no es un elemento flotante aparte: vive DENTRO de la tarjeta
- * que lo abrió, justo debajo de su encabezado. Por eso solo se
- * inserta en el HTML cuando está realmente abierto (no necesita una
- * clase .hidden) y usa un fondo semitransparente para integrarse con
- * el color de la tarjeta en vez de una caja blanca independiente.
- */
-.state-dropdown {
-    background-color: rgba(255, 255, 255, 0.55);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 8px;
-    margin-top: 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    cursor: default;
-    background-color: rgba(0, 0, 0, 0.2);
-}
-
-.state-dropdown-title {
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: 6px 10px 8px;
-    border-bottom: 1px solid var(--border-color);
-    margin-bottom: 4px;
-}
-
-.state-dropdown-item {
-    background: transparent;
-    border: none;
-    text-align: left;
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--text-dark);
-    padding: 8px 10px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background-color var(--transition);
-}
-
-.state-dropdown-item:hover {
-    background-color: rgba(255, 255, 255, 0.08);
-}
-
-.state-dropdown-empty {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    padding: 8px 10px;
-}
-
-/**
- * ==========================================
  * HABITOS - CARDS ESTILO MOOD
  * ==========================================
  * Cada habito es una card con imagen a la izquierda,
@@ -1966,6 +1767,20 @@ div.day-segment.future {
     cursor: default;
 }
 
+.habit-card-counter {
+    align-self: flex-end;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.habit-counter-month {
+    color: var(--primary-green);
+    font-weight: 800;
+    font-size: 0.8rem;
+}
+
 .habit-card-meta {
     font-size: 0.7rem;
     font-weight: 600;
@@ -2065,24 +1880,6 @@ div.day-segment.future {
     font-size: 0.9rem;
     font-weight: 700;
     color: var(--text-dark);
-}
-
-#today-clock {
-    font-family: monospace;
-    font-size: 1.3rem;
-    color: var(--text-dark);
-    font-weight: 800;
-    letter-spacing: 0.3px;
-}
-
-/* State Bar dentro del dashboard */
-.today-dashboard .state-bar-grid {
-    margin-bottom: 0;
-    padding: 12px 16px 12px;
-}
-
-.today-dashboard .ikilife-state-card:last-child {
-    margin-bottom: 0;
 }
 
 /* Planes próximos: GRID igual que State Bar para ancho idéntico */

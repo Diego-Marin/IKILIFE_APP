@@ -318,67 +318,24 @@
     gap: 12px;
 }
 
-/* ---------- Selector de mes ---------- */
-.espejo-emo-label {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    margin: 0;
-}
-
-.espejo-emo-month {
-    min-width: 9em;
-    text-align: center;
-    font-size: 0.7rem;
-    font-weight: 800;
-    letter-spacing: 0.9px;
-    text-transform: uppercase;
-    color: var(--text-muted);
-}
-
-.espejo-emo-nav {
-    width: 28px;
-    height: 28px;
-    padding: 0 0 2px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    border-radius: 50%;
-    background-color: rgba(255, 255, 255, 0.06);
-    color: var(--text-muted);
-    font-size: 1.15rem;
-    line-height: 1;
-    cursor: pointer;
-    transition: background-color var(--transition), color var(--transition), transform 0.15s ease;
-}
-
-.espejo-emo-nav:hover:not(:disabled) {
-    background-color: rgba(255, 255, 255, 0.12);
-    color: var(--text-dark);
-}
-
-.espejo-emo-nav:active:not(:disabled) {
-    transform: scale(0.9);
-}
-
-.espejo-emo-nav:focus-visible {
-    outline: 2px solid var(--primary-green);
-    outline-offset: 2px;
-}
-
-.espejo-emo-nav--off {
-    visibility: hidden;
-    pointer-events: none;
-}
-
 /* ---------- Porcentajes: Positivos ← → Negativos ---------- */
 .espejo-emo-vs-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    gap: 12px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: end;
+    gap: 8px;
+}
+
+/* Mes visible (se cambia deslizando la tarjeta). */
+.espejo-emo-month {
+    padding-bottom: 5px;
+    text-align: center;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    white-space: nowrap;
 }
 
 .espejo-emo-vs-side {
@@ -399,7 +356,6 @@
     font-weight: 800;
     letter-spacing: -0.5px;
     font-variant-numeric: tabular-nums;
-    transition: opacity 0.4s ease;
 }
 
 .espejo-emo-vs-side--love strong {
@@ -415,15 +371,6 @@
     font-weight: 700;
     color: var(--text-muted);
     white-space: nowrap;
-}
-
-/* El lado que va ganando brilla; el otro baja de intensidad. */
-.espejo-emo-vs-side--lead strong {
-    text-shadow: 0 0 18px currentColor;
-}
-
-.espejo-emo-vs-row:has(.espejo-emo-vs-side--lead) .espejo-emo-vs-side:not(.espejo-emo-vs-side--lead) strong {
-    opacity: 0.55;
 }
 
 /* ---------- Barra partida ---------- */

@@ -10,7 +10,6 @@
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌱</text></svg>">
     <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="./Components/state_bar/state_bar.css">
     <link rel="stylesheet" href="./Components/auth_lock/auth_lock.css">
     <link rel="stylesheet" href="./Components/mood_tracker/mood_tracker.css">
     <link rel="stylesheet" href="./Components/finance/finance.css">
@@ -81,44 +80,13 @@
                 <!-- Espejo del alma: hábitos de hoy + balance emocional -->
                 <div id="espejo-alma-container"></div>
 
-                <!-- Progreso Semanal + Anual (fusionado) -->
-                <div class="progress-fusion-card">
-                    <div class="progress-fusion-header">
-                        <span id="fusion-week-text">Semana --</span>
-                        <span id="fusion-date-text" class="progress-fusion-date">--</span>
-                    </div>
-                    <div class="progress-bar-segmented">
-                        <div class="day-segment"></div>
-                        <div class="day-segment"></div>
-                        <div class="day-segment"></div>
-                        <div class="day-segment"></div>
-                        <div class="day-segment"></div>
-                        <div class="day-segment"></div>
-                        <div class="day-segment"></div>
-                    </div>
-                    <div class="progress-labels">
-                        <span id="day-label-1">L</span>
-                        <span id="day-label-2">M</span>
-                        <span id="day-label-3">M</span>
-                        <span id="day-label-4">J</span>
-                        <span id="day-label-5">V</span>
-                        <span id="day-label-6">S</span>
-                        <span id="day-label-7">D</span>
-                    </div>
-                    <div class="progress-fusion-divider"></div>
-                    <div id="year-weeks-grid" class="fusion-weeks-grid"></div>
-                    <div id="fusion-footer" class="progress-fusion-footer">Quedan -- días para terminar el año</div>
-                </div>
-
                 <div id="habit-legend-yesterday"></div>
 
-                <!-- Dashboard del Día: Estado + Planes próximos -->
+                <!-- Dashboard del Día: solo planes próximos -->
                 <div class="today-dashboard">
                     <div class="today-dashboard-header">
-                        <span>📍 Ahora</span>
-                        <span id="today-clock">--:--</span>
+                        <span>📍 Tareas de hoy</span>
                     </div>
-                    <div id="state-bar-container"></div>
                     <div id="home-upcoming-plans"></div>
                 </div>
 
@@ -350,6 +318,36 @@
 
             <!-- 📅 PLANES -->
             <div id="view-planes" class="bottom-view">
+
+                <!-- Progreso Semanal + Anual (movido desde Inicio) -->
+                <div class="progress-fusion-card">
+                    <div class="progress-fusion-header">
+                        <span id="fusion-week-text">Semana --</span>
+                        <span id="fusion-date-text" class="progress-fusion-date">--</span>
+                    </div>
+                    <div class="progress-bar-segmented">
+                        <div class="day-segment"></div>
+                        <div class="day-segment"></div>
+                        <div class="day-segment"></div>
+                        <div class="day-segment"></div>
+                        <div class="day-segment"></div>
+                        <div class="day-segment"></div>
+                        <div class="day-segment"></div>
+                    </div>
+                    <div class="progress-labels">
+                        <span id="day-label-1">L</span>
+                        <span id="day-label-2">M</span>
+                        <span id="day-label-3">M</span>
+                        <span id="day-label-4">J</span>
+                        <span id="day-label-5">V</span>
+                        <span id="day-label-6">S</span>
+                        <span id="day-label-7">D</span>
+                    </div>
+                    <div class="progress-fusion-divider"></div>
+                    <div id="year-weeks-grid" class="fusion-weeks-grid"></div>
+                    <div id="fusion-footer" class="progress-fusion-footer">Quedan -- días para terminar el año</div>
+                </div>
+
 
                 <div id="planes-main" class="planes-subview">
                     <section class="category">

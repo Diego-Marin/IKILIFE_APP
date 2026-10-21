@@ -108,7 +108,7 @@ function handleImgFallback(img) {
  * 26. "PROGRESO DEL CURSO DE INGLÉS"             → renderEnglishCourseWeeks
  * 27. "GESTIÓN DE FINANZAS"                      → finanzas dinámicas/acumulativas
  * 28. "GESTIÓN DE COMPRAS"                       → Compras: CRUD + contador acumulativo (clon de Loves)
- * 29. "COMPONENTE STATE BAR"                     → tarjetas de "qué hacer ahora" según la hora del día
+ * 29. (eliminada: "COMPONENTE STATE BAR" — Inicio ahora solo muestra los planes próximos)
  * 30. "CATEGORÍAS DE HÁBITOS PERSONALIZADAS"     → listas de hábitos creadas manualmente por el usuario
  */
 
@@ -121,18 +121,6 @@ function loadAgradecimientos() {
  * ==========================================
  */
 document.addEventListener('DOMContentLoaded', async () => {
-
-    // 1. Inicialización de UI
-    try {
-        const stateBarContainer = document.getElementById('state-bar-container');
-        if (stateBarContainer) {
-            renderStateBar('state-bar-container');
-        } else {
-            console.warn("Advertencia: El contenedor 'state-bar-container' no existe en el HTML.");
-        }
-    } catch (error) {
-        console.error("Error al renderizar State Bar:", error);
-    }
 
     // 1b. Aplica nombre/emoji personalizados guardados para las
     // categorías fijas de Hábitos (ver editHabitCategory más abajo).
@@ -1786,7 +1774,7 @@ async function loadHomeUpcomingPlans() {
     });
 
     if (upcoming.length === 0) {
-        container.innerHTML = '';
+        container.innerHTML = '<div class="top-habit-empty" style="padding:16px;">Sin planes para hoy ni los próximos 2 días 🌿</div>';
         return;
     }
 
@@ -2149,218 +2137,6 @@ async function deleteCompra(name, id) {
 
 
 /**
- * ==========================================
- * COMPONENTE STATE BAR
- * ==========================================
- * Se muestran ÚNICAMENTE las tarjetas cuyo rango horario incluye la
- * hora actual (pueden ser varias a la vez si configuras rangos que
- * se solapan a propósito, ej. "Code & Grow" y "Comida" en la misma
- * franja). No se muestra nada que esté fuera de horario.
- *
- * Al hacer clic en una tarjeta, el menú desplegable con sugerencias
- * aparece justo DEBAJO de esa tarjeta específica (no flotando al
- * final de la lista), y un segundo clic sobre la misma tarjeta lo
- * cierra (toggle).
- */
-function renderStateBar(containerId) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-
-    /**
-     * TABLA DE REFERENCIA: Minutos del día (Formato 12 horas)
-     * ----------------------------------------------------
-     * HORA    | MINUTOS (Start)
-     * 12:00 AM| 0
-     * 01:00 AM| 60
-     * 02:00 AM| 120
-     * 03:00 AM| 180
-     * 04:00 AM| 240
-     * 05:00 AM| 300
-     * 06:00 AM| 360
-     * 07:00 AM| 420
-     * 08:00 AM| 480
-     * 09:00 AM| 540
-     * 10:00 AM| 600
-     * 11:00 AM| 660
-     * 12:00 PM| 720
-     * 01:00 PM| 780
-     * 02:00 PM| 840
-     * 03:00 PM| 900
-     * 04:00 PM| 960
-     * 05:00 PM| 1020
-     * 06:00 PM| 1080
-     * 07:00 PM| 1140
-     * 08:00 PM| 1200
-     * 09:00 PM| 1260
-     * 10:00 PM| 1320
-     * 11:00 PM| 1380
-     * ----------------------------------------------------
-     *
-     * IMPORTANTE sobre los rangos:
-     * - "end" es EXCLUSIVO (el slot termina justo antes de ese minuto).
-     * - Si quieres que dos o más actividades aparezcan juntas en la
-     *   misma franja (ej. "Code & Grow" y "Comida" a las 6pm), dales
-     *   el mismo start/end: ambas se mostrarán a la vez.
-     * - Si un rango cruza la medianoche (ej. 9pm a 5am), se admite
-     *   escribiéndolo como start: 1260, end: 300 — el sistema detecta
-     *   automáticamente que "end" es menor que "start" y lo interpreta
-     *   como "desde las 9pm hasta las 5am del día siguiente".
-     */
-    const CONFIG = {
-        weekday: [
-            {
-                start: 300, end: 390, label: "Mañana", icon: "💼", class: "state-work",
-                options: ["Revisar tickets pendientes", "Reunión de equipo", "Documentar soluciones"]
-            },
-            {
-                start: 390, end: 1080, label: "Mesa de Ayuda", icon: "💼", class: "state-work",
-                options: ["Revisar tickets pendientes", "LLenar ordenes", "Adelantar minuta", "Cumplir con la tarea del dia"]
-            },
-            {
-                start: 1080, end: 1260, label: "Learning", icon: "🌱", class: "state-grow",
-                options: ["Practicar inglés (Duolingo/Anki)", "Curso de programación", "Proyecto personal de código"]
-            },
-            {
-                start: 1080, end: 1260, label: "Comida", icon: "🍽️", class: "state-free",
-                options: ["Preparar algo saludable", "Comer con calma, sin pantallas", "Preparar coca"]
-            },
-            {
-                start: 1200, end: 1260, label: "Noche", icon: "🌙", class: "state-free",
-                options: ["Continuar libro Pideme lo que quieras"]
-            },
-            {
-                start: 1260, end: 300, label: "Dormir", icon: "🌙", class: "state-sleep",
-                options: ["Dormir", "Rutina nocturna"]
-            }
-        ],
-        weekend: [
-            {
-                start: 1260, end: 300, label: "Descanso", icon: "🌙", class: "state-sleep",
-                options: ["Dormir", "Rutina nocturna"]
-            },
-            {
-                start: 300, end: 1080, label: "FreeTime & Senderismo", icon: "⛰️ + 🍻", class: "state-grow",
-                options: ["Sara Travel", "Cruzamontañas", "Caminantes Medellín", "Ruta libre por el cerro"]
-            },
-            {
-                start: 1080, end: 1260, label: "Comida", icon: "🍽️", class: "state-free",
-                options: ["Preparar algo saludable", "Comer con calma, sin pantallas", "Preparar coca"]
-            },
-            {
-                start: 1260, end: 1440, label: "Descanso", icon: "🌙", class: "state-sleep",
-                options: ["Dormir", "Rutina nocturna"]
-            }
-        ]
-    };
-
-    // Determina si "mins" cae dentro de [start, end). Soporta rangos
-    // que cruzan la medianoche (cuando end < start).
-    function isWithinRange(mins, start, end) {
-        if (start <= end) {
-            return mins >= start && mins < end;
-        }
-        return mins >= start || mins < end;
-    }
-
-    container.innerHTML = `<div class="state-bar-grid" id="state-bar-grid"></div>`;
-
-    // Único punto de verdad sobre qué tarjeta tiene el menú abierto.
-    // Se guarda el índice de la tarjeta (no el slot) porque ahora el
-    // dropdown se inserta dentro de la propia tarjeta, así que cada
-    // tarjeta visible necesita poder abrir/cerrar el suyo de forma
-    // independiente.
-    let openIndex = null;
-
-    // Pequeño helper global para que los botones del dropdown puedan
-    // usar sendPrompt si está disponible (entorno con IA), sin romper
-    // la app si no existe esa función.
-    window.sendPromptToChatSafe = function (text) {
-        if (typeof window.sendPrompt === 'function') {
-            window.sendPrompt(text);
-        } else {
-            alert(text);
-        }
-    };
-
-    // Guardamos los slots activos del ciclo de update() vigente para
-    // que los onclick (generados como string) siempre encuentren los
-    // datos correctos, sin depender de closures de updates anteriores.
-    let activeSlots = [];
-
-    function renderDropdownHTML(slot) {
-        const optionsHTML = (slot.options || [])
-            .map(opt => `<button class="state-dropdown-item" onclick="event.stopPropagation(); sendPromptToChatSafe('${opt.replace(/'/g, "\\'")}')">${opt}</button>`)
-            .join('');
-
-        return `
-            <div class="state-dropdown" id="state-dropdown-inline">
-                <div class="state-dropdown-title">${slot.icon} ${slot.label}</div>
-                ${optionsHTML || '<div class="state-dropdown-empty">Sin sugerencias configuradas</div>'}
-            </div>
-        `;
-    }
-
-    // Abre/cierra (toggle) el menú de sugerencias de la tarjeta en
-    // "index". El dropdown se inserta DENTRO de esa misma tarjeta,
-    // justo debajo de su contenido, en vez de flotar al final.
-    window.__toggleStateCard = function (index) {
-        const isSameAndOpen = (openIndex === index);
-        openIndex = isSameAndOpen ? null : index;
-        renderCards();
-    };
-
-    function renderCards() {
-        const gridContainer = document.getElementById('state-bar-grid');
-        if (!gridContainer) return;
-
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
-
-        gridContainer.innerHTML = activeSlots.map((slot, index) => {
-            const dropdownHTML = (openIndex === index) ? renderDropdownHTML(slot) : '';
-
-            return `
-                <div class="ikilife-state-card ${slot.class}" onclick="window.__toggleStateCard(${index})">
-                    <div class="state-card-top">
-                        <div class="state-info">
-                            <span>${slot.icon}</span>
-                            <span class="state-label">${slot.label}</span>
-                        </div>
-                        <div class="state-time">${timeStr}</div>
-                    </div>
-                    ${dropdownHTML}
-                </div>
-            `;
-        }).join('');
-    }
-
-    function update() {
-    const now = new Date();
-    const mins = now.getHours() * 60 + now.getMinutes();
-    const isWeekend = now.getDay() === 0 || now.getDay() === 6;
-
-    const schedule = isWeekend ? CONFIG.weekend : CONFIG.weekday;
-
-    activeSlots = schedule.filter(s => isWithinRange(mins, s.start, s.end));
-
-    if (openIndex !== null && openIndex >= activeSlots.length) {
-        openIndex = null;
-    }
-
-    // Actualizar reloj del dashboard de hoy
-    const clockEl = document.getElementById('today-clock');
-    if (clockEl) {
-        clockEl.textContent = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true });
-    }
-
-    renderCards();
-}
-
-    update();
-    setInterval(update, 60000);
-}
-
-/**
  * ---------- Caché de datos crudos de Hábitos ----------
  * ANTES: cada vez que se abría/cambiaba de sub-pestaña de Hábitos se
  * hacían 3 consultas a Supabase, UNA DETRÁS DE OTRA (secuenciales), y
@@ -2397,7 +2173,7 @@ async function fetchHabitsRawData(datesOfWeek) {
     }
 
     const [allHabitsRes, weekLogsRes, habitImagesRes] = await Promise.all([
-        fetchAllRows('habit_logs', 'habit_name, project_tag'),
+        fetchAllRows('habit_logs', 'habit_name, project_tag, log_date, is_completed'),
         _supabase.from('habit_logs').select('*').gte('log_date', datesOfWeek[0]).lte('log_date', datesOfWeek[6]),
         _supabase.from('habit_images').select('habit_name, image_filename'),
     ]);
@@ -2436,6 +2212,20 @@ async function loadHabitsGroup(tag, containerId) {
     if (!raw) return;
     const { allHabitsData, weekLogs } = raw;
 
+    // Días únicos cumplidos por hábito (un Set evita contar duplicados)
+    const monthPrefix = formatDateLocal(today).slice(0, 7); // "AAAA-MM"
+    const doneDates = {};
+    allHabitsData.forEach(l => {
+        if (l.is_completed) (doneDates[l.habit_name] = doneDates[l.habit_name] || new Set()).add(l.log_date);
+    });
+    const habitStats = {};
+    Object.entries(doneDates).forEach(([name, set]) => {
+        habitStats[name] = {
+            total: set.size,
+            month: [...set].filter(d => d.startsWith(monthPrefix)).length,
+        };
+    });
+
     const uniqueHabits = [...new Set(
         allHabitsData
             .filter(h => resolveHabitTag(h.habit_name, h.project_tag) === tag.toUpperCase())
@@ -2465,11 +2255,12 @@ async function loadHabitsGroup(tag, containerId) {
     uniqueHabits.sort((a, b) => a.localeCompare(b));
 
     uniqueHabits.forEach(habitName => {
-        renderHabitCard(habitName, listContainer, datesOfWeek, currentDay, dayLabels, weekLogs, habitImages, tag.toUpperCase());
+        renderHabitCard(habitName, listContainer, datesOfWeek, currentDay, dayLabels, weekLogs, habitImages, tag.toUpperCase(), habitStats[habitName]);
     });
 }
 
-function renderHabitCard(habitName, listContainer, datesOfWeek, currentDay, dayLabels, weekLogs, habitImages, tag) {
+function renderHabitCard(habitName, listContainer, datesOfWeek, currentDay, dayLabels, weekLogs, habitImages, tag, stats) {
+    const { month = 0, total = 0 } = stats || {};
     let daysHTML = '';
     let streakCount = 0;
     let isDoneToday = true;
@@ -2495,6 +2286,7 @@ function renderHabitCard(habitName, listContainer, datesOfWeek, currentDay, dayL
                     <span class="habit-card-streak">${streakCount}/7</span>
                 </div>
                 <div class="habit-day-row">${daysHTML}</div>
+                <div class="habit-card-counter" title="${total} días cumplidos en total"><span class="habit-counter-month">${month}</span> este mes · ${total} total</div>
             </div>
         </li>
     `;
