@@ -67,24 +67,80 @@ header.main-header {
     letter-spacing: -0.5px;
 }
 
-/* El logo es un botón que lleva a Inicio: se le quita el aspecto de botón. */
+/* El logo es un botón que lleva a Inicio: se le quita el aspecto de botón.
+   Con vida: brillo verde que lo recorre cada pocos segundos, un punto
+   que late como un pulso, entrada suave y respuesta al toque. */
 button.brand-name {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.1em;
     margin: 0;
     padding: 0;
     border: none;
-    background: none;
-    color: inherit;
+    background: linear-gradient(100deg,
+        var(--text-dark) 0%, var(--text-dark) 38%,
+        var(--primary-green) 50%,
+        var(--text-dark) 62%, var(--text-dark) 100%);
+    background-size: 260% 100%;
+    background-position: 100% 0;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
     font-family: inherit;
     line-height: inherit;
     text-align: left;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+    transition: transform var(--transition);
+    animation: ikiLogoIn 0.6s ease-out both, ikiLogoShimmer 7s ease-in-out 1s infinite;
+}
+
+button.brand-name::after {
+    content: "";
+    flex-shrink: 0;
+    width: 0.17em;
+    height: 0.17em;
+    border-radius: 50%;
+    background: var(--primary-green);
+    -webkit-text-fill-color: initial;
+    animation: ikiLogoPulse 2.4s ease-out infinite;
+}
+
+button.brand-name:active {
+    transform: scale(0.95);
 }
 
 button.brand-name:focus-visible {
     outline: 2px solid var(--primary-green);
     outline-offset: 4px;
     border-radius: 6px;
+}
+
+@keyframes ikiLogoIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ikiLogoShimmer {
+    0%, 45% { background-position: 100% 0; }
+    80%, 100% { background-position: 0% 0; }
+}
+
+@keyframes ikiLogoPulse {
+    0% { box-shadow: 0 0 0 0 rgba(116, 192, 138, 0.6); transform: scale(1); }
+    35% { transform: scale(1.25); }
+    70%, 100% { box-shadow: 0 0 0 0.45em rgba(116, 192, 138, 0); transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    button.brand-name {
+        animation: none;
+        background: none;
+        color: var(--text-dark);
+        -webkit-text-fill-color: var(--text-dark);
+    }
+    button.brand-name::after { animation: none; }
 }
 
 .header-actions {
@@ -95,11 +151,57 @@ button.brand-name:focus-visible {
     gap: 14px;
 }
 
+/* Móvil: el logo va arriba y los iconos ocupan toda la fila de abajo,
+   más grandes y fáciles de tocar. */
 @media (max-width: 480px) {
-    button.brand-name { font-size: 1.8rem; }
-    .header-actions { gap: 4px; }
-    .header-actions .icon-btn { padding: 3px; }
-    .header-actions .icon-btn svg { width: 20px; height: 20px; }
+    header.main-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 14px;
+        margin-bottom: 22px;
+    }
+
+    button.brand-name { font-size: 2.4rem; }
+
+    .header-actions {
+        width: 100%;
+        flex-wrap: nowrap;
+        justify-content: space-between;
+        gap: 0;
+    }
+
+    .header-actions .icon-btn,
+    .header-actions #vision-header-btn,
+    .header-actions #odios-header-btn {
+        width: 46px;
+        height: 46px;
+        padding: 0;
+        flex-shrink: 0;
+    }
+
+    .header-actions .icon-btn { border-radius: 12px; }
+
+    .header-actions .icon-btn svg {
+        width: 26px;
+        height: 26px;
+    }
+
+    .header-actions #vision-header-btn svg,
+    .header-actions #odios-header-btn svg {
+        width: 24px;
+        height: 24px;
+    }
+}
+
+@media (max-width: 340px) {
+    .header-actions .icon-btn,
+    .header-actions #vision-header-btn,
+    .header-actions #odios-header-btn {
+        width: 40px;
+        height: 40px;
+    }
+
+    .header-actions .icon-btn svg { width: 22px; height: 22px; }
 }
 
 /* Botón de Tema */
