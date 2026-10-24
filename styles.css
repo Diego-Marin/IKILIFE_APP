@@ -68,43 +68,21 @@ header.main-header {
 }
 
 /* El logo es un botón que lleva a Inicio: se le quita el aspecto de botón.
-   Con vida: brillo verde que lo recorre cada pocos segundos, un punto
-   que late como un pulso, entrada suave y respuesta al toque. */
+   Color sólido (sin cambios de color); solo una entrada suave y una
+   pequeña respuesta al toque. */
 button.brand-name {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 0.1em;
     margin: 0;
     padding: 0;
     border: none;
-    background: linear-gradient(100deg,
-        var(--text-dark) 0%, var(--text-dark) 38%,
-        var(--primary-green) 50%,
-        var(--text-dark) 62%, var(--text-dark) 100%);
-    background-size: 260% 100%;
-    background-position: 100% 0;
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    -webkit-text-fill-color: transparent;
+    background: none;
+    color: inherit;
     font-family: inherit;
     line-height: inherit;
     text-align: left;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     transition: transform var(--transition);
-    animation: ikiLogoIn 0.6s ease-out both, ikiLogoShimmer 7s ease-in-out 1s infinite;
-}
-
-button.brand-name::after {
-    content: "";
-    flex-shrink: 0;
-    width: 0.17em;
-    height: 0.17em;
-    border-radius: 50%;
-    background: var(--primary-green);
-    -webkit-text-fill-color: initial;
-    animation: ikiLogoPulse 2.4s ease-out infinite;
+    animation: ikiLogoIn 0.6s ease-out both;
 }
 
 button.brand-name:active {
@@ -122,25 +100,8 @@ button.brand-name:focus-visible {
     to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes ikiLogoShimmer {
-    0%, 45% { background-position: 100% 0; }
-    80%, 100% { background-position: 0% 0; }
-}
-
-@keyframes ikiLogoPulse {
-    0% { box-shadow: 0 0 0 0 rgba(116, 192, 138, 0.6); transform: scale(1); }
-    35% { transform: scale(1.25); }
-    70%, 100% { box-shadow: 0 0 0 0.45em rgba(116, 192, 138, 0); transform: scale(1); }
-}
-
 @media (prefers-reduced-motion: reduce) {
-    button.brand-name {
-        animation: none;
-        background: none;
-        color: var(--text-dark);
-        -webkit-text-fill-color: var(--text-dark);
-    }
-    button.brand-name::after { animation: none; }
+    button.brand-name { animation: none; }
 }
 
 .header-actions {
