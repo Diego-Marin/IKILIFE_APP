@@ -40,12 +40,6 @@ const IKILIFE_IMG_PLACEHOLDER =
         '</svg>'
     );
 
-/* Imagen de fondo por defecto de un hábito nuevo (sin fila en
-   habit_images). Se resuelve solo al pintar la tarjeta: crear un
-   hábito NO hace ningún insert/upsert extra en habit_images; solo
-   se guarda una fila cuando el usuario realmente cambia la imagen. */
-const DEFAULT_HABIT_IMAGE = 'images.jpg';
-
 /* Fallback de las tarjetas de hábitos: si la imagen falla, va directo
    al placeholder embebido (sin red). Así no se encadenan peticiones
    404 (images.jpg → default.jpg) por cada tarjeta de la lista. */
@@ -865,7 +859,7 @@ async function editHabit(oldName) {
     }
 
     // Mantiene la imagen asociada al renombrar el hábito.
-    await _supabase.from('habit_images').update({ habit_name: updatedName }).eq('habit_name', oldName);
+    await _supabase.from('habit_rule_images').update({ habit_name: updatedName }).eq('habit_name', oldName);
 
     refreshActiveHabitsList();
 }
@@ -884,39 +878,80 @@ async function deleteHabit(name) {
         return;
     }
 
-    await _supabase.from('habit_images').delete().eq('habit_name', name);
+    await _supabase.from('habit_rule_images').delete().eq('habit_name', name);
 
     refreshActiveHabitsList();
 }
 
-/* NUEVO: define o cambia la imagen de un hábito. Guarda solo el
-   nombre del archivo (debe existir en assets/images/), igual que
-   Loves/Odios/Compras.
-   Requiere en Supabase la tabla nueva "habit_images":
-     CREATE TABLE habit_images (
-       habit_name text PRIMARY KEY,
+/* ==========================================
+   MICRO REGLAS / IMÁGENES DE REFERENCIA DE CADA HÁBITO
+   ==========================================
+   Cada habit-card tiene una tira de imágenes (mínimo 3 espacios, se
+   pueden agregar más) y cada imagen lleva un título corto: sirven como
+   micro reglas o referencias del hábito. Solo se guarda el NOMBRE del
+   archivo (debe existir en assets/images/).
+
+   TABLA NUEVA EN SUPABASE (reemplaza a "habit_images"):
+     CREATE TABLE habit_rule_images (
+       id bigint generated always as identity PRIMARY KEY,
+       habit_name text NOT NULL,
        image_filename text NOT NULL,
-       updated_at timestamptz DEFAULT now()
-     ); */
-async function setHabitImage(habitName) {
-    const input = prompt(`Nombre del archivo de imagen para "${cleanHabitName(habitName)}" (debe estar en assets/images/):`, DEFAULT_HABIT_IMAGE);
-    if (input === null || input.trim() === '') return;
-    if (input.trim() === DEFAULT_HABIT_IMAGE) {
-        // Volver a la imagen por defecto = borrar la fila (no se guarda un valor redundante)
-        await _supabase.from('habit_images').delete().eq('habit_name', habitName);
-        refreshActiveHabitsList();
+       title text,
+       sort_order integer DEFAULT 0,
+       created_at timestamptz DEFAULT now()
+     );
+     CREATE INDEX ON habit_rule_images (habit_name);
+
+   Para conservar las imágenes que ya tenías (una sola por hábito):
+     INSERT INTO habit_rule_images (habit_name, image_filename, title, sort_order)
+     SELECT habit_name, image_filename, '', 1 FROM habit_images;
+*/
+let _habitRulesById = {};
+
+async function addHabitRule(habitName) {
+    const file = prompt('Nombre del archivo de imagen (debe estar en assets/images/):');
+    if (file === null || file.trim() === '') return;
+    const title = prompt('Título corto de la regla o referencia (opcional):', '');
+    if (title === null) return;
+
+    const siblings = Object.values(_habitRulesById).filter(r => r.habit_name === habitName);
+    const nextOrder = siblings.reduce((mx, r) => Math.max(mx, r.sort_order || 0), 0) + 1;
+
+    const { error } = await _supabase.from('habit_rule_images').insert([{
+        habit_name: habitName, image_filename: file.trim(), title: title.trim(), sort_order: nextOrder
+    }]);
+    if (error) {
+        alert('Error al guardar: ' + error.message + '\n\n¿Ya creaste la tabla "habit_rule_images"? El SQL está en main.js.');
         return;
     }
+    refreshActiveHabitsList();
+}
 
-    const { error } = await _supabase
-        .from('habit_images')
-        .upsert({ habit_name: habitName, image_filename: input.trim(), updated_at: new Date().toISOString() }, { onConflict: 'habit_name' });
+async function editHabitRuleImage(id) {
+    const r = _habitRulesById[id];
+    if (!r) return;
+    const file = prompt('Nombre del archivo de imagen (debe estar en assets/images/):', r.image_filename);
+    if (file === null || file.trim() === '' || file.trim() === r.image_filename) return;
+    const { error } = await _supabase.from('habit_rule_images').update({ image_filename: file.trim() }).eq('id', id);
+    if (error) alert('Error al guardar la imagen: ' + error.message);
+    else refreshActiveHabitsList();
+}
 
-    if (error) {
-        alert("Error al guardar la imagen: " + error.message);
-    } else {
-        refreshActiveHabitsList();
-    }
+async function editHabitRuleTitle(id) {
+    const r = _habitRulesById[id];
+    if (!r) return;
+    const title = prompt('Título corto de esta regla o referencia:', r.title || '');
+    if (title === null || title.trim() === (r.title || '')) return;
+    const { error } = await _supabase.from('habit_rule_images').update({ title: title.trim() }).eq('id', id);
+    if (error) alert('Error al guardar el título: ' + error.message);
+    else refreshActiveHabitsList();
+}
+
+async function deleteHabitRule(id) {
+    if (!confirm('¿Quitar esta imagen de la card?')) return;
+    const { error } = await _supabase.from('habit_rule_images').delete().eq('id', id);
+    if (error) alert('Error al eliminar: ' + error.message);
+    else refreshActiveHabitsList();
 }
 
 /**
@@ -1006,7 +1041,8 @@ const TABLAS_EXPORTABLES = [
     'odios_registros', 'sentimientos_logs', 'sentimientos_registros',
     'ideas_logs', 'compras_logs', 'finance_logs',
     'inversiones_logs', 'journal_logs', 'bloques_logs', 'planes_logs','english_classes',
-    'vision_metas', 'vision_meta_images', 'home_slides'
+    'vision_metas', 'vision_meta_images', 'odio_metas', 'odio_meta_images',
+    'habit_rule_images', 'home_slides'
 ];
 
 
@@ -1146,18 +1182,6 @@ function switchTrackingTab(subtab, btn) {
     if (HABIT_CATEGORIES[subtab]) {
         loadHabitCategory(HABIT_CATEGORIES[subtab].tag, 'list-habits-' + subtab);
     }
-    // SENTIMIENTOS fusiona Positivos (antes Loves) y Negativos (antes
-    // Odios) en sub-tabs internas — carga ambas listas de una vez para
-    // que el cambio de sub-tab sea instantáneo.
-    if (subtab === 'sentimientos') {
-        if (typeof loadLoves === 'function') loadLoves();
-        if (typeof loadOdios === 'function') loadOdios();
-    }
-    // INGLÉS: componente completo de Components/english/english.js. Antes
-    // se cargaba en el arranque apuntando a un contenedor que no existía
-    // en el HTML (#english-section); ahora vive aquí como una sub-tab más
-    // de Hábitos y se carga (o refresca) cada vez que se visita.
-    if (subtab === 'english' && typeof loadEnglish === 'function') loadEnglish();
 }
 
 /**
@@ -1165,12 +1189,12 @@ function switchTrackingTab(subtab, btn) {
  * (Odios) dentro de la pestaña fusionada Sentimientos.
  */
 function switchSentTab(which, btn) {
-    document.querySelectorAll('#tracking-sentimientos .sent-tab-btn').forEach(b => {
+    document.querySelectorAll('#sentimientos-root .sent-tab-btn').forEach(b => {
         b.classList.remove('sent-tab-active');
     });
     if (btn) btn.classList.add('sent-tab-active');
 
-    document.querySelectorAll('#tracking-sentimientos .sent-subview').forEach(v => v.classList.add('hidden'));
+    document.querySelectorAll('#sentimientos-root .sent-subview').forEach(v => v.classList.add('hidden'));
     const target = document.getElementById('sent-' + which);
     if (target) target.classList.remove('hidden');
 
@@ -1816,6 +1840,12 @@ async function loadHomeUpcomingPlans() {
  * ==========================================
  */
 // Función para limpiar el nombre del hábito visualmente (quita hashtags)
+function escapeHtml(text) {
+    return String(text == null ? '' : text)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 function cleanHabitName(name) {
     if (!name) return '';
     return name.replace(/#[a-zA-Z0-9_&]+/gi, '').trim();
@@ -1884,14 +1914,11 @@ function renderEnglishCourseWeeks() {
     const currentWeekNumber = Math.min(totalWeeks, Math.max(1, weeksElapsed));
     const weeksRemaining = Math.max(0, totalWeeks - weeksElapsed);
 
-    const titleEl = document.getElementById('english-progress-title');
-    if (titleEl) {
-        const statusText = today > endDate
-            ? "¡Curso finalizado!"
-            : `Quedan ${weeksRemaining} semanas para terminar tu curso de inglés`;
-
-        titleEl.innerHTML = `Curso de Inglés · Semana ${currentWeekNumber} de ${totalWeeks}
-            <span class="year-progress-subtitle">${statusText}</span>`;
+    const captionEl = document.getElementById('english-weeks-caption');
+    if (captionEl) {
+        captionEl.textContent = today > endDate
+            ? '¡Curso finalizado!'
+            : `Semana ${currentWeekNumber} de ${totalWeeks} · quedan ${weeksRemaining}`;
     }
 
     for (let i = 1; i <= totalWeeks; i++) {
@@ -1945,6 +1972,9 @@ function renderEnglishCourseWeeks() {
  * Usa formatCurrency() (definida en Components/finance/finance.js,
  * ya cargado antes de que se ejecute loadCompras()).
  */
+let _comprasCache = [];
+let _openCompraId = null;
+
 async function loadCompras() {
     const { data: compras, error } = await _supabase
         .from('compras_logs')
@@ -1953,71 +1983,129 @@ async function loadCompras() {
 
     if (error) return console.error(error.message);
 
+    _comprasCache = compras || [];
+    renderCompras();
+}
+
+/* Tarjetas de Compras (rediseño): rejilla de 2 columnas con foto grande,
+   porcentaje sobre la imagen, barra y montos. Un toque abre la tarjeta
+   (una a la vez) y muestra los controles: botones de suma rápida, monto
+   libre y herramientas (precio, corregir ahorro, renombrar, imagen,
+   eliminar) — ya no depende de clic derecho. */
+function renderCompras() {
     const container = document.getElementById('list-compras');
     if (!container) return;
+    bindComprasEvents(container);
     container.className = 'compras-grid';
-    container.innerHTML = '';
 
-    compras.forEach(compra => {
+    if (_comprasCache.length === 0) {
+        container.innerHTML = '<p class="compras-empty">Aún no tienes compras en tu lista. Toca “+” para agregar la primera.</p>';
+        return;
+    }
+
+    container.innerHTML = _comprasCache.map(c => {
+        const ahorro = Number(c.ahorro) || 0;
+        const meta = Number(c.precio_promedio) || 0;
+        const pct = meta > 0 ? Math.min(Math.round((ahorro / meta) * 100), 100) : 0;
+        const lista = meta > 0 && ahorro >= meta;
+        const falta = Math.max(meta - ahorro, 0);
+        const open = _openCompraId === c.id;
+
+        return `
+        <article class="compra-card${lista ? ' compra-card--lista' : ''}${open ? ' compra-card--open' : ''}" data-id="${c.id}">
+            <div class="compra-tap" data-act="toggle">
+                <div class="compra-media">
+                    <img src="assets/images/${escapeHtml(c.image_filename || '')}" class="compra-img" loading="lazy" decoding="async" alt="" onerror="handleImgFallback(this)">
+                    <span class="compra-pct">${lista ? '✓ Listo' : pct + '%'}</span>
+                </div>
+                <div class="compra-body">
+                    <div class="compra-name">${escapeHtml(c.name)}</div>
+                    <div class="ik-bar-track compra-bar"><div class="ik-bar-fill ${lista ? 'ik-bar-fill--green' : 'ik-bar-fill--neutral'}" style="width:${pct}%;"></div></div>
+                    <div class="compra-amounts">
+                        <span class="compra-saved">${formatCurrency(ahorro)}</span>
+                        <span class="compra-goal">${meta > 0 ? 'de ' + formatCurrency(meta) : 'Sin precio'}</span>
+                    </div>
+                </div>
+            </div>
+            ${open ? `
+            <div class="compra-panel">
+                ${meta > 0 && !lista ? `<div class="compra-missing">Te faltan ${formatCurrency(falta)}</div>` : ''}
+                <div class="compra-quick">
+                    <button type="button" data-act="add" data-amount="10000">+10 mil</button>
+                    <button type="button" data-act="add" data-amount="50000">+50 mil</button>
+                    <button type="button" data-act="add" data-amount="100000">+100 mil</button>
+                </div>
+                <div class="compra-custom">
+                    <input type="number" inputmode="numeric" class="compra-input" placeholder="Otro monto (negativo resta)">
+                    <button type="button" class="compra-btn-primary" data-act="add-custom">Sumar</button>
+                </div>
+                <div class="compra-tools">
+                    <button type="button" data-act="price">Precio</button>
+                    <button type="button" data-act="fix">Corregir ahorro</button>
+                    <button type="button" data-act="rename">Renombrar</button>
+                    <button type="button" data-act="image">Imagen</button>
+                    <button type="button" data-act="delete" class="compra-btn-danger">Eliminar</button>
+                </div>
+            </div>` : ''}
+        </article>`;
+    }).join('');
+}
+
+function bindComprasEvents(container) {
+    if (container.dataset.bound) return;
+    container.dataset.bound = '1';
+
+    container.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-act]');
+        if (!btn) return;
+        const card = btn.closest('.compra-card');
+        if (!card) return;
+        const id = Number(card.dataset.id);
+        const compra = _comprasCache.find(c => c.id === id);
+        if (!compra) return;
         const ahorro = Number(compra.ahorro) || 0;
         const meta = Number(compra.precio_promedio) || 0;
-        const pct = meta > 0 ? Math.min((ahorro / meta) * 100, 100) : 0;
-        const lista = meta > 0 && ahorro >= meta;
 
-        const card = document.createElement('div');
-        card.className = 'compra-card' + (lista ? ' compra-card--lista' : '');
-
-        const localImagePath = `assets/images/${compra.image_filename}`;
-
-        card.innerHTML = `
-    <img src="${localImagePath}" class="compra-img"
-         onerror="handleImgFallback(this)">
-    <div class="compra-info">
-        <div class="compra-top-row">
-            <span class="compra-name" title="Clic para editar nombre">${compra.name}</span>
-            ${lista ? '<span class="compra-ready-badge">✅ Listo</span>' : ''}
-        </div>
-        <div class="compra-progress-row">
-            <div class="ik-bar-track">
-                <div class="ik-bar-fill${lista ? ' ik-bar-fill--green' : ' ik-bar-fill--neutral'}" style="width:${pct}%;"></div>
-            </div>
-            <button type="button" class="compra-amount-btn compra-amount-ahorro" title="Ahorro actual — clic para corregirlo manualmente">${formatCurrency(ahorro)}</button>
-        </div>
-        <div class="compra-amounts-row">
-            <input type="number" class="compra-input" placeholder="+ Sumar" title="Escribe un valor y presiona Enter">
-            <button type="button" class="compra-amount-btn compra-amount-meta${meta > 0 ? '' : ' compra-amount-meta--vacio'}" title="Clic para definir el precio del producto">${meta > 0 ? formatCurrency(meta) : '+ Definir precio'}</button>
-        </div>
-    </div>
-`;
-
-        card.querySelector('.compra-name').addEventListener('click', (e) => {
-            e.stopPropagation();
-            editCompra(compra.name, compra.id);
-        });
-
-        card.querySelector('.compra-amount-ahorro').addEventListener('click', (e) => {
-            e.stopPropagation();
-            editAhorroCompra(compra.id, ahorro);
-        });
-
-        card.querySelector('.compra-input').addEventListener('click', (e) => e.stopPropagation());
-        card.querySelector('.compra-input').addEventListener('change', (e) => {
-            sumarAhorroCompra(compra.id, ahorro, e.target.value);
-            e.target.value = '';
-        });
-
-        card.querySelector('.compra-amount-meta').addEventListener('click', (e) => {
-            e.stopPropagation();
-            setPrecioPromedioCompra(compra.id, meta);
-        });
-
-        card.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            deleteCompra(compra.name, compra.id);
-        });
-
-        container.appendChild(card);
+        switch (btn.dataset.act) {
+            case 'toggle':
+                _openCompraId = (_openCompraId === id) ? null : id;
+                renderCompras();
+                break;
+            case 'add':
+                sumarAhorroCompra(id, ahorro, btn.dataset.amount);
+                break;
+            case 'add-custom': {
+                const input = card.querySelector('.compra-input');
+                if (input && input.value) sumarAhorroCompra(id, ahorro, input.value);
+                break;
+            }
+            case 'price': setPrecioPromedioCompra(id, meta); break;
+            case 'fix': editAhorroCompra(id, ahorro); break;
+            case 'rename': editCompra(compra.name, id); break;
+            case 'image': editImagenCompra(id, compra.image_filename); break;
+            case 'delete': deleteCompra(compra.name, id); break;
+        }
     });
+
+    container.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && e.target.classList.contains('compra-input')) {
+            const btn = e.target.closest('.compra-card').querySelector('[data-act="add-custom"]');
+            if (btn) btn.click();
+        }
+    });
+}
+
+async function editImagenCompra(id, current) {
+    const input = prompt('Nombre del archivo de imagen (debe estar en assets/images/):', current || '');
+    if (input === null || input.trim() === '' || input.trim() === current) return;
+
+    const { error } = await _supabase
+        .from('compras_logs')
+        .update({ image_filename: input.trim() })
+        .eq('id', id);
+
+    if (error) alert("Error al guardar la imagen: " + error.message);
+    else loadCompras();
 }
 
 async function addCompra() {
@@ -2172,20 +2260,20 @@ async function fetchHabitsRawData(datesOfWeek) {
         return _habitsRawCache;
     }
 
-    const [allHabitsRes, weekLogsRes, habitImagesRes] = await Promise.all([
+    const [allHabitsRes, weekLogsRes, ruleImagesRes] = await Promise.all([
         fetchAllRows('habit_logs', 'habit_name, project_tag, log_date, is_completed'),
         _supabase.from('habit_logs').select('*').gte('log_date', datesOfWeek[0]).lte('log_date', datesOfWeek[6]),
-        _supabase.from('habit_images').select('habit_name, image_filename'),
+        _supabase.from('habit_rule_images').select('*').order('sort_order', { ascending: true }).order('id', { ascending: true }),
     ]);
 
     if (allHabitsRes.error) { console.error(allHabitsRes.error.message); return null; }
     if (weekLogsRes.error) { console.error(weekLogsRes.error.message); return null; }
-    if (habitImagesRes.error) console.error(habitImagesRes.error.message);
+    if (ruleImagesRes.error) console.error(ruleImagesRes.error.message);
 
     const result = {
         allHabitsData: allHabitsRes.data || [],
         weekLogs: weekLogsRes.data || [],
-        habitImages: habitImagesRes.data || [],
+        ruleImages: ruleImagesRes.data || [],
         weekKey,
         ts: now,
     };
@@ -2241,7 +2329,12 @@ async function loadHabitsGroup(tag, containerId) {
         return;
     }
 
-    const habitImages = Object.fromEntries(raw.habitImages.map(h => [h.habit_name, h.image_filename]));
+    const rulesByHabit = {};
+    _habitRulesById = {};
+    raw.ruleImages.forEach(r => {
+        (rulesByHabit[r.habit_name] = rulesByHabit[r.habit_name] || []).push(r);
+        _habitRulesById[r.id] = r;
+    });
 
     // NOTA: antes los hábitos se agrupaban por un segundo sub-tag en
     // el nombre (ej. "#APARIENCIA") con un encabezado de sub-grupo
@@ -2255,11 +2348,11 @@ async function loadHabitsGroup(tag, containerId) {
     uniqueHabits.sort((a, b) => a.localeCompare(b));
 
     uniqueHabits.forEach(habitName => {
-        renderHabitCard(habitName, listContainer, datesOfWeek, currentDay, dayLabels, weekLogs, habitImages, tag.toUpperCase(), habitStats[habitName]);
+        renderHabitCard(habitName, listContainer, datesOfWeek, currentDay, dayLabels, weekLogs, rulesByHabit[habitName] || [], tag.toUpperCase(), habitStats[habitName]);
     });
 }
 
-function renderHabitCard(habitName, listContainer, datesOfWeek, currentDay, dayLabels, weekLogs, habitImages, tag, stats) {
+function renderHabitCard(habitName, listContainer, datesOfWeek, currentDay, dayLabels, weekLogs, rules, tag, stats) {
     const { month = 0, total = 0 } = stats || {};
     let daysHTML = '';
     let streakCount = 0;
@@ -2273,13 +2366,31 @@ function renderHabitCard(habitName, listContainer, datesOfWeek, currentDay, dayL
         daysHTML += `<button type="button" class="habit-day-chip${isDone ? ' habit-day-chip--done' : ''}${isToday ? ' habit-day-chip--today' : ''}${isFuture ? ' habit-day-chip--future' : ''}" ${isFuture ? 'disabled' : `onclick="toggleHabit(this, '${habitName.replace(/'/g, "\\'")}', '${dateStr}', ${isDone}, '${tag}')"`}>${dayLabels[idx]}</button>`;
     });
 
-    const imageFilename = habitImages[habitName] || DEFAULT_HABIT_IMAGE;
-    const localImagePath = `assets/images/${imageFilename}`;
     const habitNameEscaped = habitName.replace(/'/g, "\\'");
+    const MIN_RULE_SLOTS = 3;
+
+    const tilesHTML = rules.map(r => `
+        <div class="habit-rule">
+            <div class="habit-rule-media">
+                <img src="assets/images/${escapeHtml(r.image_filename)}" class="habit-rule-img" loading="lazy" decoding="async" onerror="handleHabitImgFallback(this)" onclick="editHabitRuleImage(${r.id})" title="Clic para cambiar la imagen">
+                <button type="button" class="habit-rule-del" onclick="deleteHabitRule(${r.id})" aria-label="Quitar imagen" title="Quitar">×</button>
+            </div>
+            <span class="habit-rule-title${r.title ? '' : ' habit-rule-title--empty'}" onclick="editHabitRuleTitle(${r.id})" title="Clic para editar el título">${r.title ? escapeHtml(r.title) : 'Sin título'}</span>
+        </div>`).join('');
+
+    const placeholdersHTML = Array.from({ length: Math.max(0, MIN_RULE_SLOTS - rules.length) }, () => `
+        <div class="habit-rule habit-rule--empty" onclick="addHabitRule('${habitNameEscaped}')" role="button" title="Agregar imagen / micro regla">
+            <div class="habit-rule-media habit-rule-media--empty">+</div>
+            <span class="habit-rule-title habit-rule-title--empty">Regla</span>
+        </div>`).join('');
+
+    const addTileHTML = rules.length >= MIN_RULE_SLOTS
+        ? `<button type="button" class="habit-rule-add" onclick="addHabitRule('${habitNameEscaped}')" aria-label="Agregar imagen / micro regla" title="Agregar imagen / micro regla">+</button>`
+        : '';
 
     const card = `
         <li class="habit-card" oncontextmenu="event.preventDefault(); deleteHabit('${habitNameEscaped}')" title="Clic derecho para eliminar">
-            <img src="${localImagePath}" class="habit-card-img" loading="lazy" decoding="async" onerror="handleHabitImgFallback(this)" onclick="event.stopPropagation(); setHabitImage('${habitNameEscaped}')" title="Clic para cambiar la imagen">
+            <div class="habit-rules" aria-label="Micro reglas e imágenes de referencia">${tilesHTML}${placeholdersHTML}${addTileHTML}</div>
             <div class="habit-card-info">
                 <div class="habit-card-top">
                     <span class="habit-card-name" onclick="editHabit('${habitNameEscaped}')" title="Clic para editar">${cleanHabitName(habitName)}</span>
@@ -2494,4 +2605,49 @@ function closeIdeasView() {
     const target = document.getElementById(_ideasPreviousViewId || 'view-home');
     if (target) target.classList.add('active');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/**
+ * ==========================================
+ * SUBVISTAS DEL HEADER (Sentimientos, Inglés)
+ * ==========================================
+ * Mismo patrón que Brain Dump / Metas / Export: la subvista reemplaza a
+ * la vista activa, el header sigue visible y "volver" regresa
+ * exactamente a la vista anterior.
+ */
+const _headerViewPrev = {};
+
+function openHeaderView(viewId, onOpen) {
+    const view = document.getElementById(viewId);
+    if (!view) return;
+
+    const activeView = document.querySelector('.bottom-view.active');
+    if (activeView && activeView.id !== viewId) _headerViewPrev[viewId] = activeView.id;
+
+    document.querySelectorAll('.bottom-view').forEach(v => v.classList.remove('active'));
+    view.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (typeof onOpen === 'function') onOpen();
+}
+
+function closeHeaderView(viewId) {
+    const view = document.getElementById(viewId);
+    if (view) view.classList.remove('active');
+
+    const target = document.getElementById(_headerViewPrev[viewId] || 'view-home');
+    if (target) target.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function openSentimientos() {
+    openHeaderView('view-sentimientos', () => {
+        if (typeof loadLoves === 'function') loadLoves();
+        if (typeof loadOdios === 'function') loadOdios();
+    });
+}
+
+function openEnglish() {
+    openHeaderView('view-english', () => {
+        if (typeof loadEnglish === 'function') loadEnglish();
+    });
 }

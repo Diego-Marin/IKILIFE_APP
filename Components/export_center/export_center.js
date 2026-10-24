@@ -34,7 +34,7 @@
     // TABLAS_EXPORTABLES en main.js). Si agregas una tabla nueva a la
     // app, súmala aquí también en la categoría que corresponda.
     const EXPORT_CATEGORIES = [
-        { key: 'habitos', label: 'Hábitos', icon: '✅', tables: ['habit_logs'] },
+        { key: 'habitos', label: 'Hábitos', icon: '✅', tables: ['habit_logs', 'habit_rule_images'] },
         { key: 'finanzas', label: 'Finanzas', icon: '💰', tables: ['finance_logs', 'inversiones_logs'] },
         { key: 'ideas', label: 'Brain Dump / Ideas', icon: '💡', tables: ['ideas_logs'] },
         {
@@ -46,6 +46,7 @@
         { key: 'ingles', label: 'Inglés', icon: '🇬🇧', tables: ['english_classes'] },
         { key: 'inicio', label: 'Inicio (imágenes)', icon: '🖼️', tables: ['home_slides'] },
         { key: 'metas', label: 'Metas', icon: '🎯', tables: ['vision_metas', 'vision_meta_images'] },
+        { key: 'odios_board', label: 'Odios (tablero)', icon: '💢', tables: ['odio_metas', 'odio_meta_images'] },
     ];
 
     let _busy = false;

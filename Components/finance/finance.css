@@ -246,17 +246,45 @@
 }
 
 
+.summary-sub {
+    margin-top: 4px;
+    font-size: 0.66rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+/* ---------- Lista de gastos por categoría (mismo estilo que Ingresos / Deudas) ---------- */
+.fin-cat-block { margin-bottom: 24px; }
+
+.fin-cat-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.fin-cat-block .finance-budget-bar-wrap { padding: 10px 16px 6px; }
+
+.fin-list { list-style: none; }
+
 /* ==========================================
-   ESTADO DEL MES (#patrimonio-widget)
+   SALUD FINANCIERA (#patrimonio-widget)
    ========================================== */
 .estado-widget {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 16px;
     margin: 0 0 24px;
-    padding: 14px 16px;
-    border-radius: 8px;
+    padding: 16px;
+    border-radius: 16px;
     border: 1px solid var(--border-color);
+    background: linear-gradient(135deg, var(--bg-header) 0%, transparent 100%);
 }
 
 .estado-top {
@@ -268,132 +296,156 @@
 
 .estado-label {
     font-size: 0.68rem;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .estado-pill {
-    font-size: 0.72rem;
+    padding: 3px 10px;
+    border-radius: 999px;
+    border: 1px solid currentColor;
+    font-size: 0.7rem;
     font-weight: 800;
+    letter-spacing: 0.3px;
+}
+
+.estado-score-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.estado-score {
+    flex-shrink: 0;
+    font-size: 2.6rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -1px;
+    font-variant-numeric: tabular-nums;
+}
+
+.estado-score small {
+    margin-left: 2px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    color: var(--text-muted);
 }
 
 .estado-msg {
-    font-size: 0.92rem;
-    font-weight: 700;
-    line-height: 1.4;
+    min-width: 0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1.45;
     color: var(--text-dark);
 }
 
-/* Colores de estado (texto de la etiqueta y relleno de la barra) */
-.estado-pill.estado--ok { color: #16a34a; }
-.estado-pill.estado--warn { color: #e67e22; }
-.estado-pill.estado--bad { color: #e74c3c; }
-.estado-pill.estado--none { color: var(--text-muted); }
-
-/* Barra: gasto sobre ingresos.
-   La pista muestra tenues las zonas (verde → amarillo → naranja → rojo)
-   y el relleno las "enciende" hasta donde vas; el círculo marca el día
-   del mes en el que estás (si el relleno lo pasa, gastas más rápido
-   que el calendario). */
-.estado-bar {
+/* Barra: degradado rojo → verde, se "revela" hasta el puntaje */
+.salud-bar {
     position: relative;
     height: 12px;
-    margin: 4px 0;
-    border-radius: 6px;
-    background: linear-gradient(90deg,
-        rgba(34, 197, 94, 0.16) 0%,
-        rgba(163, 230, 53, 0.16) 40%,
-        rgba(250, 204, 21, 0.16) 65%,
-        rgba(251, 146, 60, 0.16) 85%,
-        rgba(239, 68, 68, 0.16) 100%);
+    border-radius: 999px;
+    background-color: rgba(255, 255, 255, 0.07);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
-.estado-bar-fill {
-    height: 100%;
-    border-radius: 6px;
-    background-image: linear-gradient(90deg, #22c55e 0%, #a3e635 40%, #facc15 65%, #fb923c 85%, #ef4444 100%);
-    background-repeat: no-repeat;
-    background-position: left center;
-    transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1), background-size 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+.salud-bar-fill {
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #e74c3c 0%, #e67e22 35%, #f1c40f 60%, #16a34a 100%);
+    transition: clip-path 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.estado-bar-now {
+.salud-bar-knob {
     position: absolute;
     top: 50%;
-    width: 16px;
-    height: 16px;
-    margin: -8px 0 0 -8px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
-    border: 2px solid var(--text-dark);
-    background: var(--white);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+    border: 3px solid var(--white);
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+    transform: translate(-50%, -50%);
+    transition: left 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.estado-legend {
+.salud-bar-scale {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
-    gap: 8px;
-    margin-top: -2px;
-    font-size: 0.72rem;
+    margin-top: 8px;
+    font-size: 0.64rem;
     font-weight: 600;
     color: var(--text-muted);
 }
 
-.estado-pct {
-    font-size: 0.95rem;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
+/* Reparto de ingresos: obligatorios / deudas / apartado / patrimonio */
+.estado-split {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
-.estado-legend-day {
-    display: inline-flex;
-    align-items: center;
+.estado-split-bar {
+    display: flex;
+    gap: 2px;
+    height: 12px;
+    border-radius: 999px;
+    overflow: hidden;
+    background-color: rgba(255, 255, 255, 0.07);
+}
+
+.estado-seg {
+    min-width: 0;
+    height: 100%;
+    transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.estado-seg--oblig { background: #e67e22; }
+.estado-seg--deuda { background: #e74c3c; }
+.estado-seg--apartado { background: #3b82f6; }
+.estado-seg--libre { background: #16a34a; }
+
+.estado-split-legend {
+    display: flex;
+    flex-direction: column;
     gap: 6px;
 }
 
-.estado-legend-dot {
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    border: 2px solid var(--text-dark);
-    box-sizing: border-box;
-}
-
-.estado-stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    padding-top: 10px;
-    border-top: 1px solid var(--border-color);
-}
-
-.estado-stat {
+.estado-split-row {
     display: flex;
-    flex-direction: column;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    font-size: 0.8rem;
+}
+
+.estado-split-name {
+    display: inline-flex;
     align-items: center;
-    gap: 2px;
+    gap: 8px;
     min-width: 0;
-    text-align: center;
-}
-
-.estado-stat-value {
-    font-size: 1.05rem;
-    font-weight: 800;
-    color: var(--text-dark);
-    font-variant-numeric: tabular-nums;
-}
-
-.estado-stat-label {
-    font-size: 0.66rem;
     font-weight: 600;
     color: var(--text-muted);
 }
 
+.estado-dot {
+    width: 9px;
+    height: 9px;
+    flex-shrink: 0;
+    border-radius: 50%;
+}
+
+.estado-split-value {
+    font-weight: 800;
+    color: var(--text-dark);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
 @media (prefers-reduced-motion: reduce) {
-    .estado-bar-fill {
-        transition: none;
-    }
+    .salud-bar-fill,
+    .salud-bar-knob,
+    .estado-seg { transition: none; }
 }

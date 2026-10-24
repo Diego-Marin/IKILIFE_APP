@@ -37,7 +37,7 @@ function toggleFinanceView(viewId) {
     // Soporta 3 vistas: 'finance-main', 'finance-income' y
     // 'finance-debts'. "Ahorro / Capital" es solo informativo (tarjeta
     // estática, sin vista propia).
-    const views = ['finance-main', 'finance-income', 'finance-debts'];
+    const views = ['finance-main', 'finance-income', 'finance-debts', 'finance-fixed'];
 
     views.forEach(v => {
         const el = document.getElementById(v);
@@ -150,9 +150,9 @@ async function loadFinances() {
         const budgetHTML = renderBudgetBar(category, spent, budget);
 
         const sectionHTML = `
-            <section class="category">
-                <div class="category-header" style="display:flex; justify-content:space-between; align-items:center;">
-                    ${category}
+            <section class="fin-cat-block">
+                <div class="fin-cat-head">
+                    <span>${category}</span>
                     <div style="display:flex; gap:4px;">
                         <button class="icon-btn" onclick="setFinanceBudget('${category}', ${budget !== undefined ? budget : 'null'})" title="Definir presupuesto de ${category}" style="padding: 2px;">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="6" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
@@ -163,7 +163,7 @@ async function loadFinances() {
                     </div>
                 </div>
                 ${budgetHTML}
-                <ul style="list-style:none;">
+                <ul class="fin-list">
                     ${itemsRows.join('')}
                 </ul>
             </section>
@@ -171,8 +171,11 @@ async function loadFinances() {
         expensesContainer.insertAdjacentHTML('beforeend', sectionHTML);
     }
 
-    // Ahorro/Capital = Ingresos - Gastos - lo ya asignado a metas de
-    // ahorro en Compras (ese dinero deja de estar "libre").
+    // Gastos obligatorios = suma de todos los gastos listados (costo de tu vida).
+    const obligatorios = totalGastosReal;
+
+    // Ahorro/Capital = Ingresos - Gastos obligatorios - lo ya asignado a
+    // metas de ahorro en Compras (ese dinero deja de estar "libre").
     const totalAhorro = totalIngresosReal - totalGastosReal - ahorroAsignado;
     // Patrimonio Neto excluye la deuda del Curso de Inglés (se pagará
     // de otra forma y no debe restar del patrimonio).
@@ -180,7 +183,8 @@ async function loadFinances() {
 
     if (document.getElementById('kpi-ingresos')) document.getElementById('kpi-ingresos').textContent = formatCurrency(totalIngresosReal);
     if (document.getElementById('kpi-ingresos-detail')) document.getElementById('kpi-ingresos-detail').textContent = formatCurrency(totalIngresosReal);
-    if (document.getElementById('kpi-gastos')) document.getElementById('kpi-gastos').textContent = formatCurrency(totalGastosReal);
+    if (document.getElementById('kpi-obligatorios')) document.getElementById('kpi-obligatorios').textContent = formatCurrency(obligatorios);
+    if (document.getElementById('kpi-obligatorios-detail')) document.getElementById('kpi-obligatorios-detail').textContent = formatCurrency(obligatorios);
     if (document.getElementById('kpi-ahorro')) document.getElementById('kpi-ahorro').textContent = formatCurrency(totalAhorro);
     if (document.getElementById('kpi-deudas')) document.getElementById('kpi-deudas').textContent = formatCurrency(totalDeudasReal);
 
@@ -191,7 +195,7 @@ async function loadFinances() {
         patrimonioEl.classList.toggle('text-savings', patrimonioNeto >= 0);
     }
 
-    renderPatrimonioWidget({ ingresos: totalIngresosReal, gastos: totalGastosReal, deudas: totalDeudasReal });
+    renderPatrimonioWidget({ ingresos: totalIngresosReal, obligatorios, deudas: totalDeudasParaPatrimonio, apartado: ahorroAsignado });
 }
 
 /* ==========================================
@@ -446,7 +450,7 @@ async function _autoRegisterFinanceMonth() {
     const { error: errReset } = await _supabase
         .from('finance_logs')
         .update({ real: 0 })
-        .not('id', 'is', null);
+        .in('type', ['income', 'debt', 'saving']); // los gastos obligatorios se conservan
 
     if (errReset) {
         console.error('El registro mensual se guardó, pero falló el reinicio de montos:', errReset.message);
@@ -463,127 +467,132 @@ async function _autoRegisterFinanceMonth() {
 
 
 /* ==========================================
-   ESTADO DEL MES (widget #patrimonio-widget)
+   FORMATOS Y ESTADO FINANCIERO (widget #patrimonio-widget)
+   ========================================== */
+function fmtMesesLargo(n) {
+    if (!isFinite(n)) return 'Sin margen';
+    if (n >= 100) return '+99 meses';
+    const txt = n.toFixed(1).replace('.0', '').replace('.', ',');
+    return `${txt} ${Number(txt.replace(',', '.')) === 1 ? 'mes' : 'meses'}`;
+}
+
+/* Color continuo: 0 = rojo, 50 = amarillo, 100 = verde */
+function colorSalud(score) {
+    const s = Math.max(0, Math.min(100, score));
+    return `hsl(${Math.round(s * 1.2)}, 72%, 46%)`;
+}
+
+/* ==========================================
+   ESTADO FINANCIERO (widget #patrimonio-widget)
    ==========================================
-   Resume cómo va el mes ACTUAL con lo que ya está registrado:
-     · Barra: cuánto de tus ingresos llevas gastado, con una marca
-       que indica en qué punto del mes estás (si la barra va por
-       delante de la marca, estás gastando más rápido que el calendario).
-     · Mensaje: proyección a fin de mes al ritmo actual (desde el día 4,
-       antes sería muy ruidosa), o aviso si ya gastaste más de lo que
-       ingresaste.
-     · Libre del mes, tasa de ahorro y deudas.
-   Antes el widget medía "meses de colchón" dividiendo el patrimonio
-   entre el gasto; como todos los montos se reinician cada mes, justo
-   después del cierre mensual daba 0 / "registra tus gastos" y parecía
-   que no funcionaba. Esta versión siempre muestra algo útil. */
-function fmtCorto(n) {
-    const v = Number(n) || 0;
-    const signo = v < 0 ? '−' : '';
-    const abs = Math.abs(v);
-    if (abs < 1000) return `${signo}$${Math.round(abs)}`;
-    if (abs < 1000000) return `${signo}$${Math.round(abs / 1000)} mil`;
-    return `${signo}$${(abs / 1000000).toFixed(1).replace('.0', '').replace('.', ',')} M`;
-}
+   La cadena de cálculo es la misma de las tarjetas de Finanzas:
+     Ahorro / Capital = Ingresos − Gastos obligatorios − Apartado en Compras
+     Patrimonio Neto  = Ahorro / Capital − Deudas
+   (las deudas excluyen el Curso de Inglés, igual que el Patrimonio).
 
-// Color de la barra en un punto (0-100% de los ingresos gastados): el mismo
-// degradado verde → amarillo → naranja → rojo que dibuja la barra en CSS.
-const ESTADO_COLORES = [[0, [34, 197, 94]], [40, [163, 230, 53]], [65, [250, 204, 21]], [85, [251, 146, 60]], [100, [239, 68, 68]]];
+   El puntaje 0-100 (barra de rojo a verde) mide dos cosas:
+   · Margen (60%): (ingresos − obligatorios) sobre ingresos.
+     30% o más = puntaje completo; 0% o menos = 0.
+   · Deudas (40%): deudas vs ingresos mensuales. Sin deudas = completo;
+     6 meses de ingresos o más = 0.
+   Si los obligatorios superan los ingresos, el puntaje se limita a 30. */
+function calcularRealidadFinanciera({ ingresos, obligatorios, deudas, apartado }) {
+    const margen = ingresos - obligatorios;
+    const capital = margen - apartado;
+    const patrimonio = capital - deudas;
+    const mesesDeudaIngreso = ingresos > 0 ? deudas / ingresos : Infinity;
+    const base = { margen, capital, patrimonio, score: null };
 
-function colorEnBarra(pct, alfa = 1) {
-    const p = Math.max(0, Math.min(100, pct));
-    for (let i = 1; i < ESTADO_COLORES.length; i++) {
-        const [p1, c1] = ESTADO_COLORES[i];
-        if (p <= p1) {
-            const [p0, c0] = ESTADO_COLORES[i - 1];
-            const t = (p - p0) / (p1 - p0);
-            const rgb = c0.map((v, k) => Math.round(v + (c1[k] - v) * t));
-            return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alfa})`;
-        }
+    if (ingresos <= 0 && obligatorios <= 0) {
+        return { ...base, texto: 'Sin datos', msg: 'Registra tus ingresos y tus gastos obligatorios para ver tu estado financiero.' };
     }
-    return `rgba(239, 68, 68, ${alfa})`;
-}
-
-function calcularEstadoMes(ingresos, gastos, dia, diasDelMes) {
-    const fraccion = dia / diasDelMes;
-
-    if (ingresos <= 0 && gastos <= 0) {
-        return { clase: 'estado--none', texto: 'Sin datos', msg: 'Aún no hay movimientos este mes. Registra tus ingresos y gastos para ver tu estado.' };
+    if (obligatorios <= 0) {
+        return { ...base, texto: 'Incompleto', msg: 'Agrega tus gastos obligatorios (tarjeta "Gastos obligatorios") para saber cuánto te queda cada mes.' };
     }
     if (ingresos <= 0) {
-        return { clase: 'estado--warn', texto: 'Atención', msg: 'Tienes gastos registrados, pero ningún ingreso este mes.' };
+        return { ...base, score: 0, texto: 'Sin ingresos', msg: `Tus gastos obligatorios suman ${formatCurrency(obligatorios)} y aún no hay ingresos registrados.` };
     }
-    if (gastos > ingresos) {
-        return { clase: 'estado--bad', texto: 'En riesgo', msg: `Ya gastaste ${formatCurrency(gastos - ingresos)} más de lo que ingresaste.` };
+
+    const clamp01 = v => Math.max(0, Math.min(1, v));
+    const sMargen = clamp01((margen / ingresos) / 0.30) * 100;
+    const sDeuda = deudas <= 0 ? 100 : clamp01(1 - mesesDeudaIngreso / 6) * 100;
+    let score = Math.round(sMargen * 0.6 + sDeuda * 0.4);
+    if (margen < 0) score = Math.min(score, 30);
+
+    const texto = score < 35 ? 'Crítica' : score < 60 ? 'Ajustada' : score < 80 ? 'Buena' : 'Saludable';
+
+    let msg;
+    if (margen < 0) {
+        msg = `Tus gastos obligatorios (${formatCurrency(obligatorios)}) superan tus ingresos por ${formatCurrency(-margen)}.`;
+    } else {
+        const pct = Math.round((margen / ingresos) * 100);
+        msg = `Tras tus obligatorios te quedan ${formatCurrency(margen)} (${pct}% de tus ingresos).`;
+        if (deudas > 0) msg += ` Tus deudas equivalen a ${fmtMesesLargo(mesesDeudaIngreso)} de ingresos.`;
     }
-    if (dia >= 4) {
-        const proyectado = gastos / fraccion;
-        if (proyectado > ingresos) {
-            return { clase: 'estado--warn', texto: 'Atención', msg: `Al ritmo actual terminarías el mes con un déficit de ${formatCurrency(proyectado - ingresos)}.` };
-        }
-        return { clase: 'estado--ok', texto: 'Saludable', msg: `Al ritmo actual terminarías el mes con ${formatCurrency(ingresos - proyectado)} libres.` };
-    }
-    return { clase: 'estado--ok', texto: 'Saludable', msg: `Vas bien: has gastado el ${Math.round((gastos / ingresos) * 100)}% de tus ingresos.` };
+
+    return { ...base, score, texto, msg };
 }
 
-function renderPatrimonioWidget({ ingresos, gastos, deudas }) {
+function renderPatrimonioWidget({ ingresos, obligatorios, deudas, apartado }) {
     const container = document.getElementById('finance-main');
     if (!container) return;
 
     const oldWidget = document.getElementById('patrimonio-widget');
     if (oldWidget) oldWidget.remove();
 
-    const hoy = new Date();
-    const dia = hoy.getDate();
-    const diasDelMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
+    const e = calcularRealidadFinanciera({ ingresos, obligatorios, deudas, apartado });
+    const tieneScore = e.score !== null;
+    const score = tieneScore ? e.score : 0;
+    const color = tieneScore ? colorSalud(score) : 'var(--text-muted)';
 
-    const estado = calcularEstadoMes(ingresos, gastos, dia, diasDelMes);
-
-    const libre = ingresos - gastos;
-    const pctGastado = ingresos > 0 ? (gastos / ingresos) * 100 : (gastos > 0 ? 100 : 0);
-    // Sin gastos no hay relleno; con gastos nunca menos de 3% para que se vea.
-    const anchoBarra = pctGastado <= 0 ? 0 : Math.max(3, Math.min(100, pctGastado));
-    // El degradado se estira al ancho TOTAL de la barra: la punta del
-    // relleno muestra el color que corresponde a ese punto.
-    const tamanoDegradado = anchoBarra > 0 ? (10000 / anchoBarra).toFixed(1) : 100;
-    const colorPunta = colorEnBarra(pctGastado);
-    const brilloPunta = colorEnBarra(pctGastado, 0.45);
-    const marcaMes = (dia / diasDelMes) * 100;
-    const tasaAhorro = ingresos > 0 ? `${Math.round((libre / ingresos) * 100)}%` : '—';
+    // Reparto gráfico de los ingresos: obligatorios, deudas, apartado y lo que queda.
+    const libre = ingresos - obligatorios - deudas - apartado;
+    const total = Math.max(ingresos, obligatorios + deudas + apartado);
+    const w = v => (total > 0 ? ((Math.max(v, 0) / total) * 100).toFixed(2) : 0);
+    const segmentos = [
+        { cls: 'oblig', label: 'Gastos obligatorios', valor: obligatorios },
+        { cls: 'deuda', label: 'Deudas', valor: deudas },
+        ...(apartado > 0 ? [{ cls: 'apartado', label: 'Apartado en Compras', valor: apartado }] : []),
+        { cls: 'libre', label: 'Patrimonio neto', valor: libre },
+    ];
+    const hayReparto = total > 0;
 
     const widget = document.createElement('div');
     widget.id = 'patrimonio-widget';
     widget.className = 'estado-widget';
     widget.innerHTML = `
         <div class="estado-top">
-            <span class="estado-label">Estado del mes</span>
-            <span class="estado-pill ${estado.clase}">${estado.texto}</span>
+            <span class="estado-label">Estado financiero</span>
+            <span class="estado-pill" style="color:${color}">${e.texto}</span>
         </div>
-        <div class="estado-msg">${estado.msg}</div>
-        <div class="estado-bar" role="img" aria-label="Gastado ${Math.round(pctGastado)}% de los ingresos, día ${dia} de ${diasDelMes}">
-            <div class="estado-bar-fill" style="width:${anchoBarra.toFixed(1)}%;background-size:${tamanoDegradado}% 100%;box-shadow:0 0 12px ${brilloPunta};"></div>
-            <div class="estado-bar-now" style="left:${marcaMes.toFixed(1)}%;" title="Hoy"></div>
+
+        <div class="estado-score-row">
+            <span class="estado-score" style="color:${color}">${tieneScore ? score : '—'}<small>/100</small></span>
+            <span class="estado-msg">${e.msg}</span>
         </div>
-        <div class="estado-legend">
-            <span>${ingresos > 0
-                ? `<strong class="estado-pct" style="color:${colorPunta};">${Math.round(pctGastado)}%</strong> de tus ingresos gastado`
-                : 'Sin ingresos registrados'}</span>
-            <span class="estado-legend-day"><i class="estado-legend-dot"></i>Día ${dia} de ${diasDelMes}</span>
-        </div>
-        <div class="estado-stats">
-            <div class="estado-stat">
-                <span class="estado-stat-value ${libre < 0 ? 'text-debt' : ''}">${fmtCorto(libre)}</span>
-                <span class="estado-stat-label">Libre del mes</span>
+
+        <div>
+            <div class="salud-bar" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${score}" aria-label="Salud financiera">
+                <div class="salud-bar-fill" style="clip-path: inset(0 ${100 - score}% 0 0 round 999px);"></div>
+                ${tieneScore ? `<div class="salud-bar-knob" style="left:${score}%; background:${color};"></div>` : ''}
             </div>
-            <div class="estado-stat">
-                <span class="estado-stat-value ${libre < 0 ? 'text-debt' : ''}">${tasaAhorro}</span>
-                <span class="estado-stat-label">Tasa de ahorro</span>
-            </div>
-            <div class="estado-stat">
-                <span class="estado-stat-value">${fmtCorto(deudas)}</span>
-                <span class="estado-stat-label">Deudas</span>
-            </div>
+            <div class="salud-bar-scale"><span>Crítica</span><span>Ajustada</span><span>Saludable</span></div>
         </div>
+
+        ${hayReparto ? `
+        <div class="estado-split">
+            <span class="estado-label">¿En qué se va tu ingreso?</span>
+            <div class="estado-split-bar" role="img" aria-label="Reparto de ingresos">
+                ${segmentos.map(s => `<div class="estado-seg estado-seg--${s.cls}" style="width:${w(s.valor)}%;"></div>`).join('')}
+            </div>
+            <div class="estado-split-legend">
+                ${segmentos.map(s => `
+                <div class="estado-split-row">
+                    <span class="estado-split-name"><i class="estado-dot estado-seg--${s.cls}"></i>${s.label}</span>
+                    <span class="estado-split-value${s.valor < 0 ? ' text-debt' : ''}">${formatCurrency(s.valor)}</span>
+                </div>`).join('')}
+            </div>
+        </div>` : ''}
     `;
 
     const summaryGrid = container.querySelector('.summary-grid');

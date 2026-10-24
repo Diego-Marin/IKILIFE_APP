@@ -6,76 +6,100 @@
  * ==========================================
  */
 
-.english-kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    padding: 16px 16px 4px;
-}
-
-.english-kpi-card {
-    text-align: center;
-    padding: 4px 0;
-}
-
-.english-kpi-label {
-    font-size: 0.62rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 4px;
-}
-
-.english-kpi-value {
-    font-size: 1.25rem;
-    font-weight: 800;
-    color: var(--text-dark);
-    line-height: 1;
-}
-
-/* ---------- Plan sugerido ---------- */
-.english-plan-card {
+/* ---------- Resumen integrado (avance + ritmo + semanas del curso) ---------- */
+.english-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0 16px 16px;
+    padding: 16px;
     border: 1px solid var(--border-color);
-    border-radius: 12px;
-    margin: 12px 16px 20px;
+    border-radius: 16px;
 }
 
-.english-plan-header {
-    padding: 10px 14px;
+.english-summary-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.english-summary-title {
     font-size: 0.72rem;
     font-weight: 700;
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    border-bottom: 1px solid var(--border-color);
 }
 
-.english-plan-body {
-    padding: 12px 14px;
+.english-summary-deadline {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.english-summary-main {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+}
+
+.english-summary-pct {
+    font-size: 2.2rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--primary-green);
+    font-variant-numeric: tabular-nums;
+}
+
+.english-summary-pct small {
+    margin-left: 1px;
+    font-size: 1rem;
+}
+
+.english-summary-count {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.english-summary-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+.english-summary-stat {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-}
-
-.english-plan-row {
-    display: flex;
-    justify-content: space-between;
     align-items: center;
-    font-size: 0.82rem;
-    color: var(--text-dark);
+    gap: 2px;
+    padding: 0 4px;
+    text-align: center;
 }
 
-.english-plan-row strong {
-    font-weight: 700;
+.english-summary-stat + .english-summary-stat {
+    border-left: 1px solid var(--border-color);
+}
+
+.english-summary-stat strong {
+    font-size: 1.05rem;
+    font-weight: 800;
     color: var(--text-dark);
+    font-variant-numeric: tabular-nums;
+}
+
+.english-summary-stat span {
+    font-size: 0.66rem;
+    font-weight: 600;
+    color: var(--text-muted);
 }
 
 .english-plan-msg {
-    margin-top: 4px;
     padding: 8px 10px;
     border-radius: 8px;
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     font-weight: 600;
     line-height: 1.4;
 }
@@ -88,6 +112,31 @@
 .english-plan--warn {
     background: rgba(231, 76, 60, 0.1);
     color: #e74c3c;
+}
+
+/* Semanas del curso: cuadrícula compacta dentro del resumen */
+.english-weeks-mini {
+    gap: 4px;
+    margin: 0;
+}
+
+.english-weeks-mini .week-box {
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+}
+
+.english-weeks-mini .week-box:hover { transform: none; }
+
+.english-weeks-mini .week-box.english-current {
+    box-shadow: 0 0 0 1px var(--bg-light), 0 0 0 2px #e74c3c;
+}
+
+.english-weeks-caption {
+    margin-top: -4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
 }
 
 /* ---------- Barra de herramientas: tabs por nivel + export ---------- */
@@ -126,46 +175,6 @@
     background: var(--primary-green);
     color: var(--white);
     border-color: var(--primary-green);
-}
-
-/* ---------- Progreso del nivel activo ---------- */
-.english-level-progress {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 0 16px 12px;
-}
-
-.english-level-progress-label {
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    min-width: 40px;
-}
-
-.english-level-bar-track {
-    flex: 1;
-    height: 4px;
-    background: var(--border-color);
-    border-radius: 2px;
-    overflow: hidden;
-}
-
-.english-level-bar-fill {
-    height: 100%;
-    background: var(--primary-green);
-    border-radius: 2px;
-    transition: width 0.4s ease;
-}
-
-.english-level-pct {
-    font-size: 0.75rem;
-    font-weight: 800;
-    color: var(--primary-green);
-    min-width: 32px;
-    text-align: right;
 }
 
 /* ---------- Lista de clases ---------- */

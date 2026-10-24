@@ -90,7 +90,16 @@ button.brand-name:focus-visible {
 .header-actions {
     display: flex;
     align-items: center;
-    gap: 14px; 
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 14px;
+}
+
+@media (max-width: 480px) {
+    button.brand-name { font-size: 1.8rem; }
+    .header-actions { gap: 4px; }
+    .header-actions .icon-btn { padding: 3px; }
+    .header-actions .icon-btn svg { width: 20px; height: 20px; }
 }
 
 /* Botón de Tema */
@@ -887,145 +896,172 @@ div.day-segment.future {
 .passion-count { font-size: 1.2rem; font-weight: 800; color: var(--primary-green); }
 
 /*
-    NUEVO: tarjetas de Compras — meta de ahorro por item. Layout en
-    fila (imagen a la izquierda, info a la derecha) para que la foto
-    no se vea recortada: nombre arriba, barra de progreso, y debajo de
-    la barra el ahorro actual y el precio objetivo (cada uno
-    clickeable por separado). Clic en el nombre edita el nombre; clic
-    derecho elimina.
+    Compras (rediseño): rejilla de 2 columnas. Cada tarjeta muestra foto,
+    porcentaje, nombre, barra y montos; al tocarla se expande a ancho
+    completo con los controles de ahorro.
 */
 .compras-grid {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
 }
 
+.compras-empty {
+    grid-column: 1 / -1;
+    padding: 32px 8px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
 .compra-card {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 12px;
-    border-radius: 12px;
-    cursor: default;
-    border: 2px solid var(--border-color);
+    min-width: 0;
+    overflow: hidden;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
     background-color: var(--white);
     transition: border-color var(--transition);
 }
 
-.compra-card--lista {
+.compra-card--open {
+    grid-column: 1 / -1;
+    border-color: var(--text-muted);
+}
+
+.compra-card--lista,
+.compra-card--open.compra-card--lista {
     border-color: var(--primary-green);
 }
 
+.compra-tap {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.compra-media {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    background-color: var(--bg-header);
+}
+
+.compra-card--open .compra-media {
+    aspect-ratio: 16 / 9;
+}
+
 .compra-img {
-    width: 92px;
-    height: 92px;
-    flex-shrink: 0;
-    border-radius: 12px;
+    width: 100%;
+    height: 100%;
     object-fit: cover;
     display: block;
 }
 
-.compra-info {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+.compra-pct {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.6);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
 }
 
-.compra-top-row {
+.compra-card--lista .compra-pct {
+    background: var(--primary-green);
+    color: #0f1a13;
+}
+
+.compra-body {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 6px;
+    flex-direction: column;
+    gap: 7px;
+    padding: 10px 12px 12px;
 }
 
 .compra-name {
     font-size: 0.85rem;
     font-weight: 700;
     color: var(--text-dark);
-    cursor: pointer;
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
-.compra-ready-badge {
-    font-size: 0.62rem;
-    font-weight: 800;
-    color: var(--primary-green);
-    white-space: nowrap;
-    flex-shrink: 0;
+.compra-bar {
+    height: 6px;
 }
 
-.compra-progress-track {
-    composes: ik-bar-track;
-}
-
-.compra-progress-fill {
-    composes: ik-bar-fill;
-}
-
-.compra-progress-fill--lista {
-    composes: ik-bar-fill--green;
-}
-
-
-/* Fila debajo de la barra: ahorro actual (izq) y precio objetivo (der),
-   cada uno es su propio botón para que quede claro que se puede editar. */
-
-.compra-progress-row {
+.compra-amounts {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 6px;
-}
-
-.compra-progress-row .ik-bar-track {
-    flex: 1;
-    min-width: 0;
-    width: auto;
-}
-
-.compra-amount-btn {
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 6px;
     font-size: 0.72rem;
     font-weight: 700;
-    border: none;
-    background: none;
-    padding: 0;
-    cursor: pointer;
-    white-space: nowrap;
-    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
 }
 
-.compra-amount-ahorro {
+.compra-saved { color: var(--primary-green); }
+.compra-goal { color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.compra-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    border-top: 1px solid var(--border-color);
+    animation: fadeInDown 0.2s ease;
+}
+
+.compra-missing {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.compra-quick {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+}
+
+.compra-quick button,
+.compra-tools button,
+.compra-btn-primary {
+    padding: 9px 6px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-dark);
+    font-size: 0.74rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.compra-quick button:hover,
+.compra-tools button:hover {
+    border-color: var(--primary-green);
     color: var(--primary-green);
 }
 
-.compra-amount-meta {
-    color: var(--text-muted);
-}
-
-.compra-amount-meta--vacio {
-    text-decoration: underline dotted;
-}
-
-.compra-amounts-row {
+.compra-custom {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
+    gap: 6px;
 }
 
 .compra-input {
     flex: 1;
     min-width: 0;
-    max-width: 110px;
-    padding: 5px 6px;
-    text-align: center;
+    padding: 9px 10px;
     border: 1px dashed var(--text-muted);
-    border-radius: 6px;
-    font-size: 0.72rem;
+    border-radius: 10px;
+    font-size: 0.78rem;
     font-family: inherit;
     font-weight: 700;
     background-color: transparent;
@@ -1033,18 +1069,39 @@ div.day-segment.future {
     transition: all var(--transition);
 }
 
-.compra-input:hover,
 .compra-input:focus {
     outline: none;
     border-style: solid;
     border-color: var(--primary-green);
-    background-color: transparent;
 }
 
 .compra-input::-webkit-outer-spin-button,
 .compra-input::-webkit-inner-spin-button {
     -webkit-appearance: none;
     margin: 0;
+}
+
+.compra-btn-primary {
+    flex-shrink: 0;
+    padding: 9px 16px;
+    background: var(--primary-green);
+    border-color: var(--primary-green);
+    color: #0f1a13;
+}
+
+.compra-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.compra-tools button {
+    flex: 1 1 auto;
+}
+
+.compra-tools .compra-btn-danger:hover {
+    border-color: #e74c3c;
+    color: #e74c3c;
 }
 
 /*
@@ -1672,24 +1729,20 @@ div.day-segment.future {
 */
 .habit-card {
     display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 12px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 0;
+    overflow: hidden;
     border-radius: 14px;
     border: 1px solid var(--border-color);
     background-color: var(--white);
     transition: opacity var(--transition), border-color var(--transition);
 }
 
-.habit-card-img {
-    width: 92px;
-    height: 92px;
-    flex-shrink: 0;
-    border-radius: 12px;
-    object-fit: cover;
-}
-
 .habit-card-info {
+    padding: 12px;
+    border-top: 1px solid var(--border-color);
     flex: 1;
     min-width: 0;
     display: flex;
@@ -1780,6 +1833,115 @@ div.day-segment.future {
     font-weight: 800;
     font-size: 0.8rem;
 }
+
+/* Micro reglas / imágenes de referencia de cada hábito */
+.habit-rules {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: calc((100% - 4px) / 3);
+    gap: 2px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.habit-rules::-webkit-scrollbar { display: none; }
+
+.habit-rule {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    scroll-snap-align: start;
+}
+
+.habit-rule-media {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    background-color: var(--bg-header);
+}
+
+.habit-rule-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    cursor: pointer;
+}
+
+.habit-rule-del {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.habit-rule-del:hover { background: rgba(231, 76, 60, 0.9); }
+
+.habit-rule-title {
+    padding: 6px 8px 8px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--text-dark);
+    cursor: pointer;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-word;
+}
+
+.habit-rule-title--empty {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.habit-rule--empty { cursor: pointer; }
+
+.habit-rule-media--empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-header);
+    color: var(--text-muted);
+    font-size: 1.8rem;
+    font-weight: 300;
+    transition: color var(--transition);
+}
+
+.habit-rule--empty:hover .habit-rule-media--empty { color: var(--primary-green); }
+
+.habit-rule-add {
+    align-self: start;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border: none;
+    background: var(--bg-header);
+    color: var(--text-muted);
+    font-size: 1.8rem;
+    font-weight: 300;
+    cursor: pointer;
+    scroll-snap-align: start;
+    transition: color var(--transition);
+}
+
+.habit-rule-add:hover { color: var(--primary-green); }
 
 .habit-card-meta {
     font-size: 0.7rem;

@@ -158,8 +158,6 @@ function generateEnglishCurriculum(levelKey) {
 
 /* ---------- Carga inicial ---------- */
 async function loadEnglish() {
-    if (typeof renderEnglishCourseWeeks === 'function') renderEnglishCourseWeeks();
-
     const { data, error } = await _supabase.from('english_classes').select('*').order('sort_order', { ascending: true });
     if (error) { console.error('Error cargando english_classes:', error.message); return; }
 
@@ -231,54 +229,32 @@ function renderEnglish(data) {
     const plan = calculateStudyPlan(stats.pending);
 
     section.innerHTML = `
-        <div class="english-kpi-grid">
-            <div class="english-kpi-card">
-                <div class="english-kpi-label">Completadas</div>
-                <div class="english-kpi-value">${stats.completed}<span style="font-size:0.9rem; color:var(--text-muted);"> / ${stats.total}</span></div>
+        <div class="english-summary">
+            <div class="english-summary-top">
+                <span class="english-summary-title">Curso de inglés · ${_englishFilter}</span>
+                <span class="english-summary-deadline">Termina ${formatDateNice(ENGLISH_END_DATE)}</span>
             </div>
-            <div class="english-kpi-card">
-                <div class="english-kpi-label">Avance</div>
-                <div class="english-kpi-value" style="color:var(--primary-green);">${stats.percent}%</div>
+            <div class="english-summary-main">
+                <span class="english-summary-pct">${stats.percent}<small>%</small></span>
+                <span class="english-summary-count">${stats.completed} de ${stats.total} completadas</span>
             </div>
-            <div class="english-kpi-card">
-                <div class="english-kpi-label">Promedio</div>
-                <div class="english-kpi-value">${stats.avgGrade}</div>
+            <div class="ik-bar-track">
+                <div class="ik-bar-fill ik-bar-fill--green" style="width:${stats.percent}%;"></div>
             </div>
-            <div class="english-kpi-card">
-                <div class="english-kpi-label">Pendientes</div>
-                <div class="english-kpi-value" style="color:#e74c3c;">${stats.pending}</div>
+            <div class="english-summary-stats">
+                <div class="english-summary-stat"><strong>${stats.pending}</strong><span>Pendientes</span></div>
+                <div class="english-summary-stat"><strong>${stats.pending > 0 ? plan.neededPerWeek : '—'}</strong><span>Por semana</span></div>
+                <div class="english-summary-stat"><strong>${plan.daysLeft}</strong><span>Días restantes</span></div>
             </div>
-        </div>
-
-        <div class="english-plan-card">
-            <div class="english-plan-header">📅 Plan sugerido para terminar a tiempo</div>
-            <div class="english-plan-body">
-                <div class="english-plan-row">
-                    <span>Fecha límite del curso:</span>
-                    <strong>${formatDateNice(ENGLISH_END_DATE)}</strong>
-                </div>
-                <div class="english-plan-row">
-                    <span>Días restantes:</span>
-                    <strong>${plan.daysLeft}</strong>
-                </div>
-                <div class="english-plan-row">
-                    <span>Clases/entregables pendientes:</span>
-                    <strong>${stats.pending}</strong>
-                </div>
-                <div class="english-plan-row">
-                    <span>Ritmo necesario:</span>
-                    <strong style="color:${plan.feasible ? 'var(--primary-green)' : '#e74c3c'};">${plan.neededPerWeek} por semana</strong>
-                </div>
-                <div class="english-plan-row">
-                    <span>Tu disponibilidad:</span>
-                    <strong>Lunes a viernes (máx 10/sem)</strong>
-                </div>
-                <div class="english-plan-msg ${plan.feasible ? 'english-plan--ok' : 'english-plan--warn'}">
-                    ${plan.feasible
-                        ? `✅ Vas bien. Si tomas <strong>${plan.suggestedPerWeek} por semana</strong> terminarías aproximadamente el <strong>${formatDateNice(plan.estimatedEnd)}</strong>.`
-                        : `⚠️ Necesitas acelerar. Debes avanzar al menos <strong>${Math.ceil(plan.neededPerWeek)} por semana</strong> para llegar a la meta.`}
-                </div>
+            <div class="english-plan-msg ${stats.pending === 0 || plan.feasible ? 'english-plan--ok' : 'english-plan--warn'}">
+                ${stats.pending === 0
+                    ? '🎉 Nivel completado.'
+                    : plan.feasible
+                        ? `✅ Vas bien: con <strong>${plan.suggestedPerWeek} por semana</strong> terminarías hacia el <strong>${formatDateNice(plan.estimatedEnd)}</strong>.`
+                        : `⚠️ Necesitas acelerar: al menos <strong>${Math.ceil(plan.neededPerWeek)} por semana</strong>.`}
             </div>
+            <div id="english-weeks-grid" class="weeks-grid english-weeks-mini"></div>
+            <div class="english-weeks-caption" id="english-weeks-caption"></div>
         </div>
 
         <div class="english-toolbar">
@@ -312,6 +288,7 @@ function renderEnglish(data) {
     // en el CSS (para poder animar su cierre); una vez que el HTML ya
     // está en el DOM, se mide su alto real y se aplica, si no quedan
     // colapsados aunque digan "abiertos".
+    if (typeof renderEnglishCourseWeeks === 'function') renderEnglishCourseWeeks();
     requestAnimationFrame(syncEnglishAccordions);
 }
 
@@ -470,16 +447,7 @@ function renderEnglishList(data) {
         return `<div class="english-empty">No hay clases registradas en este nivel.</div>`;
     }
 
-    const levelPct = Math.round((data.filter(c => c.status === 'Tomada').length / data.length) * 100);
-
     return `
-        <div class="english-level-progress">
-            <span class="english-level-progress-label">${_englishFilter}</span>
-            <div class="english-level-bar-track">
-                <div class="english-level-bar-fill" style="width:${levelPct}%;"></div>
-            </div>
-            <span class="english-level-pct">${levelPct}%</span>
-        </div>
         <div class="english-accordion-list">
             ${buildEnglishAccordion(data)}
         </div>
