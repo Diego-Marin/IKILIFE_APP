@@ -531,21 +531,36 @@ button.brand-name {
 /* ==========================================
    18. LIMPIEZA VISIBLE
    ========================================== */
-/* Pestañas: texto con subrayado, sin cajas ni emojis */
+/* Pestañas: mismo estilo que los tabs de Metas (vision-tabs) */
 .camino-tabs, .camino-tabs--2 {
-    display: flex; gap: 22px; overflow-x: auto; padding: 0; margin-bottom: 16px;
-    border-bottom: 1px solid var(--border-color); scrollbar-width: none;
+    display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0 0 12px;
+    border: none; overflow: visible;
 }
-.camino-tabs::-webkit-scrollbar { display: none; }
 .camino-tab-btn {
-    flex: 0 0 auto; flex-direction: row; gap: 0; padding: 10px 0 12px; margin-bottom: -1px;
-    border: none; border-bottom: 2px solid transparent; border-radius: 0;
-    background: transparent; box-shadow: none;
+    flex: 0 1 auto; max-width: 100%; flex-direction: row; gap: 0;
+    padding: 8px 16px; margin: 0; border-radius: 20px;
+    border: 1px solid var(--border-color); background: transparent; box-shadow: none;
+    color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .camino-tab-icon { display: none; }
-.camino-tab-label { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.6px; white-space: nowrap; }
-.camino-tab-btn.camino-tab-active { background: transparent; border-bottom-color: var(--primary-green); box-shadow: none; color: var(--text-dark); }
-.camino-tab-btn--add { border-style: solid; border-color: transparent; }
+.camino-tab-label {
+    display: inline-block; font-size: 0.82rem; font-weight: 600; letter-spacing: 0;
+    text-transform: lowercase; white-space: nowrap;
+}
+.camino-tab-label::first-letter { text-transform: uppercase; }
+@media (hover: hover) {
+    .camino-tab-btn:not(.camino-tab-active):hover { border-color: var(--primary-green); color: var(--text-dark); }
+}
+.camino-tab-btn.camino-tab-active {
+    background: var(--bg-header); border-color: var(--text-muted); color: var(--text-dark); box-shadow: none;
+}
+.camino-tab-btn--add {
+    flex: 0 0 auto; width: 36px; height: 36px; padding: 0; justify-content: center; align-items: center;
+    border-radius: 50%; border: 1px dashed var(--border-color); color: var(--text-muted);
+}
+.camino-tab-btn--add .camino-tab-label { display: none; }
+.camino-tab-btn--add::before { content: "+"; font-size: 1.3rem; font-weight: 400; line-height: 1; }
+.camino-tab-btn--add:hover { border-style: solid; border-color: var(--primary-green); color: var(--primary-green); }
 
 /* Tarjetas sin bordes: solo un fondo apenas más claro */
 .habit-card, .mood-card, .lr-card, .english-acc, .summary-card,
@@ -557,6 +572,34 @@ button.brand-name {
 /* Carrusel de Inicio más bajo */
 .hs-viewport { aspect-ratio: 16 / 9; }
 
+
+/* ==========================================
+   19. INICIO, PLANES E INGLÉS SIMPLIFICADOS
+   ========================================== */
+/* Inicio: solo la lista de planes, sin tarjeta ni título */
+.today-dashboard { background: transparent; border: none; border-radius: 0; margin-bottom: 16px; overflow: visible; }
+.home-upcoming-plans { padding: 0; }
+.home-plans-list { padding: 0; gap: 8px; }
+.home-upcoming-plans .top-habit-empty { padding: 12px 0 !important; }
+
+/* Planes: progreso del año con dos barras */
+.progress-fusion-card { display: flex; flex-direction: column; gap: 16px; padding: 16px; margin-bottom: 16px; }
+.yp-head {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+    margin-bottom: 8px; font-size: 0.82rem; font-weight: 600; color: var(--text-dark);
+}
+.yp-head span:last-child { color: var(--text-muted); font-weight: 500; }
+
+/* Inglés: resumen mínimo */
+.english-summary { gap: 16px; padding: 16px; }
+.english-sum-row {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+    margin-bottom: 8px; font-size: 0.8rem; font-weight: 500; color: var(--text-muted);
+}
+.english-sum-row strong {
+    margin-right: 4px; font-size: 1.4rem; font-weight: 700; color: var(--text-dark);
+    font-variant-numeric: tabular-nums;
+}
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <base target="_blank">
@@ -644,9 +687,6 @@ button.brand-name {
 
                 <!-- Dashboard del Día: solo planes próximos -->
                 <div class="today-dashboard">
-                    <div class="today-dashboard-header">
-                        <span>📍 Tareas de hoy</span>
-                    </div>
                     <div id="home-upcoming-plans"></div>
                 </div>
                 
@@ -809,31 +849,14 @@ button.brand-name {
 
                 <!-- Progreso Semanal + Anual (movido desde Inicio) -->
                 <div class="progress-fusion-card">
-                    <div class="progress-fusion-header">
-                        <span id="fusion-week-text">Semana --</span>
-                        <span id="fusion-date-text" class="progress-fusion-date">--</span>
+                    <div>
+                        <div class="yp-head"><span id="yp-weeks-text">Semana -- de 52</span><span id="yp-weeks-left">-- restantes</span></div>
+                        <div class="ik-bar-track"><div class="ik-bar-fill ik-bar-fill--green" id="yp-weeks-bar" style="width:0%"></div></div>
                     </div>
-                    <div class="progress-bar-segmented">
-                        <div class="day-segment"></div>
-                        <div class="day-segment"></div>
-                        <div class="day-segment"></div>
-                        <div class="day-segment"></div>
-                        <div class="day-segment"></div>
-                        <div class="day-segment"></div>
-                        <div class="day-segment"></div>
+                    <div>
+                        <div class="yp-head"><span id="yp-days-text">-- días pasaron</span><span id="yp-days-left">Faltan -- días</span></div>
+                        <div class="ik-bar-track"><div class="ik-bar-fill ik-bar-fill--green" id="yp-days-bar" style="width:0%"></div></div>
                     </div>
-                    <div class="progress-labels">
-                        <span id="day-label-1">L</span>
-                        <span id="day-label-2">M</span>
-                        <span id="day-label-3">M</span>
-                        <span id="day-label-4">J</span>
-                        <span id="day-label-5">V</span>
-                        <span id="day-label-6">S</span>
-                        <span id="day-label-7">D</span>
-                    </div>
-                    <div class="progress-fusion-divider"></div>
-                    <div id="year-weeks-grid" class="fusion-weeks-grid"></div>
-                    <div id="fusion-footer" class="progress-fusion-footer">Quedan -- días para terminar el año</div>
                 </div>
 
 

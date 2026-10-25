@@ -66,6 +66,7 @@
  */
 
 const ENGLISH_END_DATE = '2027-06-19';
+const ENGLISH_START_DATE = '2025-04-01';
 
 /* Niveles disponibles en el tracker. Por ahora solo A1 — agregar acá
    el siguiente nivel (con su propio generador) quedará reflejado
@@ -227,34 +228,20 @@ function renderEnglish(data) {
     const levelData = data.filter(c => c.level === _englishFilter);
     const stats = calculateEnglishStats(levelData);
     const plan = calculateStudyPlan(stats.pending);
+    const timePct = Math.max(0, Math.min(100, Math.round(
+        ((Date.now() - new Date(ENGLISH_START_DATE).getTime()) /
+        (new Date(ENGLISH_END_DATE).getTime() - new Date(ENGLISH_START_DATE).getTime())) * 100)));
 
     section.innerHTML = `
         <div class="english-summary">
-            <div class="english-summary-top">
-                <span class="english-summary-title">Curso de inglés · ${_englishFilter}</span>
-                <span class="english-summary-deadline">Termina ${formatDateNice(ENGLISH_END_DATE)}</span>
+            <div>
+                <div class="english-sum-row"><span><strong>${stats.pending}</strong>clases pendientes</span><span>${stats.percent}% completado</span></div>
+                <div class="ik-bar-track"><div class="ik-bar-fill ik-bar-fill--green" style="width:${stats.percent}%;"></div></div>
             </div>
-            <div class="english-summary-main">
-                <span class="english-summary-pct">${stats.percent}<small>%</small></span>
-                <span class="english-summary-count">${stats.completed} de ${stats.total} completadas</span>
+            <div>
+                <div class="english-sum-row"><span><strong>${plan.daysLeft}</strong>días restantes</span><span>Termina ${formatDateNice(ENGLISH_END_DATE)}</span></div>
+                <div class="ik-bar-track"><div class="ik-bar-fill ik-bar-fill--neutral" style="width:${timePct}%;"></div></div>
             </div>
-            <div class="ik-bar-track">
-                <div class="ik-bar-fill ik-bar-fill--green" style="width:${stats.percent}%;"></div>
-            </div>
-            <div class="english-summary-stats">
-                <div class="english-summary-stat"><strong>${stats.pending}</strong><span>Pendientes</span></div>
-                <div class="english-summary-stat"><strong>${stats.pending > 0 ? plan.neededPerWeek : '—'}</strong><span>Por semana</span></div>
-                <div class="english-summary-stat"><strong>${plan.daysLeft}</strong><span>Días restantes</span></div>
-            </div>
-            <div class="english-plan-msg ${stats.pending === 0 || plan.feasible ? 'english-plan--ok' : 'english-plan--warn'}">
-                ${stats.pending === 0
-                    ? '🎉 Nivel completado.'
-                    : plan.feasible
-                        ? `✅ Vas bien: con <strong>${plan.suggestedPerWeek} por semana</strong> terminarías hacia el <strong>${formatDateNice(plan.estimatedEnd)}</strong>.`
-                        : `⚠️ Necesitas acelerar: al menos <strong>${Math.ceil(plan.neededPerWeek)} por semana</strong>.`}
-            </div>
-            <div id="english-weeks-grid" class="weeks-grid english-weeks-mini"></div>
-            <div class="english-weeks-caption" id="english-weeks-caption"></div>
         </div>
 
         <div class="english-toolbar">
@@ -262,16 +249,6 @@ function renderEnglish(data) {
                 ${ENGLISH_LEVELS.map(lvl => `
                     <button class="english-tab-btn ${_englishFilter === lvl.key ? 'english-tab-active' : ''}" onclick="setEnglishFilter('${lvl.key}')">${lvl.label}</button>
                 `).join('')}
-            </div>
-            <div style="display:flex; gap:6px;">
-                <button class="sql-btn-compact" onclick="seedEnglishClasses()" title="Reimportar la tabla oficial de A1 desde cero">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
-                    Reimportar
-                </button>
-                <button class="sql-btn-compact" onclick="exportEnglishSQL()">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    SQL
-                </button>
             </div>
         </div>
 

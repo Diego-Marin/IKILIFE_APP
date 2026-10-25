@@ -1857,33 +1857,26 @@ function cleanHabitName(name) {
 }
 
 function renderYearWeeks() {
-    const container = document.getElementById('year-weeks-grid');
-    const footerEl = document.getElementById('fusion-footer');
-    if (!container) return;
-
-    container.innerHTML = '';
     const today = new Date();
-    const currentWeek = getWeekOfYear(today);
-    const daysRemaining = getDaysRemainingInYear(today);
+    const year = today.getFullYear();
+    const isLeap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+    const totalDays = isLeap ? 366 : 365;
+    const daysLeft = getDaysRemainingInYear(today);
+    const daysPassed = totalDays - daysLeft;
     const totalWeeks = 52;
+    const currentWeek = Math.min(totalWeeks, getWeekOfYear(today));
+    const weeksLeft = Math.max(0, totalWeeks - currentWeek);
 
-    // Footer: días restantes
-    if (footerEl) {
-        footerEl.textContent = `Quedan ${daysRemaining} días para terminar el año`;
-    }
+    const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+    const setBar = (id, pct) => { const el = document.getElementById(id); if (el) el.style.width = pct + '%'; };
 
-    container.className = 'fusion-weeks-grid';
+    setText('yp-weeks-text', `Semana ${currentWeek} de ${totalWeeks}`);
+    setText('yp-weeks-left', `${weeksLeft} ${weeksLeft === 1 ? 'restante' : 'restantes'}`);
+    setBar('yp-weeks-bar', Math.round((currentWeek / totalWeeks) * 100));
 
-    for (let i = 1; i <= totalWeeks; i++) {
-        const box = document.createElement('div');
-        box.className = 'week-box';
-        if (i < currentWeek) {
-            box.classList.add('passed');
-        } else if (i === currentWeek) {
-            box.classList.add('current');
-        }
-        container.appendChild(box);
-    }
+    setText('yp-days-text', `${daysPassed} ${daysPassed === 1 ? 'día pasó' : 'días pasaron'}`);
+    setText('yp-days-left', `Faltan ${daysLeft} ${daysLeft === 1 ? 'día' : 'días'}`);
+    setBar('yp-days-bar', Math.round((daysPassed / totalDays) * 100));
 }
 
 /**
