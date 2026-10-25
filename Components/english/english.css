@@ -105,13 +105,13 @@
 }
 
 .english-plan--ok {
-    background: rgba(22, 163, 74, 0.1);
-    color: #16a34a;
+    background: rgba(127, 175, 142, 0.1);
+    color: #7FAF8E;
 }
 
 .english-plan--warn {
-    background: rgba(231, 76, 60, 0.1);
-    color: #e74c3c;
+    background: rgba(196, 104, 95, 0.1);
+    color: #C4685F;
 }
 
 /* Semanas del curso: cuadrícula compacta dentro del resumen */
@@ -129,7 +129,7 @@
 .english-weeks-mini .week-box:hover { transform: none; }
 
 .english-weeks-mini .week-box.english-current {
-    box-shadow: 0 0 0 1px var(--bg-light), 0 0 0 2px #e74c3c;
+    box-shadow: 0 0 0 1px var(--bg-light), 0 0 0 2px #C4685F;
 }
 
 .english-weeks-caption {
@@ -239,7 +239,7 @@
     justify-content: center;
     font-size: 0.66rem;
     font-weight: 800;
-    background: rgba(116, 192, 138, 0.14);
+    background: rgba(141, 181, 154, 0.14);
     color: var(--primary-green);
     letter-spacing: 0.2px;
 }
@@ -352,8 +352,8 @@
 
 .english-chip.on {
     color: var(--text-dark);
-    border-color: rgba(116, 192, 138, 0.4);
-    background: rgba(116, 192, 138, 0.1);
+    border-color: rgba(141, 181, 154, 0.4);
+    background: rgba(141, 181, 154, 0.1);
 }
 
 .english-chip.on .english-chip-dot {
@@ -433,8 +433,8 @@
     gap: 12px;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    border: 1px solid rgba(116, 192, 138, 0.35);
-    background: linear-gradient(135deg, rgba(116, 192, 138, 0.14), rgba(116, 192, 138, 0.03));
+    border: 1px solid rgba(141, 181, 154, 0.35);
+    background: linear-gradient(135deg, rgba(141, 181, 154, 0.14), rgba(141, 181, 154, 0.03));
 }
 
 .english-milestone:last-child {
@@ -449,7 +449,7 @@
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: rgba(116, 192, 138, 0.2);
+    background: rgba(141, 181, 154, 0.2);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -494,26 +494,26 @@
 }
 
 .english-milestone--final {
-    border-color: rgba(230, 126, 34, 0.4);
-    background: linear-gradient(135deg, rgba(230, 126, 34, 0.16), rgba(230, 126, 34, 0.03));
+    border-color: rgba(196, 154, 94, 0.4);
+    background: linear-gradient(135deg, rgba(196, 154, 94, 0.16), rgba(196, 154, 94, 0.03));
 }
 
 .english-milestone--final .english-milestone-ic {
-    background: rgba(230, 126, 34, 0.2);
-    color: #e67e22;
+    background: rgba(196, 154, 94, 0.2);
+    color: #C49A5E;
 }
 
 .english-milestone--final .english-milestone-dot {
-    border-color: #e67e22;
+    border-color: #C49A5E;
 }
 
 .english-milestone--final.on .english-milestone-dot {
-    background: #e67e22;
-    border-color: #e67e22;
+    background: #C49A5E;
+    border-color: #C49A5E;
 }
 
 .english-milestone--final .english-milestone-title {
-    color: #e67e22;
+    color: #C49A5E;
 }
 
 /* En pantallas muy angostas (iPhone SE y similares) se ajustan

@@ -69,7 +69,7 @@
     min-height: 18px;
     font-size: 0.78rem;
     font-weight: 600;
-    color: #e74c3c;
+    color: #C4685F;
 }
 
 .auth-lock-forgot {
@@ -140,7 +140,7 @@
 }
 
 .auth-lock-key--del {
-    color: #e74c3c;
+    color: #C4685F;
 }
 
 /* --- Patrón --- */

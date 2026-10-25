@@ -5,8 +5,8 @@
  */
 
 .loves-counter-card {
-    background: linear-gradient(135deg, rgba(224, 71, 158, 0.08) 0%, var(--bg-header) 100%);
-    border: 1px solid rgba(224, 71, 158, 0.25);
+    background: linear-gradient(135deg, rgba(185, 139, 162, 0.08) 0%, var(--bg-header) 100%);
+    border: 1px solid rgba(185, 139, 162, 0.25);
     border-radius: 16px;
     margin: 16px;
     padding: 18px;
@@ -41,7 +41,7 @@
     font-size: 2.2rem;
     font-weight: 800;
     line-height: 1;
-    color: #e0479e;
+    color: #B98BA2;
 }
 
 .loves-counter-total-label {
@@ -69,7 +69,7 @@
 }
 
 .loves-counter-bar-fill {
-    background: linear-gradient(90deg, #f28cc0, #e0479e);
+    background: linear-gradient(90deg, #B98BA2, #B98BA2);
 }
 
 .loves-actividades-header {
@@ -107,14 +107,14 @@
     gap: 10px;
     padding: 12px 14px;
     border-radius: 12px;
-    border: 2px solid rgba(224, 71, 158, 0.25);
+    border: 2px solid rgba(185, 139, 162, 0.25);
     background-color: var(--white);
     transition: border-color var(--transition);
 }
 
 .loves-actividad-card--done {
-    border-color: #e0479e;
-    background-color: rgba(224, 71, 158, 0.06);
+    border-color: #B98BA2;
+    background-color: rgba(185, 139, 162, 0.06);
 }
 
 .loves-actividad-top {
@@ -134,7 +134,7 @@
 .loves-actividad-count {
     font-size: 0.78rem;
     font-weight: 800;
-    color: #e0479e;
+    color: #B98BA2;
     flex-shrink: 0;
 }
 
@@ -151,11 +151,11 @@
 }
 
 .loves-actividad-btn:hover {
-    border-color: #e0479e;
+    border-color: #B98BA2;
 }
 
 .loves-actividad-btn--done {
-    background-color: #e0479e;
-    border-color: #e0479e;
+    background-color: #B98BA2;
+    border-color: #B98BA2;
     color: var(--white);
 }

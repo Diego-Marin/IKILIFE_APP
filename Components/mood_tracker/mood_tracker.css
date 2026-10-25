@@ -82,17 +82,17 @@
     padding: 8px 16px;
     border: none;
     border-radius: 999px;
-    background: linear-gradient(135deg, var(--primary-green), #4fae6d);
+    background: linear-gradient(135deg, var(--primary-green), #8DB59A);
     color: #0f1a13;
     font-size: 0.8rem;
     font-weight: 800;
     cursor: pointer;
-    box-shadow: 0 3px 10px rgba(116, 192, 138, 0.3);
+    box-shadow: 0 3px 10px rgba(141, 181, 154, 0.3);
     transition: transform var(--transition), box-shadow var(--transition);
 }
 
 .mood-save-btn:hover {
-    box-shadow: 0 4px 14px rgba(116, 192, 138, 0.45);
+    box-shadow: 0 4px 14px rgba(141, 181, 154, 0.45);
 }
 
 .mood-save-btn:active {
@@ -138,11 +138,11 @@
 }
 
 .mood-card--love {
-    --mood-accent: #e0479e;
+    --mood-accent: #B98BA2;
 }
 
 .mood-card--odio {
-    --mood-accent: #e74c3c;
+    --mood-accent: #C4685F;
 }
 
 .mood-card--sentimiento {
@@ -305,10 +305,10 @@
     margin-bottom: 12px;
     padding: 14px 16px 16px;
     border-radius: 18px;
-    border: 1px solid rgba(224, 71, 158, 0.22);
+    border: 1px solid rgba(185, 139, 162, 0.22);
     background:
-        radial-gradient(120% 100% at 0% 0%, rgba(224, 71, 158, 0.16) 0%, transparent 60%),
-        radial-gradient(120% 100% at 100% 100%, rgba(231, 76, 60, 0.12) 0%, transparent 60%),
+        radial-gradient(120% 100% at 0% 0%, rgba(185, 139, 162, 0.16) 0%, transparent 60%),
+        radial-gradient(120% 100% at 100% 100%, rgba(196, 104, 95, 0.12) 0%, transparent 60%),
         var(--white);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
     touch-action: pan-y;
@@ -363,11 +363,11 @@
 }
 
 .espejo-emo-vs-side--love strong {
-    color: #e0479e;
+    color: #B98BA2;
 }
 
 .espejo-emo-vs-side--odio strong {
-    color: #e74c3c;
+    color: #C4685F;
 }
 
 .espejo-emo-vs-name {
@@ -405,11 +405,11 @@
 }
 
 .espejo-emo-bar-fill--love {
-    background: linear-gradient(90deg, #f28cc0, #e0479e);
+    background: linear-gradient(90deg, #B98BA2, #B98BA2);
 }
 
 .espejo-emo-bar-fill--odio {
-    background: linear-gradient(90deg, #e74c3c, #c0392b);
+    background: linear-gradient(90deg, #C4685F, #C4685F);
 }
 
 /* ---------- Chips (puntos / registros) ---------- */
@@ -435,15 +435,15 @@
 }
 
 .espejo-emo-chip--love {
-    color: #e0479e;
-    border-color: rgba(224, 71, 158, 0.28);
-    background-color: rgba(224, 71, 158, 0.1);
+    color: #B98BA2;
+    border-color: rgba(185, 139, 162, 0.28);
+    background-color: rgba(185, 139, 162, 0.1);
 }
 
 .espejo-emo-chip--odio {
-    color: #e74c3c;
-    border-color: rgba(231, 76, 60, 0.28);
-    background-color: rgba(231, 76, 60, 0.1);
+    color: #C4685F;
+    border-color: rgba(196, 104, 95, 0.28);
+    background-color: rgba(196, 104, 95, 0.1);
 }
 
 /* Estado vacío ("Sin registros"): ocupa todo el ancho, discreto. */

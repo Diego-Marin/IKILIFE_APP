@@ -54,7 +54,7 @@
 
 .export-center-option:hover:not(:disabled) {
     border-color: var(--primary-green);
-    background-color: rgba(116, 192, 138, 0.08);
+    background-color: rgba(141, 181, 154, 0.08);
 }
 
 .export-center-option:disabled {

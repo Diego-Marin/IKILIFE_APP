@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="dark">
-    <meta name="theme-color" content="#121212">
+    <meta name="theme-color" content="#0E0E0F">
     <title>IKILIFE</title>
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌱</text></svg>">
@@ -23,9 +23,542 @@
     <link rel="stylesheet" href="./Components/export_center/export_center.css">
     <link rel="stylesheet" href="./Components/home_slides/home_slides.css">
     <link rel="stylesheet" href="./Components/learnings/learnings.css">
+    <style id="theme-minimal">
+/**
+ * ==========================================
+ * IKILIFE — TEMA MINIMALISTA / SOBRIO
+ * ==========================================
+ * Cargar DESPUÉS de todos los demás CSS (ver index.html).
+ * Para volver al diseño anterior basta con quitar la línea <link>.
+ *
+ * Principios:
+ *  1. Una sola paleta neutra + UN acento (verde salvia apagado).
+ *  2. Colores semánticos (rosa, rojo, naranja, azul) desaturados:
+ *     solo aparecen cuando comunican algo (positivo / negativo / alerta).
+ *  3. Superficies planas: sin degradados, sin sombras, bordes finos.
+ *  4. Menos peso tipográfico (800 → 600/700) y menos mayúsculas.
+ *  5. Emojis de las pestañas en escala de grises.
+ */
+
+/* ==========================================
+   1. TOKENS
+   ========================================== */
+:root {
+    color-scheme: dark;
+
+    /* Neutros */
+    --bg-light: #0E0E0F;      /* fondo de la app */
+    --white: #141415;         /* superficie (tarjetas, nav) */
+    --bg-header: #1A1A1C;     /* superficie elevada / relleno sutil */
+    --border-color: #262628;  /* líneas finas */
+    --text-dark: #E6E6E3;     /* texto principal */
+    --text-muted: #85858A;    /* texto secundario */
+
+    /* Acento único */
+    --primary-green: #8DB59A;
+    --accent-soft: rgba(141, 181, 154, 0.12);
+
+    /* Semánticos (apagados) */
+    --c-pos: #B98BA2;   /* positivos / loves */
+    --c-neg: #C4685F;   /* negativos / deudas / alerta */
+    --c-warn: #C49A5E;  /* atención */
+    --c-ok: #7FAF8E;    /* completado */
+    --c-info: #7F9CC4;  /* apartado */
+
+    --radius: 12px;
+    --transition: 0.2s ease;
+}
+
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.container {
+    padding-top: 20px;
+}
+
+/* Menos peso visual en todo lo que estaba en 800 */
+.kpi-value, .summary-value, .estado-score, .estado-pill,
+.espejo-habitos-title, .espejo-habitos-count-done, .espejo-ring-pct,
+.espejo-emo-vs-side strong, .lr-summary-pct, .lr-card-name, .lr-card-pct,
+.english-summary-pct, .english-summary-stat strong, .english-acc-task,
+.english-milestone-title, .loves-counter-total-value, .plan-countdown-num,
+.plan-countdown-label, .home-plan-badge, .habit-counter-month,
+.compra-pct, .compra-name, .export-center-title, .auth-lock-title,
+.mood-value, .mood-save-btn, .vision-feed-count, .estado-split-value {
+    font-weight: 700;
+}
+
+/* ==========================================
+   2. CABECERA
+   ========================================== */
+header.main-header {
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+button.brand-name {
+    font-size: clamp(2rem, 10vw, 2.6rem);
+    letter-spacing: 0.18em;
+}
+
+.logo-area::after {
+    width: 24px;
+    height: 2px;
+    background: var(--primary-green);
+    opacity: 0.8;
+}
+
+/* Iconos: todos iguales, sin borde ni color propio */
+.header-actions .icon-btn {
+    border-color: transparent;
+    background-color: transparent;
+    border-radius: 10px;
+    color: var(--text-muted);
+}
+
+.header-actions #vision-header-btn,
+.header-actions #odios-header-btn {
+    color: var(--text-muted);
+}
+
+@media (hover: hover) {
+    .header-actions .icon-btn:hover {
+        color: var(--text-dark);
+        border-color: transparent;
+        background-color: var(--bg-header);
+    }
+}
+
+.header-actions .icon-btn svg {
+    stroke-width: 1.9;
+}
+
+.icon-btn:hover {
+    background-color: var(--bg-header);
+}
+
+.text-danger { color: var(--c-neg); }
+
+/* ==========================================
+   3. PESTAÑAS "CAMINO" (Hábitos / Finanzas)
+   ========================================== */
+.camino-tabs {
+    gap: 8px;
+    padding-bottom: 12px;
+}
+
+.camino-tab-btn {
+    border-radius: var(--radius);
+    padding: 14px 8px;
+    background-color: transparent;
+    gap: 6px;
+}
+
+/* Emojis sin color: ya no compiten con el contenido */
+.camino-tab-icon {
+    filter: grayscale(1);
+    opacity: 0.65;
+    font-size: 1.35rem;
+    transition: opacity var(--transition);
+}
+
+.camino-tab-label {
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.camino-tab-btn.camino-tab-active {
+    background-color: var(--bg-header);
+    border-color: var(--border-color);
+    box-shadow: inset 0 -2px 0 var(--primary-green);
+    color: var(--text-dark);
+}
+
+.camino-tab-active .camino-tab-icon {
+    opacity: 1;
+}
+
+.camino-tab-btn--add {
+    background: transparent;
+    border-style: dashed;
+}
+
+/* Sub-tabs genéricos */
+.sub-tab-btn { font-weight: 600; }
+
+/* ==========================================
+   4. SUPERFICIES: todo plano, sin degradados ni sombras
+   ========================================== */
+.progress-fusion-card,
+.today-dashboard,
+.habit-legend-box,
+.home-plan-item,
+.random-idea-box,
+.estado-widget,
+.lr-summary,
+.loves-counter-card,
+.espejo-section--habitos.espejo-section--ring,
+.espejo-emo-card,
+.english-summary,
+.project-card {
+    background: transparent;
+    box-shadow: none;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+}
+
+.random-idea-box {
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    border-radius: 0;
+}
+
+.today-dashboard { overflow: hidden; }
+.today-dashboard-header {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.category { border-radius: var(--radius); }
+.category-header { letter-spacing: 0.3px; }
+
+.kpi-card { background: var(--white); border: 1px solid var(--border-color); }
+
+.passion-card, .compra-card, .habit-card, .lr-card, .mood-card,
+.english-acc, .plan-countdown, .summary-card {
+    border-radius: var(--radius);
+}
+
+/* ==========================================
+   5. BARRAS DE PROGRESO (planas, finas)
+   ========================================== */
+.ik-bar-track { height: 6px; border-radius: 3px; box-shadow: none; }
+.ik-bar-fill { border-radius: 3px; }
+.ik-bar-fill--green,
+.ik-bar-fill--neutral { background: var(--primary-green); }
+.ik-bar-fill--love { background: var(--c-pos); }
+.ik-bar-fill--odio,
+.ik-bar-fill--over { background: var(--c-neg); }
+.loves-counter-bar-fill { background: var(--c-pos); }
+
+.espejo-bar-track { height: 6px; }
+.espejo-bar-fill--habitos { background: var(--primary-green); }
+
+.progress-bar-container { height: 8px; }
+
+/* ==========================================
+   6. INICIO
+   ========================================== */
+.hs, .hs-viewport, .hs-empty { border-radius: var(--radius); }
+/* Imágenes un poco menos saturadas para que no dominen la pantalla */
+.hs-slide img { filter: saturate(0.85); }
+
+.progress-fusion-card { padding: 16px; margin-bottom: 16px; }
+.progress-fusion-header span:first-child { font-weight: 600; }
+
+.fusion-weeks-grid .week-box.passed { opacity: 0.55; }
+
+/* Planes próximos */
+.home-plan-item {
+    border-left: 1px solid var(--border-color);
+    box-shadow: none;
+    padding: 14px 16px;
+    background: var(--white);
+}
+.home-plan-item:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: var(--text-muted);
+}
+.home-plan-badge--today {
+    background: var(--accent-soft);
+    color: var(--primary-green);
+}
+.home-plan-badge--soon {
+    background: transparent;
+    color: var(--c-warn);
+    border: 1px solid rgba(196, 154, 94, 0.35);
+}
+
+/* Leyenda de hábitos de ayer */
+.habit-legend--pending { border-left: 1px solid var(--border-color); border-top: 2px solid var(--c-warn); }
+
+/* ----- Espejo del alma ----- */
+.espejo-emo-card { padding: 14px 16px; margin-bottom: 12px; }
+.espejo-emo-vs-side strong { font-size: 1.75rem; letter-spacing: -0.5px; }
+.espejo-emo-vs-side--love strong,
+.espejo-emo-chip--love { color: var(--c-pos); }
+.espejo-emo-vs-side--odio strong,
+.espejo-emo-chip--odio { color: var(--c-neg); }
+.espejo-emo-month { font-weight: 600; letter-spacing: 0.4px; }
+
+.espejo-emo-bar-track { height: 6px; background-color: var(--border-color); box-shadow: none; }
+.espejo-emo-bar-fill--love { background: var(--c-pos); }
+.espejo-emo-bar-fill--odio { background: var(--c-neg); }
+
+/* Chips: sin fondos de color, solo texto + línea fina */
+.espejo-emo-chip,
+.espejo-emo-chip--love,
+.espejo-emo-chip--odio {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    font-weight: 600;
+}
+.espejo-emo-chip + .espejo-emo-chip { border-left: 1px solid var(--border-color); }
+.espejo-emo-stats { padding-top: 10px; border-top: 1px solid var(--border-color); gap: 0; }
+
+/* Hábitos de hoy */
+.espejo-section--habitos.espejo-section--ring { margin-bottom: 16px; padding: 14px 16px; }
+.espejo-habitos-title { font-size: 1rem; }
+.espejo-habitos-count-done { color: var(--primary-green); }
+.espejo-ring-fill { stroke: var(--primary-green); stroke-width: 5; }
+.espejo-ring-track { stroke-width: 5; }
+.espejo-ring-pct { color: var(--text-dark); font-size: 0.95rem; }
+
+/* ==========================================
+   7. HÁBITOS
+   ========================================== */
+.habit-card { background: var(--white); }
+.habit-card-name { font-weight: 600; }
+.habit-card-streak { font-weight: 600; }
+.habit-day-chip { border-radius: 6px; background: transparent; }
+.habit-day-chip:hover { border-color: var(--text-muted); }
+.habit-day-chip--done {
+    background-color: var(--primary-green);
+    border-color: var(--primary-green);
+    color: #0E0E0F;
+}
+.habit-day-chip--today { border-width: 1px; border-color: var(--text-dark); }
+.habit-rule-title { font-weight: 600; }
+
+/* ==========================================
+   8. SENTIMIENTOS (Positivos / Negativos)
+   ========================================== */
+.sent-tabs { background: transparent; border-radius: var(--radius); }
+.sent-tab-btn { font-weight: 600; border-radius: 9px; }
+.sent-tab-btn.sent-tab-active {
+    background-color: var(--bg-header);
+    color: var(--text-dark);
+}
+
+.mood-card { background: var(--white); }
+.mood-card--love { --mood-accent: var(--c-pos); }
+.mood-card--odio { --mood-accent: var(--c-neg); }
+.mood-card--sentimiento { --mood-accent: var(--primary-green); }
+
+/* El color de los chips lo inyecta JS en línea; se unifica aquí */
+.mood-chip { --chip-color: var(--mood-accent) !important; background-color: transparent; }
+.mood-chip--active { color: #0E0E0F; }
+
+.mood-save-btn {
+    background: var(--primary-green);
+    box-shadow: none;
+    color: #0E0E0F;
+    border-radius: 10px;
+}
+.mood-save-btn:hover { box-shadow: none; opacity: 0.9; }
+.mood-lock-banner { background: transparent; }
+
+/* ==========================================
+   9. METAS / ODIOS (tableros de imágenes)
+   ========================================== */
+.vision-tab-btn { font-weight: 600; background: transparent; border-radius: 999px; }
+.vision-tab-btn.vision-tab-active {
+    background: var(--bg-header);
+    color: var(--text-dark);
+    border-color: var(--text-muted);
+    -webkit-text-fill-color: var(--text-dark);
+}
+.vision-feed-item, .vision-feed-add { border-radius: var(--radius); }
+.vision-feed-img { filter: saturate(0.9); }
+.vision-feed-count svg { color: var(--c-pos); }
+.vision-heart-burst { color: var(--c-pos); }
+
+#odios-board-root .vision-feed-count svg,
+#odios-board-root .vision-heart-burst { color: var(--c-neg); }
+#odios-board-root .vision-tab-add:hover,
+#odios-board-root .vision-feed-add:hover {
+    border-color: var(--c-neg);
+    color: var(--c-neg);
+    background-color: rgba(196, 104, 95, 0.08);
+}
+@media (hover: hover) {
+    #odios-board-root .vision-tab-btn:not(.vision-tab-active):hover { border-color: var(--c-neg); }
+}
+
+/* ==========================================
+   10. PLANES
+   ========================================== */
+.plan-card-title { font-weight: 600; }
+.plan-countdown { background: transparent; border: 1px solid var(--border-color); }
+.plan-countdown-num { color: var(--text-dark); }
+.plan-countdown-soon .plan-countdown-num { color: var(--c-warn); }
+.plan-countdown-today { background: var(--accent-soft); border-color: transparent; }
+.plan-countdown-today .plan-countdown-num { color: var(--primary-green); }
+.plan-item-row { background: transparent; border: 1px solid var(--border-color); }
+.plan-item-delete:hover { color: var(--c-neg); }
+
+/* ==========================================
+   11. FINANZAS
+   ========================================== */
+.text-income  { color: var(--primary-green) !important; }
+.text-expense { color: var(--c-warn) !important; }
+.text-savings { color: var(--c-ok) !important; }
+.text-debt    { color: var(--c-neg) !important; }
+
+.summary-card { background: var(--white); }
+.summary-value { font-weight: 700; }
+
+.estado-widget { padding: 16px; }
+.salud-bar, .estado-split-bar { height: 8px; box-shadow: none; background-color: var(--border-color); }
+.salud-bar-fill {
+    background: linear-gradient(90deg, #C4685F 0%, #C49A5E 45%, #B5B060 65%, #7FAF8E 100%);
+    opacity: 0.9;
+}
+.salud-bar-knob { width: 14px; height: 14px; border-width: 2px; box-shadow: none; }
+.estado-seg--oblig { background: var(--c-warn); }
+.estado-seg--deuda { background: var(--c-neg); }
+.estado-seg--apartado { background: var(--c-info); }
+.estado-seg--libre { background: var(--c-ok); }
+
+.finance-budget-bar-fill { background-color: var(--primary-green); }
+.finance-budget-bar-fill--over { background-color: var(--c-neg); }
+
+/* Compras */
+.compra-card { background: var(--white); }
+.compra-card--lista,
+.compra-card--open.compra-card--lista { border-color: rgba(141, 181, 154, 0.5); }
+.compra-card--lista .compra-pct { background: var(--primary-green); color: #0E0E0F; }
+.compra-img { filter: saturate(0.9); }
+.compra-btn-primary { background: var(--primary-green); border-color: var(--primary-green); color: #0E0E0F; }
+.compra-tools .compra-btn-danger:hover { border-color: var(--c-neg); color: var(--c-neg); }
+
+/* ==========================================
+   12. APRENDIZAJES
+   ========================================== */
+.lr-summary { padding: 16px; }
+.lr-summary-pct { color: var(--text-dark); }
+.lr-card { background: var(--white); }
+.lr-card-pct { color: var(--primary-green); }
+.lr-icon--del:hover { color: var(--c-neg); }
+.lr-burst { background: var(--primary-green); }
+
+/* ==========================================
+   13. INGLÉS
+   ========================================== */
+.english-summary-pct { color: var(--text-dark); }
+.english-plan--ok { background: transparent; border: 1px solid var(--border-color); color: var(--c-ok); }
+.english-plan--warn { background: transparent; border: 1px solid rgba(196, 104, 95, 0.4); color: var(--c-neg); }
+
+.english-tab-btn { font-weight: 600; }
+.english-tab-active {
+    background: var(--bg-header);
+    border-color: var(--text-muted);
+    color: var(--text-dark);
+}
+
+.english-acc { background: var(--white); }
+.english-acc-badge { background: var(--bg-header); color: var(--text-muted); font-weight: 700; }
+.english-acc-badge.done { background: var(--primary-green); color: #0E0E0F; }
+.english-chip { background: transparent; border-color: var(--border-color); }
+.english-chip.on { background: var(--accent-soft); border-color: rgba(141, 181, 154, 0.35); }
+.english-chip.on .english-chip-dot,
+.english-eval-row.on .english-eval-dot { background: var(--primary-green); border-color: var(--primary-green); color: #0E0E0F; }
+.english-eval-row { background: transparent; border: 1px solid var(--border-color); }
+
+/* Hitos: planos y bordeados en vez de degradado */
+.english-milestone {
+    background: transparent;
+    border: 1px solid var(--border-color);
+}
+.english-milestone-ic { background: var(--bg-header); color: var(--primary-green); }
+.english-milestone.on .english-milestone-ic { background: var(--primary-green); color: #0E0E0F; }
+.english-milestone-dot { border-color: var(--text-muted); }
+.english-milestone.on .english-milestone-dot { background: var(--primary-green); border-color: var(--primary-green); color: #0E0E0F; }
+.english-milestone--final { background: transparent; border-color: rgba(196, 154, 94, 0.4); }
+.english-milestone--final .english-milestone-ic { background: var(--bg-header); color: var(--c-warn); }
+.english-milestone--final .english-milestone-title { color: var(--c-warn); }
+.english-milestone--final .english-milestone-dot { border-color: var(--c-warn); }
+.english-milestone--final.on .english-milestone-dot { background: var(--c-warn); border-color: var(--c-warn); color: #0E0E0F; }
+
+/* Semanas del curso: rojo apagado */
+.week-box.english-passed { background-color: var(--c-neg); opacity: 0.6; }
+.week-box.english-current { background-color: var(--c-neg); box-shadow: 0 0 0 2px var(--bg-light), 0 0 0 3px var(--c-neg); }
+
+/* ==========================================
+   14. EXPORTAR
+   ========================================== */
+.export-center-option { border-radius: var(--radius); }
+.export-center-option:hover:not(:disabled) { background-color: var(--bg-header); border-color: var(--text-muted); }
+
+/* ==========================================
+   15. BARRA INFERIOR
+   ========================================== */
+.bottom-nav { background: var(--bg-light); }
+.bottom-nav-inner { height: 62px; }
+.nav-icon { width: 22px; height: 22px; stroke-width: 2; }
+.nav-label { font-weight: 500; font-size: 0.62rem; }
+.bottom-nav-item:not(.active),
+.bottom-nav-item:not(.active) .nav-label { color: #6A6A6F; }
+.bottom-nav-item:not(.active) .nav-icon { stroke: #6A6A6F; }
+.container { padding-bottom: 78px !important; }
+
+/* ==========================================
+   16. BOTONES Y BLOQUEO
+   ========================================== */
+.add-habit-btn { font-weight: 600; border-radius: 8px; letter-spacing: 0.2px; }
+.love-counter-btn:hover { border-color: var(--c-neg); color: var(--c-neg); }
+.love-counter-btn svg { color: var(--c-neg); }
+
+.auth-lock-key--ok { color: #0E0E0F; }
+.auth-lock-key--del { color: var(--c-neg); }
+.auth-lock-error { color: var(--c-neg); }
+.auth-lock-key, .auth-lock-tab { border-radius: var(--radius); }
+
+/* ==========================================
+   17. ACCESIBILIDAD
+   ========================================== */
+:focus-visible { outline-color: var(--primary-green); }
+
+@media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* ==========================================
+   18. LIMPIEZA VISIBLE
+   ========================================== */
+/* Pestañas: texto con subrayado, sin cajas ni emojis */
+.camino-tabs, .camino-tabs--2 {
+    display: flex; gap: 22px; overflow-x: auto; padding: 0; margin-bottom: 16px;
+    border-bottom: 1px solid var(--border-color); scrollbar-width: none;
+}
+.camino-tabs::-webkit-scrollbar { display: none; }
+.camino-tab-btn {
+    flex: 0 0 auto; flex-direction: row; gap: 0; padding: 10px 0 12px; margin-bottom: -1px;
+    border: none; border-bottom: 2px solid transparent; border-radius: 0;
+    background: transparent; box-shadow: none;
+}
+.camino-tab-icon { display: none; }
+.camino-tab-label { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.6px; white-space: nowrap; }
+.camino-tab-btn.camino-tab-active { background: transparent; border-bottom-color: var(--primary-green); box-shadow: none; color: var(--text-dark); }
+.camino-tab-btn--add { border-style: solid; border-color: transparent; }
+
+/* Tarjetas sin bordes: solo un fondo apenas más claro */
+.habit-card, .mood-card, .lr-card, .english-acc, .summary-card,
+.home-plan-item, .passion-card, .export-center-option, .kpi-card {
+    border-color: transparent !important;
+    background: var(--white);
+}
+
+/* Carrusel de Inicio más bajo */
+.hs-viewport { aspect-ratio: 16 / 9; }
+
+    </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <base target="_blank">
-    <base target="_blank">
     <base target="_blank">
 </head>
 

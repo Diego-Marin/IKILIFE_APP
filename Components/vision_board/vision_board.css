@@ -92,7 +92,7 @@
     border-style: solid;
     border-color: var(--primary-green);
     color: var(--primary-green);
-    background-color: rgba(116, 192, 138, 0.08);
+    background-color: rgba(141, 181, 154, 0.08);
 }
 
 .vision-tab-add:focus-visible {
@@ -168,7 +168,7 @@
 .vision-feed-add:hover {
     border-color: var(--primary-green);
     color: var(--primary-green);
-    background-color: rgba(116, 192, 138, 0.06);
+    background-color: rgba(141, 181, 154, 0.06);
 }
 
 .vision-feed-add span {
@@ -215,7 +215,7 @@
 }
 
 .vision-feed-count svg {
-    color: #ff5fa8;
+    color: #B98BA2;
 }
 
 .vision-feed-count--bump {
@@ -234,7 +234,7 @@
     width: 76px;
     height: 76px;
     margin: -38px 0 0 -38px;
-    color: #ff5fa8;
+    color: #B98BA2;
     pointer-events: none;
     filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.45));
     animation: visionHeartBurst 0.75s ease-out forwards;
@@ -271,18 +271,18 @@
  */
 #odios-board-root .vision-feed-count svg,
 #odios-board-root .vision-heart-burst {
-    color: #ff6b5e;
+    color: #C4685F;
 }
 
 #odios-board-root .vision-tab-add:hover,
 #odios-board-root .vision-feed-add:hover {
-    border-color: #e74c3c;
-    color: #e74c3c;
-    background-color: rgba(231, 76, 60, 0.08);
+    border-color: #C4685F;
+    color: #C4685F;
+    background-color: rgba(196, 104, 95, 0.08);
 }
 
 @media (hover: hover) {
     #odios-board-root .vision-tab-btn:not(.vision-tab-active):hover {
-        border-color: #e74c3c;
+        border-color: #C4685F;
     }
 }

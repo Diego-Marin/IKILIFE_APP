@@ -79,7 +79,7 @@
 }
 
 .lr-icon:hover { color: var(--text-dark); background-color: var(--bg-header); }
-.lr-icon--del:hover { color: #e74c3c; }
+.lr-icon--del:hover { color: #C4685F; }
 
 /* ---------- Tarjeta de cada aprendizaje ---------- */
 .lr-card {
@@ -184,7 +184,7 @@
 
 .lr-rule-btn--edit { left: 5px; }
 .lr-rule-btn--del { right: 5px; font-size: 1rem; }
-.lr-rule-btn--del:hover { background: rgba(231, 76, 60, 0.9); }
+.lr-rule-btn--del:hover { background: rgba(196, 104, 95, 0.9); }
 
 .lr-rule-count {
     position: absolute;

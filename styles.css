@@ -5,14 +5,21 @@
  */
 :root {
     color-scheme: dark;
-    --primary-green: #74C08A;
-    --bg-light: #121212;
-    --bg-header: #242424;
-    --text-dark: #EAEAEA;
-    --text-muted: #888888;
-    --white: #1C1C1C;
-    --border-color: #2D2D2D;
-    --transition: 0.25s ease;
+    --primary-green: #8DB59A;
+    --bg-light: #0E0E0F;
+    --bg-header: #1A1A1C;
+    --text-dark: #E6E6E3;
+    --text-muted: #85858A;
+    --white: #141415;
+    --border-color: #262628;
+    --transition: 0.2s ease;
+    --accent-soft: rgba(141, 181, 154, 0.12);
+    --c-pos: #B98BA2;
+    --c-neg: #C4685F;
+    --c-warn: #C49A5E;
+    --c-ok: #7FAF8E;
+    --c-info: #7F9CC4;
+    --radius: 12px;
 }
 
 /**
@@ -102,7 +109,7 @@ header.main-header {
 
 /* Solo el icono lleva un tono suave (sin fondos ni efectos). */
 .header-actions #vision-header-btn { color: var(--primary-green); }
-.header-actions #odios-header-btn { color: #e74c3c; }
+.header-actions #odios-header-btn { color: #C4685F; }
 
 /* ---------- Fila 2: logo ----------
    Tipografía geométrica (Outfit): "IKI" en negrita y "LIFE" en fino,
@@ -238,11 +245,11 @@ button.brand-name:focus-visible {
 }
 
 .text-danger {
-    color: #e74c3c;
+    color: #C4685F;
 }
 
 .text-danger:hover {
-    background-color: rgba(231, 76, 60, 0.05);
+    background-color: rgba(196, 104, 95, 0.05);
 }
 
 /**
@@ -432,23 +439,23 @@ div.day-segment.future {
 }
 
 .ik-bar-fill--green {
-    background: linear-gradient(to right, #74C08A, #16a34a);
+    background: linear-gradient(to right, #8DB59A, #7FAF8E);
 }
 
 .ik-bar-fill--love {
-    background: linear-gradient(to right, #f28cc0, #e0479e);
+    background: linear-gradient(to right, #B98BA2, #B98BA2);
 }
 
 .ik-bar-fill--odio {
-    background: linear-gradient(to right, #f0776a, #e74c3c);
+    background: linear-gradient(to right, #C4685F, #C4685F);
 }
 
 .ik-bar-fill--over {
-    background: linear-gradient(to right, #e74c3c, #c0392b);
+    background: linear-gradient(to right, #C4685F, #C4685F);
 }
 
 .ik-bar-fill--neutral {
-    background: linear-gradient(to right, #74C08A, #2ecc71);
+    background: linear-gradient(to right, #8DB59A, #8DB59A);
 }
 
 /*
@@ -744,12 +751,12 @@ div.day-segment.future {
 
 .love-counter-btn:hover {
     background-color: transparent; 
-    border-color: #e74c3c;
-    color: #e74c3c;
+    border-color: #C4685F;
+    color: #C4685F;
 }
 
 .love-counter-btn svg {
-    color: #e74c3c; 
+    color: #C4685F; 
     transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
@@ -1060,7 +1067,7 @@ div.day-segment.future {
 }
 
 .compra-icon-btn:hover { background: rgba(0, 0, 0, 0.8); }
-.compra-icon-btn--danger:hover { background: rgba(231, 76, 60, 0.95); }
+.compra-icon-btn--danger:hover { background: rgba(196, 104, 95, 0.95); }
 
 .compra-body {
     display: flex;
@@ -1187,8 +1194,8 @@ div.day-segment.future {
 }
 
 .compra-tools .compra-btn-danger:hover {
-    border-color: #e74c3c;
-    color: #e74c3c;
+    border-color: #C4685F;
+    color: #C4685F;
 }
 
 /*
@@ -1197,11 +1204,11 @@ div.day-segment.future {
     y en el contador, para diferenciarlas de Loves de un vistazo.
 */
 .odio-card {
-    border-color: rgba(231, 76, 60, 0.35);
+    border-color: rgba(196, 104, 95, 0.35);
 }
 
 .odio-card .passion-count {
-    color: #e74c3c !important;
+    color: #C4685F !important;
 }
 
 /*
@@ -1319,7 +1326,7 @@ div.day-segment.future {
 }
 
 .plan-item-delete:hover {
-    color: #e74c3c;
+    color: #C4685F;
 }
 
 .plan-item-add-btn {
@@ -1376,11 +1383,11 @@ div.day-segment.future {
 }
 
 .plan-countdown-soon .plan-countdown-num {
-    color: #e67e22;
+    color: #C49A5E;
 }
 
 .plan-countdown-today {
-    background: linear-gradient(135deg, var(--primary-green), #2ecc71);
+    background: linear-gradient(135deg, var(--primary-green), #8DB59A);
 }
 
 .plan-countdown-today .plan-countdown-num {
@@ -1554,13 +1561,13 @@ div.day-segment.future {
     "passed" / "current", para no mezclarlas con el progreso del año.
 */
 .week-box.english-passed {
-    background-color: #e74c3c;
+    background-color: #C4685F;
     opacity: 0.85;
 }
 
 .week-box.english-current {
-    background-color: #e74c3c;
-    box-shadow: 0 0 0 2px var(--bg-light), 0 0 0 4px #e74c3c;
+    background-color: #C4685F;
+    box-shadow: 0 0 0 2px var(--bg-light), 0 0 0 4px #C4685F;
 }
 
 /* Título del bloque "Progreso del Año" con subtítulo de días restantes */
@@ -1744,7 +1751,7 @@ div.day-segment.future {
 }
 
 .emotion-avg-badge--odio {
-    color: #e74c3c;
+    color: #C4685F;
 }
 
 /**
@@ -1978,7 +1985,7 @@ div.day-segment.future {
     cursor: pointer;
 }
 
-.habit-rule-del:hover { background: rgba(231, 76, 60, 0.9); }
+.habit-rule-del:hover { background: rgba(196, 104, 95, 0.9); }
 
 .habit-rule-title {
     padding: 6px 8px 8px;
@@ -2054,7 +2061,7 @@ div.day-segment.future {
 }
 
 .habit-legend--pending {
-    border-left: 4px solid #e67e22;
+    border-left: 4px solid #C49A5E;
 }
 
 .habit-legend-header {
@@ -2206,14 +2213,14 @@ div.day-segment.future {
 }
 
 .home-plan-badge--today {
-    background: linear-gradient(135deg, var(--primary-green), #2ecc71);
+    background: linear-gradient(135deg, var(--primary-green), #8DB59A);
     color: white;
 }
 
 .home-plan-badge--soon {
-    background: rgba(230, 126, 34, 0.12);
-    color: #e67e22;
-    border: 1px solid rgba(230, 126, 34, 0.25);
+    background: rgba(196, 154, 94, 0.12);
+    color: #C49A5E;
+    border: 1px solid rgba(196, 154, 94, 0.25);
 }
 
 /**
@@ -2260,7 +2267,7 @@ div.day-segment.future {
 }
 
 .espejo-habitos-count-done {
-    color: #16a34a;
+    color: #7FAF8E;
     font-weight: 800;
 }
 
@@ -2289,7 +2296,7 @@ div.day-segment.future {
 
 .espejo-ring-fill {
     fill: none;
-    stroke: #16a34a;
+    stroke: #7FAF8E;
     stroke-width: 7;
     stroke-linecap: round;
     transition: stroke-dashoffset 0.6s cubic-bezier(0.22, 1, 0.36, 1);
@@ -2306,7 +2313,7 @@ div.day-segment.future {
 .espejo-ring-pct {
     font-size: 1.05rem;
     font-weight: 800;
-    color: #16a34a;
+    color: #7FAF8E;
 }
 
 .espejo-section {
@@ -2323,8 +2330,8 @@ div.day-segment.future {
     margin-bottom: 20px;
     padding: 16px;
     border-radius: 16px;
-    background: linear-gradient(135deg, rgba(22, 163, 74, 0.10) 0%, rgba(116, 192, 138, 0.05) 100%);
-    border: 1px solid rgba(22, 163, 74, 0.22);
+    background: linear-gradient(135deg, rgba(127, 175, 142, 0.10) 0%, rgba(141, 181, 154, 0.05) 100%);
+    border: 1px solid rgba(127, 175, 142, 0.22);
 }
 
 .espejo-bar-track {
@@ -2341,7 +2348,7 @@ div.day-segment.future {
     transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.espejo-bar-fill--habitos { background: linear-gradient(90deg, #74C08A, #16a34a); }
+.espejo-bar-fill--habitos { background: linear-gradient(90deg, #8DB59A, #7FAF8E); }
 
 /**
  * ---------- Balance emocional del mes: competencia Positivos vs Negativos ----------
@@ -2440,8 +2447,8 @@ div.day-segment.future {
     color: var(--text-muted);
 }
 
-.espejo-emo-vs-side--love strong { color: #e0479e; }
-.espejo-emo-vs-side--odio strong { color: #e74c3c; }
+.espejo-emo-vs-side--love strong { color: #B98BA2; }
+.espejo-emo-vs-side--odio strong { color: #C4685F; }
 
 /* Barra partida en dos segmentos de color plano con una pequeña separación. */
 .espejo-emo-bar-track {
@@ -2463,8 +2470,8 @@ div.day-segment.future {
     transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.espejo-emo-bar-fill--love { background: #e0479e; }
-.espejo-emo-bar-fill--odio { background: #e74c3c; }
+.espejo-emo-bar-fill--love { background: #B98BA2; }
+.espejo-emo-bar-fill--odio { background: #C4685F; }
 
 /* Tres cifras repartidas en todo el ancho, separadas por líneas finas. */
 .espejo-emo-stats {
@@ -2491,8 +2498,8 @@ div.day-segment.future {
     border-left: 1px solid var(--border-color);
 }
 
-.espejo-emo-chip--love { color: #e0479e; }
-.espejo-emo-chip--odio { color: #e74c3c; }
+.espejo-emo-chip--love { color: #B98BA2; }
+.espejo-emo-chip--odio { color: #C4685F; }
 
 .espejo-emo-body--older {
     animation: espejoSlideOlder 0.25s ease;
