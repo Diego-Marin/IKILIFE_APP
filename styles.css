@@ -112,57 +112,60 @@ button.brand-name:focus-visible {
     gap: 14px;
 }
 
-/* Móvil: el logo va arriba y los iconos ocupan toda la fila de abajo,
-   más grandes y fáciles de tocar. */
+/* Móvil: logo e iconos en UNA sola fila. Los iconos son más grandes que
+   antes (hasta 40px) y se reparten el ancho disponible; si la pantalla es
+   muy angosta se encogen un poco para que nunca pasen a otra línea. */
 @media (max-width: 480px) {
-    header.main-header {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 14px;
-        margin-bottom: 22px;
+    .container {
+        padding-left: 14px;
+        padding-right: 14px;
     }
 
-    button.brand-name { font-size: 2.4rem; }
+    header.main-header {
+        flex-wrap: nowrap;
+        gap: 6px;
+    }
+
+    .logo-area { flex-shrink: 0; }
+
+    button.brand-name { font-size: 1.7rem; }
 
     .header-actions {
-        width: 100%;
+        flex: 1;
+        min-width: 0;
         flex-wrap: nowrap;
-        justify-content: space-between;
-        gap: 0;
+        justify-content: flex-end;
+        gap: 2px;
     }
 
     .header-actions .icon-btn,
     .header-actions #vision-header-btn,
     .header-actions #odios-header-btn {
-        width: 46px;
-        height: 46px;
+        flex: 0 1 40px;
+        min-width: 0;
+        width: auto;
+        height: auto;
+        aspect-ratio: 1 / 1;
         padding: 0;
-        flex-shrink: 0;
     }
 
     .header-actions .icon-btn { border-radius: 12px; }
 
     .header-actions .icon-btn svg {
-        width: 26px;
-        height: 26px;
+        width: 24px;
+        height: 24px;
     }
 
     .header-actions #vision-header-btn svg,
     .header-actions #odios-header-btn svg {
-        width: 24px;
-        height: 24px;
+        width: 22px;
+        height: 22px;
     }
 }
 
 @media (max-width: 340px) {
-    .header-actions .icon-btn,
-    .header-actions #vision-header-btn,
-    .header-actions #odios-header-btn {
-        width: 40px;
-        height: 40px;
-    }
-
-    .header-actions .icon-btn svg { width: 22px; height: 22px; }
+    button.brand-name { font-size: 1.5rem; }
+    .header-actions .icon-btn svg { width: 21px; height: 21px; }
 }
 
 /* Botón de Tema */
