@@ -137,6 +137,7 @@
 .text-expense { color: #e67e22 !important; }
 .text-savings { color: #16a34a !important; }
 .text-debt { color: #e74c3c !important; }
+.text-neutral { color: var(--text-muted) !important; }
 
 .finance-item-header {
     display: grid;

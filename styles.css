@@ -49,35 +49,89 @@ body {
  */
 header.main-header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 28px;
-    position: relative; 
+    flex-direction: column;
+    align-items: stretch;
+    gap: 18px;
+    margin-bottom: 24px;
+    position: relative;
 }
 
-.logo-area {
+/* ---------- Fila 1: iconos ----------
+   Todos con el mismo estilo sobrio (cuadro redondeado con borde fino);
+   se reparten el ancho de la fila y se encogen en pantallas angostas
+   para que nunca pasen a otra línea. */
+.header-actions {
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+.header-actions .icon-btn {
+    flex: 0 1 40px;
+    min-width: 0;
+    aspect-ratio: 1 / 1;
+    padding: 0;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background-color: var(--white);
+    color: var(--text-muted);
+    transition: color var(--transition), border-color var(--transition), background-color var(--transition), transform var(--transition);
+}
+
+.header-actions .icon-btn svg {
+    width: 20px;
+    height: 20px;
+    stroke-width: 2.2;
+}
+
+@media (hover: hover) {
+    .header-actions .icon-btn:hover {
+        color: var(--text-dark);
+        border-color: var(--text-muted);
+        background-color: var(--bg-header);
+    }
+}
+
+.header-actions .icon-btn:active { transform: scale(0.94); }
+
+.header-actions .icon-btn:focus-visible {
+    outline: 2px solid var(--primary-green);
+    outline-offset: 2px;
+}
+
+/* Solo el icono lleva un tono suave (sin fondos ni efectos). */
+.header-actions #vision-header-btn { color: var(--primary-green); }
+.header-actions #odios-header-btn { color: #e74c3c; }
+
+/* ---------- Fila 2: logo ----------
+   Tipografía geométrica (Outfit): "IKI" en negrita y "LIFE" en fino,
+   con tracking amplio y una línea de acento debajo. Color sólido. */
+.logo-area {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
     gap: 12px;
 }
 
-.brand-name {
-    font-size: 2.8rem;
-    font-weight: 800;
-    letter-spacing: -0.5px;
+.logo-area::after {
+    content: "";
+    width: 38px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--primary-green);
 }
 
-/* El logo es un botón que lleva a Inicio: se le quita el aspecto de botón.
-   Color sólido (sin cambios de color); solo una entrada suave y una
-   pequeña respuesta al toque. */
 button.brand-name {
     margin: 0;
     padding: 0;
     border: none;
     background: none;
-    color: inherit;
-    font-family: inherit;
-    line-height: inherit;
+    color: var(--text-dark);
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: clamp(2.4rem, 13vw, 3.4rem);
+    line-height: 1;
+    letter-spacing: 0.14em;
     text-align: left;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
@@ -85,13 +139,15 @@ button.brand-name {
     animation: ikiLogoIn 0.6s ease-out both;
 }
 
-button.brand-name:active {
-    transform: scale(0.95);
-}
+button.brand-name > span { font-family: inherit; }
+.brand-iki { font-weight: 800; }
+.brand-life { font-weight: 200; }
+
+button.brand-name:active { transform: scale(0.97); }
 
 button.brand-name:focus-visible {
     outline: 2px solid var(--primary-green);
-    outline-offset: 4px;
+    outline-offset: 6px;
     border-radius: 6px;
 }
 
@@ -102,70 +158,6 @@ button.brand-name:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
     button.brand-name { animation: none; }
-}
-
-.header-actions {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 14px;
-}
-
-/* Móvil: logo e iconos en UNA sola fila. Los iconos son más grandes que
-   antes (hasta 40px) y se reparten el ancho disponible; si la pantalla es
-   muy angosta se encogen un poco para que nunca pasen a otra línea. */
-@media (max-width: 480px) {
-    .container {
-        padding-left: 14px;
-        padding-right: 14px;
-    }
-
-    header.main-header {
-        flex-wrap: nowrap;
-        gap: 6px;
-    }
-
-    .logo-area { flex-shrink: 0; }
-
-    button.brand-name { font-size: 1.7rem; }
-
-    .header-actions {
-        flex: 1;
-        min-width: 0;
-        flex-wrap: nowrap;
-        justify-content: flex-end;
-        gap: 2px;
-    }
-
-    .header-actions .icon-btn,
-    .header-actions #vision-header-btn,
-    .header-actions #odios-header-btn {
-        flex: 0 1 40px;
-        min-width: 0;
-        width: auto;
-        height: auto;
-        aspect-ratio: 1 / 1;
-        padding: 0;
-    }
-
-    .header-actions .icon-btn { border-radius: 12px; }
-
-    .header-actions .icon-btn svg {
-        width: 24px;
-        height: 24px;
-    }
-
-    .header-actions #vision-header-btn svg,
-    .header-actions #odios-header-btn svg {
-        width: 22px;
-        height: 22px;
-    }
-}
-
-@media (max-width: 340px) {
-    button.brand-name { font-size: 1.5rem; }
-    .header-actions .icon-btn svg { width: 21px; height: 21px; }
 }
 
 /* Botón de Tema */
@@ -1040,6 +1032,35 @@ div.day-segment.future {
     background: var(--primary-green);
     color: #0f1a13;
 }
+
+/* Acciones rápidas sobre la foto de cada compra: editar, cambiar foto, eliminar */
+.compra-actions {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    display: flex;
+    gap: 6px;
+}
+
+.compra-icon-btn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.6);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    color: #fff;
+    cursor: pointer;
+    transition: background-color var(--transition);
+}
+
+.compra-icon-btn:hover { background: rgba(0, 0, 0, 0.8); }
+.compra-icon-btn--danger:hover { background: rgba(231, 76, 60, 0.95); }
 
 .compra-body {
     display: flex;

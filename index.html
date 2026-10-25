@@ -9,6 +9,9 @@
     <title>IKILIFE</title>
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌱</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="./Components/auth_lock/auth_lock.css">
     <link rel="stylesheet" href="./Components/mood_tracker/mood_tracker.css">
@@ -19,6 +22,7 @@
     <link rel="stylesheet" href="./Components/vision_board/vision_board.css">
     <link rel="stylesheet" href="./Components/export_center/export_center.css">
     <link rel="stylesheet" href="./Components/home_slides/home_slides.css">
+    <link rel="stylesheet" href="./Components/learnings/learnings.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <base target="_blank">
     <base target="_blank">
@@ -31,8 +35,9 @@
     <div class="container">
 
         <header class="main-header">
-            <div class="logo-area">
-                <button type="button" class="brand-name" onclick="goToHome()" aria-label="Ir a Inicio" title="Inicio">IKILIFE</button>
+
+             <div class="logo-area">
+                <button type="button" class="brand-name" onclick="goToHome()" aria-label="Ir a Inicio" title="Inicio"><span class="brand-iki">IKI</span><span class="brand-life">LIFE</span></button>
             </div>
 
             <div class="header-actions">
@@ -60,6 +65,11 @@
                 </button>
 
 
+                <button id="learnings-header-btn" class="icon-btn" onclick="openLearnings()" aria-label="Aprendizajes"
+                    title="Aprendizajes">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10L12 5 2 10l10 5 10-5z"></path><path d="M6 12v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5"></path></svg>
+                </button>
+
                 <button id="export-json-btn" class="icon-btn" onclick="openExportCenter()"
                     aria-label="Exportar datos (JSON para IA)" title="Exportar datos (JSON para IA)">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
@@ -83,6 +93,7 @@
                 </button>
 
             </div>
+           
         </header>
 
         <main id="main-content">
@@ -105,10 +116,6 @@
                     </div>
                     <div id="home-upcoming-plans"></div>
                 </div>
-
-
-
-
                 
             </div>
 
@@ -592,6 +599,21 @@
                 <div id="english-section"></div>
             </div>
 
+            <!-- 🎓 APRENDIZAJES (subvista del header) -->
+            <div id="view-learnings" class="bottom-view">
+                <div style="display:flex; justify-content:flex-start; padding: 0 0 8px;">
+                    <button type="button" class="icon-btn" onclick="closeHeaderView('view-learnings')" aria-label="Volver"
+                        title="Volver">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                    </button>
+                </div>
+                <div id="learnings-root"></div>
+            </div>
+
             <!-- 💢 ODIOS (tablero de imágenes, mismo sistema que Metas) -->
             <div id="view-odios-board" class="bottom-view">
                 <div id="odios-board-root"></div>
@@ -616,6 +638,7 @@
     <script src="./Components/vision_board/vision_board.js"></script>
     <script src="./Components/export_center/export_center.js"></script>
     <script src="./Components/home_slides/home_slides.js"></script>
+    <script src="./Components/learnings/learnings.js"></script>
 </body>
 
 </html>

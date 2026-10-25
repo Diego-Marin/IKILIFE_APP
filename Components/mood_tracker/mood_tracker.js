@@ -206,6 +206,13 @@ async function loadMoodSection(key) {
             </div>
         `;
 
+        const imgEl = card.querySelector('.mood-img');
+        imgEl.title = 'Clic para cambiar la imagen';
+        imgEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            editMoodImage(key, item.id, item.image_filename);
+        });
+
         const nameEl = card.querySelector('.mood-name');
         nameEl.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -362,6 +369,25 @@ async function editMoodItem(key, oldName, id) {
 
     if (error) {
         alert('Error al editar: ' + error.message);
+    } else {
+        loadMoodSection(key);
+    }
+}
+
+/* Cambia la imagen de un item (Positivos, Negativos...): solo se guarda
+   el NOMBRE del archivo, que debe existir en assets/images/. */
+async function editMoodImage(key, id, current) {
+    const config = MOOD_CONFIGS[key];
+    const input = prompt('Nombre del archivo de imagen (debe estar en assets/images/):', current || '');
+    if (input === null || input.trim() === '' || input.trim() === current) return;
+
+    const { error } = await _supabase
+        .from(config.logsTable)
+        .update({ image_filename: input.trim() })
+        .eq('id', id);
+
+    if (error) {
+        alert('Error al guardar la imagen: ' + error.message);
     } else {
         loadMoodSection(key);
     }

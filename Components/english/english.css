@@ -11,7 +11,7 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
-    margin: 0 16px 16px;
+    margin: 0 0 16px;
     padding: 16px;
     border: 1px solid var(--border-color);
     border-radius: 16px;
@@ -144,7 +144,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 16px;
+    padding: 0;
     margin-bottom: 12px;
     gap: 8px;
 }
@@ -210,7 +210,7 @@
 .english-acc {
     border: 1px solid var(--border-color);
     border-radius: 14px;
-    margin: 0 16px;
+    margin: 0;
     overflow: hidden;
     background: var(--white);
 }
@@ -425,7 +425,7 @@
  * distinguir el examen final como el hito más importante.
  */
 .english-milestone {
-    margin: 0 16px 10px;
+    margin: 0 0 10px;
     border-radius: 14px;
     padding: 15px 16px;
     display: flex;
@@ -520,11 +520,6 @@
    márgenes/tipografía para que la grilla de 3 chips siga siendo
    cómoda de tocar. */
 @media (max-width: 380px) {
-    .english-acc,
-    .english-milestone {
-        margin-left: 10px;
-        margin-right: 10px;
-    }
     .english-chip-grid {
         gap: 6px;
     }

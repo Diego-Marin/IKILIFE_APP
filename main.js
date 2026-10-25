@@ -501,6 +501,11 @@ const HABIT_CATEGORIES = {
  * Las categorías personalizadas, en cambio, sí tienen fila en
  * Supabase: para ellas, editar label/icon actualiza esa fila.
  */
+/* "LEARNINGS" ya no es una pestaña de Hábitos: vive como componente
+   independiente en el header (Components/learnings/learnings.js) y no
+   cuenta en "Hábitos de hoy". */
+const LEARNINGS_TAG = 'LEARNINGS';
+
 const FIXED_HABIT_CATEGORY_IDS = Object.keys(HABIT_CATEGORIES);
 const HABIT_CATEGORY_OVERRIDE_PREFIX = 'ikilife_habit_category_override_';
 
@@ -1987,11 +1992,11 @@ async function loadCompras() {
     renderCompras();
 }
 
-/* Tarjetas de Compras (rediseño): rejilla de 2 columnas con foto grande,
-   porcentaje sobre la imagen, barra y montos. Un toque abre la tarjeta
-   (una a la vez) y muestra los controles: botones de suma rápida, monto
-   libre y herramientas (precio, corregir ahorro, renombrar, imagen,
-   eliminar) — ya no depende de clic derecho. */
+/* Tarjetas de Compras: rejilla de 2 columnas con foto grande, porcentaje
+   sobre la imagen, barra y montos. Sobre la foto hay siempre tres
+   botones: editar nombre, cambiar foto y eliminar la compra. Un toque
+   en la tarjeta la abre (una a la vez) y muestra la suma rápida, el
+   monto libre y las herramientas de precio y corrección de ahorro. */
 function renderCompras() {
     const container = document.getElementById('list-compras');
     if (!container) return;
@@ -2017,6 +2022,11 @@ function renderCompras() {
                 <div class="compra-media">
                     <img src="assets/images/${escapeHtml(c.image_filename || '')}" class="compra-img" loading="lazy" decoding="async" alt="" onerror="handleImgFallback(this)">
                     <span class="compra-pct">${lista ? '✓ Listo' : pct + '%'}</span>
+                    <div class="compra-actions">
+                        <button type="button" class="compra-icon-btn" data-act="rename" aria-label="Editar nombre" title="Editar nombre"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg></button>
+                        <button type="button" class="compra-icon-btn" data-act="image" aria-label="Cambiar foto" title="Cambiar foto"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg></button>
+                        <button type="button" class="compra-icon-btn compra-icon-btn--danger" data-act="delete" aria-label="Eliminar compra" title="Eliminar compra"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></button>
+                    </div>
                 </div>
                 <div class="compra-body">
                     <div class="compra-name">${escapeHtml(c.name)}</div>
@@ -2042,9 +2052,6 @@ function renderCompras() {
                 <div class="compra-tools">
                     <button type="button" data-act="price">Precio</button>
                     <button type="button" data-act="fix">Corregir ahorro</button>
-                    <button type="button" data-act="rename">Renombrar</button>
-                    <button type="button" data-act="image">Imagen</button>
-                    <button type="button" data-act="delete" class="compra-btn-danger">Eliminar</button>
                 </div>
             </div>` : ''}
         </article>`;
@@ -2462,6 +2469,7 @@ async function loadCustomHabitCategories() {
     if (error) return console.error('Error cargando categorías personalizadas:', error.message);
 
     (data || []).forEach(cat => {
+        if (cat.tag === LEARNINGS_TAG) return; // vive en el header
         const subtabId = cat.tag.toLowerCase();
         HABIT_CATEGORIES[subtabId] = { tag: cat.tag, label: cat.label, icon: cat.icon || '📌' };
         renderCustomHabitCategoryUI(subtabId, HABIT_CATEGORIES[subtabId]);

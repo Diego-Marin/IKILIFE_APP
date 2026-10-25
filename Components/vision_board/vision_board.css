@@ -189,50 +189,6 @@
 
 /**
  * ==========================================
- * BOTÓN DE CABECERA "METAS"
- * ==========================================
- * Va primero en la fila de acciones y se distingue del resto: fondo
- * en degradado con el verde de marca y un pulso lento que invita a
- * tocarlo — es la puerta a las metas de la app.
- */
-#vision-header-btn {
-    position: relative;
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary-green), #4fae6d);
-    color: var(--white);
-    box-shadow: 0 3px 10px rgba(116, 192, 138, 0.5);
-}
-
-#vision-header-btn::before {
-    content: "";
-    position: absolute;
-    inset: -4px;
-    border-radius: 50%;
-    border: 2px solid var(--primary-green);
-    opacity: 0.5;
-    animation: visionHeaderPulse 2.4s ease-out infinite;
-}
-
-#vision-header-btn:hover {
-    background: linear-gradient(135deg, #7fcc94, var(--primary-green));
-}
-
-@keyframes visionHeaderPulse {
-    0% { transform: scale(0.85); opacity: 0.55; }
-    70% { transform: scale(1.35); opacity: 0; }
-    100% { transform: scale(1.35); opacity: 0; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    #vision-header-btn::before {
-        animation: none;
-    }
-}
-
-/**
- * ==========================================
  * CONTADOR "LA VIVÍ" (doble clic en una imagen)
  * ==========================================
  * Insignia discreta en la esquina (solo si el contador es mayor a 0) y
@@ -308,46 +264,11 @@
 
 /**
  * ==========================================
- * BOTÓN DE CABECERA "ODIOS" + TABLERO DE ODIOS
+ * TABLERO DE ODIOS
  * ==========================================
- * Mismo sistema visual que Metas, en rojo.
+ * Mismo sistema visual que Metas, en rojo. (Los botones de la
+ * cabecera se estilan en styles.css, junto al resto de iconos.)
  */
-#odios-header-btn {
-    position: relative;
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #e74c3c, #c0392b);
-    color: var(--white);
-    box-shadow: 0 3px 10px rgba(231, 76, 60, 0.45);
-}
-
-#odios-header-btn::before {
-    content: "";
-    position: absolute;
-    inset: -4px;
-    border-radius: 50%;
-    border: 2px solid #e74c3c;
-    opacity: 0.5;
-    animation: visionHeaderPulse 2.4s ease-out infinite;
-}
-
-#odios-header-btn:hover {
-    background: linear-gradient(135deg, #ee6a5c, #e74c3c);
-}
-
-@media (prefers-reduced-motion: reduce) {
-    #odios-header-btn::before { animation: none; }
-}
-
-@media (max-width: 480px) {
-    #vision-header-btn,
-    #odios-header-btn {
-        width: 28px;
-        height: 28px;
-    }
-}
-
 #odios-board-root .vision-feed-count svg,
 #odios-board-root .vision-heart-burst {
     color: #ff6b5e;

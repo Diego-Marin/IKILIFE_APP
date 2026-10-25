@@ -76,6 +76,22 @@ function esCursoIngles(item) {
     return texto.includes('ingles');
 }
 
+/* Cambia el color de una tarjeta KPI: 'income' (verde marca), 'savings'
+   (verde), 'expense' (naranja), 'debt' (rojo) o 'neutral' (gris).
+   Reglas:
+   · Ingresos: verde si hay ingresos.
+   · Gastos obligatorios: verde hasta 50% de tus ingresos, naranja hasta
+     80%, rojo por encima (o si no hay ingresos).
+   · Ahorro / Capital y Patrimonio Neto: verde positivo, rojo negativo.
+   · Deudas: verde sin deudas, naranja si valen hasta un mes de ingresos,
+     rojo si es más. */
+function setKpiTone(id, tone) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    ['text-income', 'text-expense', 'text-savings', 'text-debt', 'text-neutral'].forEach(cls => el.classList.remove(cls));
+    el.classList.add('text-' + tone);
+}
+
 async function loadFinances() {
     await autoRegisterFinanceMonthIfNeeded();
 
@@ -188,12 +204,27 @@ async function loadFinances() {
     if (document.getElementById('kpi-ahorro')) document.getElementById('kpi-ahorro').textContent = formatCurrency(totalAhorro);
     if (document.getElementById('kpi-deudas')) document.getElementById('kpi-deudas').textContent = formatCurrency(totalDeudasReal);
 
-    const patrimonioEl = document.getElementById('kpi-patrimonio');
-    if (patrimonioEl) {
-        patrimonioEl.textContent = formatCurrency(patrimonioNeto);
-        patrimonioEl.classList.toggle('text-debt', patrimonioNeto < 0);
-        patrimonioEl.classList.toggle('text-savings', patrimonioNeto >= 0);
+    if (document.getElementById('kpi-patrimonio')) document.getElementById('kpi-patrimonio').textContent = formatCurrency(patrimonioNeto);
+
+    // Color de cada tarjeta según tu estado económico.
+    setKpiTone('kpi-ingresos', totalIngresosReal > 0 ? 'income' : 'neutral');
+
+    let toneOblig = 'neutral';
+    if (obligatorios > 0) {
+        const ratio = totalIngresosReal > 0 ? obligatorios / totalIngresosReal : Infinity;
+        toneOblig = ratio <= 0.5 ? 'savings' : ratio <= 0.8 ? 'expense' : 'debt';
     }
+    setKpiTone('kpi-obligatorios', toneOblig);
+
+    setKpiTone('kpi-ahorro', totalAhorro > 0 ? 'savings' : totalAhorro < 0 ? 'debt' : 'neutral');
+
+    let toneDeudas = 'savings';
+    if (totalDeudasReal > 0) {
+        toneDeudas = (totalIngresosReal > 0 && totalDeudasReal <= totalIngresosReal) ? 'expense' : 'debt';
+    }
+    setKpiTone('kpi-deudas', toneDeudas);
+
+    setKpiTone('kpi-patrimonio', patrimonioNeto > 0 ? 'savings' : patrimonioNeto < 0 ? 'debt' : 'neutral');
 
     renderPatrimonioWidget({ ingresos: totalIngresosReal, obligatorios, deudas: totalDeudasParaPatrimonio, apartado: ahorroAsignado });
 }

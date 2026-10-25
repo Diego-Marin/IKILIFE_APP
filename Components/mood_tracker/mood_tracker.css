@@ -154,14 +154,18 @@
 }
 
 .mood-img {
-    flex: 0 0 64px;
-    width: 64px;
-    height: 64px;
+    flex: 0 0 104px;
+    width: 104px;
+    height: 104px;
     align-self: center;
     object-fit: cover;
-    border-radius: 12px;
+    border-radius: 14px;
     background-color: var(--bg-header);
+    cursor: pointer;
+    transition: opacity var(--transition);
 }
+
+.mood-img:hover { opacity: 0.85; }
 
 .mood-info {
     flex: 1;
@@ -272,9 +276,9 @@
         padding: 8px;
     }
     .mood-img {
-        flex-basis: 52px;
-        width: 52px;
-        height: 52px;
+        flex-basis: 84px;
+        width: 84px;
+        height: 84px;
     }
     .mood-chip {
         height: 26px;
