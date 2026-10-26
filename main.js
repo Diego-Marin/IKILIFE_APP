@@ -2652,3 +2652,103 @@ function openEnglish() {
         if (typeof loadEnglish === 'function') loadEnglish();
     });
 }
+
+/**
+ * ==========================================
+ * VER IMAGEN GRANDE (mantener presionada una imagen de un hábito)
+ * ==========================================
+ * Mantén presionada (≈0.4 s) cualquier imagen de las micro reglas de
+ * Hábitos para verla en grande. Toca la pantalla o presiona Esc para
+ * cerrar. Un toque corto sigue funcionando como antes (cambiar imagen).
+ */
+(function () {
+    const HOLD_MS = 400;
+    const MOVE_TOLERANCE = 10;
+    let timer = null;
+    let startX = 0, startY = 0;
+    let suppressClickUntil = 0;
+    let overlay = null;
+
+    function closeViewer() {
+        if (!overlay) return;
+        overlay.remove();
+        overlay = null;
+        document.removeEventListener('keydown', onKey);
+    }
+
+    function onKey(e) { if (e.key === 'Escape') closeViewer(); }
+
+    function openViewer(img) {
+        closeViewer();
+        const rule = img.closest('.habit-rule');
+        const titleEl = rule ? rule.querySelector('.habit-rule-title:not(.habit-rule-title--empty)') : null;
+        const caption = titleEl ? titleEl.textContent.trim() : '';
+
+        overlay = document.createElement('div');
+        overlay.className = 'img-viewer';
+        overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-label', 'Imagen ampliada');
+
+        const big = document.createElement('img');
+        big.className = 'img-viewer-img';
+        big.src = img.currentSrc || img.src;
+        big.alt = caption;
+        big.draggable = false;
+        overlay.appendChild(big);
+
+        if (caption) {
+            const cap = document.createElement('div');
+            cap.className = 'img-viewer-caption';
+            cap.textContent = caption;
+            overlay.appendChild(cap);
+        }
+
+        overlay.addEventListener('click', closeViewer);
+        overlay.addEventListener('contextmenu', (e) => e.preventDefault());
+        document.addEventListener('keydown', onKey);
+        document.body.appendChild(overlay);
+        if (navigator.vibrate) navigator.vibrate(15);
+    }
+
+    function cancelHold() {
+        if (timer) { clearTimeout(timer); timer = null; }
+    }
+
+    document.addEventListener('pointerdown', (e) => {
+        const img = e.target.closest && e.target.closest('.habit-rule-img');
+        if (!img) return;
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        startX = e.clientX;
+        startY = e.clientY;
+        cancelHold();
+        timer = setTimeout(() => {
+            timer = null;
+            suppressClickUntil = Date.now() + 800;
+            openViewer(img);
+        }, HOLD_MS);
+    });
+
+    document.addEventListener('pointermove', (e) => {
+        if (timer && Math.hypot(e.clientX - startX, e.clientY - startY) > MOVE_TOLERANCE) cancelHold();
+    });
+    document.addEventListener('pointerup', cancelHold);
+    document.addEventListener('pointercancel', cancelHold);
+    document.addEventListener('scroll', cancelHold, true);
+
+    // Tras una pulsación larga, el "click" que sigue no debe abrir el editor de imagen.
+    document.addEventListener('click', (e) => {
+        if (Date.now() < suppressClickUntil && e.target.closest && e.target.closest('.habit-rule-img')) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    }, true);
+
+    // En móvil, la pulsación larga abre el menú contextual (y en la tarjeta
+    // eso dispara "eliminar hábito"): se bloquea solo sobre las imágenes.
+    document.addEventListener('contextmenu', (e) => {
+        if (e.target.closest && e.target.closest('.habit-rule-img')) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    }, true);
+})();
