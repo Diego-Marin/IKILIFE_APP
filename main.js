@@ -1194,10 +1194,10 @@ function switchTrackingTab(subtab, btn) {
  * (Odios) dentro de la pestaña fusionada Sentimientos.
  */
 function switchSentTab(which, btn) {
-    document.querySelectorAll('#sentimientos-root .sent-tab-btn').forEach(b => {
-        b.classList.remove('sent-tab-active');
+    document.querySelectorAll('#sentimientos-root .camino-tab-btn').forEach(b => {
+        b.classList.remove('camino-tab-active');
     });
-    if (btn) btn.classList.add('sent-tab-active');
+    if (btn) btn.classList.add('camino-tab-active');
 
     document.querySelectorAll('#sentimientos-root .sent-subview').forEach(v => v.classList.add('hidden'));
     const target = document.getElementById('sent-' + which);
@@ -1478,24 +1478,17 @@ async function exportIdeasSQL() {
  */
 /**
  * ==========================================
- * PLANES
+ * PLANES (Pendientes › Planes)
  * ==========================================
  * Guarda planes futuros con fecha (ej. "Caminata de senderismo" el
  * 9 de agosto) y muestra en GRANDE los días que faltan.
  *
- * NUEVO: cada plan se puede expandir/contraer tocando la tarjeta
- * (misma interacción que las cards del State Bar) para agregar
- * "cosas" del plan — una checklist simple con texto libre, marcar
- * como hecho y eliminar. Solo un plan puede estar expandido a la vez.
+ * Tocar un plan abre su editor en línea (nombre + selector de fecha,
+ * con Guardar / Cancelar / Eliminar), el mismo patrón que las tareas
+ * semanales. Ya no hay subtareas: la tabla "planes_items" dejó de
+ * usarse (se conserva en Supabase, pero la app no la lee).
  *
- * IMPORTANTE: requiere crear en Supabase la tabla "planes_logs" con
- * columnas (id, title, plan_date [date], created_at), y ADEMÁS una
- * tabla nueva "planes_items" con:
- *   id          bigint, PK, identity
- *   plan_id     bigint, FK -> planes_logs(id) ON DELETE CASCADE
- *   text        text
- *   done        boolean (default false)
- *   created_at  timestamptz (default now())
+ * Tabla requerida "planes_logs": (id, title, plan_date [date], created_at).
  */
 
 // Calcula los días que faltan (o han pasado) entre hoy y la fecha del plan.
@@ -1511,14 +1504,11 @@ function formatearFechaPlan(planDateStr) {
     return fecha.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-// Cache de la última carga de planes (para poder re-pintar al
-// expandir/contraer una tarjeta sin tener que volver a consultar
-// Supabase). Se refresca cada vez que loadPlanes() corre de verdad.
+// Cache de la última carga de planes (para re-pintar sin volver a consultar).
 let planesCache = [];
 
-// Id del plan actualmente expandido (solo uno a la vez, igual que el
-// dropdown del State Bar).
-let openPlanId = null;
+// null = nada en edición | 'new' = formulario de plan nuevo | id = editando ese plan
+let _planEditing = null;
 
 async function loadPlanes() {
     const { data: planes, error } = await _supabase
@@ -1532,247 +1522,131 @@ async function loadPlanes() {
     renderPlanesCards();
 }
 
-// Toggle de expandir/contraer una tarjeta (misma lógica que
-// window.__toggleStateCard del State Bar: un solo índice/id abierto a la vez).
-window.__togglePlanCard = function (planId) {
-    openPlanId = (openPlanId === planId) ? null : planId;
-    renderPlanesCards();
-};
+function planFormHtml() {
+    const isNew = _planEditing === 'new';
+    const p = isNew ? null : planesCache.find(x => x.id === _planEditing);
+    const fecha = p ? String(p.plan_date).slice(0, 10) : formatDateLocal(new Date());
+
+    return `
+        <div class="wt-form" id="plan-form">
+            <input class="wt-input" id="plan-title" maxlength="80" placeholder="Ej: Caminata de senderismo" value="${escapeHtml(p ? p.title : '')}">
+            <div class="wt-label">Fecha</div>
+            <input class="wt-input" id="plan-date" type="date" value="${fecha}">
+            <div class="wt-actions">
+                ${isNew ? '' : '<button type="button" class="wt-btn wt-btn--danger" data-act="delete">Eliminar</button>'}
+                <span class="wt-spacer"></span>
+                <button type="button" class="wt-btn" data-act="cancel">Cancelar</button>
+                <button type="button" class="wt-btn wt-btn--primary" data-act="save">Guardar</button>
+            </div>
+        </div>`;
+}
 
 function renderPlanesCards() {
     const list = document.getElementById('list-planes');
     if (!list) return;
+    bindPlanesEvents(list);
+
+    let html = _planEditing === 'new' ? planFormHtml() : '';
 
     if (!planesCache || planesCache.length === 0) {
-        list.innerHTML = '<p style="padding: 16px; color: var(--text-muted);">Aún no tienes planes guardados. Agrega el primero con "Nuevo Plan".</p>';
-        return;
-    }
-
-    list.innerHTML = '';
-
-    planesCache.forEach(plan => {
-        const dias = diasRestantes(plan.plan_date);
-        const safeTitle = String(plan.title || '').replace(/'/g, "\\'");
-        const isOpen = openPlanId === plan.id;
-
-        let contadorHtml;
-        let contadorClase = 'plan-countdown';
-        if (dias > 0) {
-            contadorHtml = `<span class="plan-countdown-num">${dias}</span><span class="plan-countdown-label">${dias === 1 ? 'día falta' : 'días faltan'}</span>`;
-            if (dias <= 7) contadorClase += ' plan-countdown-soon';
-        } else if (dias === 0) {
-            contadorHtml = `<span class="plan-countdown-num">HOY</span>`;
-            contadorClase += ' plan-countdown-today';
-        } else {
-            contadorHtml = `<span class="plan-countdown-num">${Math.abs(dias)}</span><span class="plan-countdown-label">${Math.abs(dias) === 1 ? 'día pasó' : 'días pasaron'}</span>`;
-            contadorClase += ' plan-countdown-past';
+        if (_planEditing !== 'new') {
+            html += '<div class="wt-empty">Aún no tienes planes guardados. Agrega el primero con "+ Nuevo plan".</div>';
         }
+        list.innerHTML = html;
+    } else {
+        html += planesCache.map(plan => {
+            if (_planEditing === plan.id) return planFormHtml();
 
-        const card = `
-            <div class="plan-card${isOpen ? ' plan-card--open' : ''}" id="plan-card-${plan.id}">
-                <div class="plan-card-main"
-                     onclick="window.__togglePlanCard(${plan.id})"
-                     oncontextmenu="event.preventDefault(); deletePlan(${plan.id}, '${safeTitle}')"
-                     title="Toca para ver/agregar cosas del plan · Clic Derecho: Eliminar">
-                    <div class="plan-card-info">
-                        <div class="plan-card-title-row">
-                            <span class="plan-card-title" title="Clic para editar">${plan.title}</span>
-                            <span class="plan-card-caret">${isOpen ? '▾' : '▸'}</span>
+            const dias = diasRestantes(plan.plan_date);
+            let contadorHtml;
+            let contadorClase = 'plan-countdown';
+            if (dias > 0) {
+                contadorHtml = `<span class="plan-countdown-num">${dias}</span><span class="plan-countdown-label">${dias === 1 ? 'día falta' : 'días faltan'}</span>`;
+                if (dias <= 7) contadorClase += ' plan-countdown-soon';
+            } else if (dias === 0) {
+                contadorHtml = `<span class="plan-countdown-num">HOY</span>`;
+                contadorClase += ' plan-countdown-today';
+            } else {
+                contadorHtml = `<span class="plan-countdown-num">${Math.abs(dias)}</span><span class="plan-countdown-label">${Math.abs(dias) === 1 ? 'día pasó' : 'días pasaron'}</span>`;
+                contadorClase += ' plan-countdown-past';
+            }
+
+            return `
+                <div class="plan-card" id="plan-card-${plan.id}">
+                    <div class="plan-card-main" data-act="edit" data-id="${plan.id}" title="Toca para editar">
+                        <div class="plan-card-info">
+                            <div class="plan-card-title-row">
+                                <span class="plan-card-title">${escapeHtml(plan.title)}</span>
+                            </div>
+                            <div class="plan-card-date">${formatearFechaPlan(plan.plan_date)}</div>
                         </div>
-                        <div class="plan-card-date">${formatearFechaPlan(plan.plan_date)}</div>
+                        <div class="${contadorClase}">${contadorHtml}</div>
                     </div>
-                    <div class="${contadorClase}">${contadorHtml}</div>
-                </div>
-                ${isOpen ? `<div class="plan-items-panel" id="plan-items-panel-${plan.id}" onclick="event.stopPropagation();"><div class="top-habit-empty">Cargando…</div></div>` : ''}
-            </div>
-        `;
-        list.insertAdjacentHTML('beforeend', card);
+                </div>`;
+        }).join('');
+        list.innerHTML = html;
+    }
 
-        // Clic en el título edita el plan; el resto de la tarjeta expande/contrae.
-        const titleEl = document.querySelector(`#plan-card-${plan.id} .plan-card-title`);
-        if (titleEl) {
-            titleEl.addEventListener('click', (e) => {
-                e.stopPropagation();
-                editPlan(plan.id, safeTitle, plan.plan_date);
-            });
+    const inp = document.getElementById('plan-title');
+    if (inp && _planEditing === 'new') inp.focus();
+}
+
+function bindPlanesEvents(list) {
+    if (list.dataset.bound) return;
+    list.dataset.bound = '1';
+
+    list.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-act]');
+        if (!b) return;
+        switch (b.dataset.act) {
+            case 'edit': _planEditing = Number(b.dataset.id); renderPlanesCards(); break;
+            case 'cancel': _planEditing = null; renderPlanesCards(); break;
+            case 'save': savePlan(); break;
+            case 'delete': deletePlanEditing(); break;
         }
-
-        if (isOpen) {
-            loadPlanItemsPanel(plan.id);
-        }
     });
 }
 
-/**
- * ==========================================
- * COSAS DE CADA PLAN (planes_items)
- * ==========================================
- * Checklist simple por plan: texto libre, marcar como hecho, eliminar.
- * Se carga solo cuando el panel de ese plan está expandido.
- */
-async function loadPlanItemsPanel(planId) {
-    const panel = document.getElementById(`plan-items-panel-${planId}`);
-    if (!panel) return;
-
-    const { data: items, error } = await _supabase
-        .from('planes_items')
-        .select('*')
-        .eq('plan_id', planId)
-        .order('created_at', { ascending: true });
-
-    if (error) {
-        panel.innerHTML = `<div class="top-habit-empty">No se pudo cargar la lista (${error.message}).</div>`;
-        return;
-    }
-
-    const rowsHtml = (items && items.length > 0)
-        ? items.map(item => `
-            <div class="plan-item-row${item.done ? ' plan-item-row--done' : ''}">
-                <button class="plan-item-check" data-item-id="${item.id}" aria-label="Marcar como hecho">${item.done ? '✅' : '⬜'}</button>
-                <span class="plan-item-text">${item.text}</span>
-                <button class="plan-item-delete" data-item-id="${item.id}" aria-label="Eliminar">×</button>
-            </div>
-        `).join('')
-        : `<div class="top-habit-empty">Aún no agregaste nada a este plan.</div>`;
-
-    panel.innerHTML = `
-        <div class="plan-items-list">${rowsHtml}</div>
-        <button class="plan-item-add-btn" type="button">+ Agregar cosa al plan</button>
-    `;
-
-    panel.querySelectorAll('.plan-item-check').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            togglePlanItemDone(Number(btn.dataset.itemId), planId);
-        });
-    });
-
-    panel.querySelectorAll('.plan-item-delete').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            deletePlanItem(Number(btn.dataset.itemId), planId);
-        });
-    });
-
-    const addBtn = panel.querySelector('.plan-item-add-btn');
-    if (addBtn) {
-        addBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            addPlanItem(planId);
-        });
-    }
+function addPlan() {
+    _planEditing = 'new';
+    renderPlanesCards();
+    const form = document.getElementById('plan-form');
+    if (form) form.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 
-async function addPlanItem(planId) {
-    const text = prompt("¿Qué quieres agregar a este plan?");
-    if (!text || text.trim() === "") return;
+async function savePlan() {
+    const title = (document.getElementById('plan-title').value || '').trim();
+    const fecha = document.getElementById('plan-date').value;
 
-    const { error } = await _supabase
-        .from('planes_items')
-        .insert([{ plan_id: planId, text: text.trim() }]);
+    if (!title) { alert("Escribe el nombre del plan."); return; }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) { alert("Elige una fecha válida."); return; }
 
-    if (error) {
-        alert("Error al agregar: " + error.message);
+    let res;
+    if (_planEditing === 'new') {
+        res = await _supabase.from('planes_logs').insert([{ title: title, plan_date: fecha }]);
     } else {
-        loadPlanItemsPanel(planId);
+        res = await _supabase.from('planes_logs').update({ title: title, plan_date: fecha }).eq('id', _planEditing);
     }
+    if (res.error) { alert("Error al guardar el plan: " + res.error.message); return; }
+
+    _planEditing = null;
+    await loadPlanes();
+    loadHomeUpcomingPlans();
 }
 
-async function togglePlanItemDone(itemId, planId) {
-    const { data, error: errSelect } = await _supabase
-        .from('planes_items')
-        .select('done')
-        .eq('id', itemId)
-        .single();
+async function deletePlanEditing() {
+    const plan = planesCache.find(x => x.id === _planEditing);
+    if (!plan || !confirm(`¿Deseas eliminar el plan "${plan.title}"?`)) return;
 
-    if (errSelect || !data) return;
+    // Por si "planes_items" (subtareas antiguas) aún existe sin ON DELETE CASCADE.
+    await _supabase.from('planes_items').delete().eq('plan_id', plan.id);
 
-    const { error } = await _supabase
-        .from('planes_items')
-        .update({ done: !data.done })
-        .eq('id', itemId);
+    const { error } = await _supabase.from('planes_logs').delete().eq('id', plan.id);
+    if (error) { alert("Error al eliminar el plan: " + error.message); return; }
 
-    if (error) {
-        alert("Error al actualizar: " + error.message);
-    } else {
-        loadPlanItemsPanel(planId);
-    }
-}
-
-async function deletePlanItem(itemId, planId) {
-    const { error } = await _supabase
-        .from('planes_items')
-        .delete()
-        .eq('id', itemId);
-
-    if (error) {
-        alert("Error al eliminar: " + error.message);
-    } else {
-        loadPlanItemsPanel(planId);
-    }
-}
-
-async function addPlan() {
-    const title = prompt("¿Qué plan quieres agregar? (Ej: Caminata de senderismo):");
-    if (!title || title.trim() === "") return;
-
-    const dateStr = prompt("Fecha del plan (formato AAAA-MM-DD, ej: 2026-08-09):");
-    if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr.trim())) {
-        alert("Fecha inválida. Usa el formato AAAA-MM-DD.");
-        return;
-    }
-
-    const { error } = await _supabase
-        .from('planes_logs')
-        .insert([{ title: title.trim(), plan_date: dateStr.trim() }]);
-
-    if (error) {
-        alert("Error al guardar el plan: " + error.message);
-    } else {
-        loadPlanes();
-    }
-}
-
-async function editPlan(id, oldTitle, oldDateStr) {
-    const newTitle = prompt("Editar plan:", oldTitle);
-    if (!newTitle || newTitle.trim() === "") return;
-
-    const newDateStr = prompt("Fecha del plan (formato AAAA-MM-DD):", oldDateStr);
-    if (!newDateStr || !/^\d{4}-\d{2}-\d{2}$/.test(newDateStr.trim())) {
-        alert("Fecha inválida. Usa el formato AAAA-MM-DD.");
-        return;
-    }
-
-    const { error } = await _supabase
-        .from('planes_logs')
-        .update({ title: newTitle.trim(), plan_date: newDateStr.trim() })
-        .eq('id', id);
-
-    if (error) {
-        alert("Error al editar el plan: " + error.message);
-    } else {
-        loadPlanes();
-    }
-}
-
-async function deletePlan(id, title) {
-    const confirmDelete = confirm(`¿Deseas eliminar el plan "${title}"?`);
-    if (!confirmDelete) return;
-
-    // Por si "planes_items" no tiene ON DELETE CASCADE configurado.
-    await _supabase.from('planes_items').delete().eq('plan_id', id);
-
-    const { error } = await _supabase
-        .from('planes_logs')
-        .delete()
-        .eq('id', id);
-
-    if (error) {
-        alert("Error al eliminar el plan: " + error.message);
-    } else {
-        if (openPlanId === id) openPlanId = null;
-        loadPlanes();
-    }
+    _planEditing = null;
+    await loadPlanes();
+    loadHomeUpcomingPlans();
 }
 
 /**
@@ -1817,7 +1691,7 @@ async function loadHomeUpcomingPlans() {
         else if (dias === 1) { badgeText = 'Mañana'; }
 
         html += `
-            <div class="home-plan-item" onclick="switchBottomTab('planes')" title="Ver en Planes">
+            <div class="home-plan-item" onclick="switchBottomTab('planes')" title="Ver en Pendientes">
                 <div class="home-plan-info">
                     <div class="home-plan-title">${plan.title}</div>
                     <div class="home-plan-date">${formatearFechaPlan(plan.plan_date)}</div>

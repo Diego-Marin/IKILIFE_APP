@@ -39,13 +39,13 @@
 .vision-tab-btn {
     flex: 0 1 auto;
     max-width: 100%;
-    padding: 8px 16px;
-    border-radius: 20px;
-    border: 1px solid var(--border-color);
-    background: var(--white);
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: none;
+    background: var(--bg-header);
     color: var(--text-muted);
-    font-weight: 700;
-    font-size: 0.82rem;
+    font-weight: 600;
+    font-size: 0.76rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -59,23 +59,21 @@
    (--text-dark) sobre el fondo claro del tab activo: texto invisible. */
 @media (hover: hover) {
     .vision-tab-btn:not(.vision-tab-active):hover {
-        border-color: var(--primary-green);
         color: var(--text-dark);
     }
 }
 
 .vision-tab-btn.vision-tab-active {
-    background: var(--text-dark);
-    color: var(--bg-light);
-    border-color: var(--text-dark);
-    -webkit-text-fill-color: var(--bg-light);
+    background: var(--accent-soft);
+    color: var(--primary-green);
+    -webkit-text-fill-color: var(--primary-green);
 }
 
 /* Botón "+" al final de la fila de tabs */
 .vision-tab-add {
     flex: 0 0 auto;
-    width: 36px;
-    height: 36px;
+    width: 30px;
+    height: 30px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -283,6 +281,25 @@
 
 @media (hover: hover) {
     #odios-board-root .vision-tab-btn:not(.vision-tab-active):hover {
-        border-color: #C4685F;
+        color: #C4685F;
     }
+}
+
+/**
+ * ==========================================
+ * ETIQUETAS DEL HUB (Reglas de vida | Cosas a eliminar)
+ * ==========================================
+ * Una línea fina las separa de las etiquetas de cada tablero (las
+ * pastillas por regla/cosa que van debajo).
+ */
+.metas-hub-tabs {
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+#odios-board-root .vision-tab-btn.vision-tab-active {
+    background: rgba(196, 104, 95, 0.12);
+    color: #C4685F;
+    -webkit-text-fill-color: #C4685F;
 }

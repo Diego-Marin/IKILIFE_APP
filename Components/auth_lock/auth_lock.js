@@ -217,24 +217,24 @@
     };
 
     /* ---------- Pantallas ---------- */
-    function renderSetupScreen(confirming) {
+    function renderSetupScreen(confirming, errorMsg) {
         showOverlay(
             '<div class="auth-lock-box">' +
-                '<div class="auth-lock-title">\uD83D\uDD12 Protege tu IKILIFE</div>' +
-                '<div class="auth-lock-subtitle">' + (confirming ? 'Confirma de nuevo' : 'Crea un codigo para proteger tu app') + '</div>' +
+                '<div class="auth-lock-title">IKILIFE</div>' +
+                '<div class="auth-lock-subtitle">' + (confirming ? 'Confirma tu código' : 'Crea un código de 4 dígitos') + '</div>' +
                 '<div id="auth-lock-input-area"></div>' +
                 '<div class="auth-lock-error" id="auth-lock-error"></div>' +
             '</div>'
         );
+        if (errorMsg) showError(errorMsg);
         renderCodeInput(async function(value) {
             if (!confirming) {
                 draftFirst = value;
                 renderSetupScreen(true);
             } else {
                 if (value !== draftFirst) {
-                    showError('Los codigos no coinciden. Intenta de nuevo.');
                     draftFirst = null;
-                    renderSetupScreen(false);
+                    renderSetupScreen(false, 'Los códigos no coinciden. Intenta de nuevo.');
                     return;
                 }
                 await saveAuthConfig(value);
@@ -242,19 +242,20 @@
         });
     }
 
-    function renderUnlockScreen(config) {
+    function renderUnlockScreen(config, errorMsg) {
         showOverlay(
             '<div class="auth-lock-box">' +
-                '<div class="auth-lock-title">\uD83D\uDD12 IKILIFE bloqueado</div>' +
-                '<div class="auth-lock-subtitle">Ingresa tu codigo</div>' +
+                '<div class="auth-lock-title">IKILIFE</div>' +
+                '<div class="auth-lock-subtitle">Ingresa tu código</div>' +
                 '<div id="auth-lock-input-area"></div>' +
                 '<div class="auth-lock-error" id="auth-lock-error"></div>' +
-                '<button type="button" class="auth-lock-forgot" id="auth-lock-forgot">Olvidaste tu codigo?</button>' +
+                '<button type="button" class="auth-lock-forgot" id="auth-lock-forgot">¿Olvidaste tu código?</button>' +
             '</div>'
         );
+        if (errorMsg) showError(errorMsg);
 
         document.getElementById('auth-lock-forgot').addEventListener('click', async function() {
-            var ok = confirm('Esto borrara tu codigo actual y tendras que crear uno nuevo. Continuar?');
+            var ok = confirm('Esto borrará tu código actual y tendrás que crear uno nuevo. ¿Continuar?');
             if (ok) {
                 await clearAuthConfig();
                 renderSetupScreen(false);
@@ -282,8 +283,7 @@
                     showError('Demasiados intentos. Espera 30 segundos.');
                     disableInputTemporarily(config);
                 } else {
-                    showError('Codigo incorrecto. Intenta de nuevo.');
-                    renderUnlockScreen(config);
+                    renderUnlockScreen(config, 'Código incorrecto. Intenta de nuevo.');
                 }
             }
         });
@@ -300,12 +300,13 @@
         if (err) err.textContent = msg;
     }
 
-    /* ---------- Input numerico ---------- */
+    /* ---------- Input numérico (4 dígitos, se confirma solo) ---------- */
     function renderCodeInput(onComplete) {
         var area = document.getElementById('auth-lock-input-area');
         if (!area) return;
         var value = '';
-        var maxDigits = 6;
+        var maxDigits = 4;
+        var busy = false;
 
         area.innerHTML =
             '<div class="auth-lock-dots" id="auth-lock-dots"></div>' +
@@ -313,6 +314,7 @@
 
         function renderDots() {
             var dotsEl = document.getElementById('auth-lock-dots');
+            if (!dotsEl) return;
             dotsEl.innerHTML = '';
             for (var i = 0; i < maxDigits; i++) {
                 var dot = document.createElement('span');
@@ -321,26 +323,31 @@
             }
         }
 
-        var keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'borrar', '0', 'ok'];
+        var keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'borrar'];
         var keypad = document.getElementById('auth-lock-keypad');
         keys.forEach(function(k) {
+            if (k === '') {
+                var sp = document.createElement('div');
+                sp.className = 'auth-lock-key-spacer';
+                keypad.appendChild(sp);
+                return;
+            }
             var btn = document.createElement('button');
             btn.type = 'button';
-            btn.className = 'auth-lock-key' +
-                (k === 'ok' ? ' auth-lock-key--ok' : '') +
-                (k === 'borrar' ? ' auth-lock-key--del' : '');
-            btn.textContent = k === 'borrar' ? '\u232B' : (k === 'ok' ? '\u2713' : k);
+            btn.className = 'auth-lock-key' + (k === 'borrar' ? ' auth-lock-key--del' : '');
+            btn.textContent = k === 'borrar' ? '\u232B' : k;
             btn.addEventListener('click', function() {
+                if (busy) return;
                 if (k === 'borrar') {
                     value = value.slice(0, -1);
-                } else if (k === 'ok') {
-                    if (value.length >= 4) onComplete(value);
-                    else showError('Usa al menos 4 digitos.');
-                    return;
                 } else if (value.length < maxDigits) {
                     value += k;
                 }
                 renderDots();
+                if (value.length === maxDigits) {
+                    busy = true;
+                    setTimeout(function() { onComplete(value); }, 120);
+                }
             });
             keypad.appendChild(btn);
         });

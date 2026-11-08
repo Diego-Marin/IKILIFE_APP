@@ -1,7 +1,10 @@
 /**
  * ==========================================
- * COMPONENTE: AUTH LOCK — ESTILOS
+ * COMPONENTE: AUTH LOCK — ESTILOS (minimalista, 4 dígitos)
  * ==========================================
+ * Se usa el prefijo #auth-lock-overlay en varias reglas para ganarle
+ * en especificidad al tema minimalista (inline en index.html), que se
+ * carga después y también toca .auth-lock-key / .auth-lock-title.
  */
 #auth-lock-overlay {
     display: none;
@@ -20,182 +23,115 @@
 
 .auth-lock-box {
     width: 100%;
-    max-width: 340px;
+    max-width: 280px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 14px;
+    gap: 10px;
     text-align: center;
 }
 
-.auth-lock-title {
-    font-size: 1.4rem;
-    font-weight: 800;
-    color: var(--text-dark);
+#auth-lock-overlay .auth-lock-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--text-muted);
 }
 
 .auth-lock-subtitle {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    margin-top: -8px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-dark);
 }
 
-.auth-lock-tabs {
+/* Puntos */
+.auth-lock-dots {
     display: flex;
-    gap: 8px;
-    width: 100%;
+    justify-content: center;
+    gap: 18px;
+    margin: 22px 0 26px;
 }
 
-.auth-lock-tab {
-    flex: 1;
-    padding: 8px;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    background: var(--white);
-    color: var(--text-muted);
-    font-weight: 600;
-    font-size: 0.8rem;
-    cursor: pointer;
-    transition: all var(--transition);
+.auth-lock-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    border: 1.5px solid var(--text-muted);
+    background: transparent;
+    transition: background-color var(--transition), border-color var(--transition);
 }
 
-.auth-lock-tab--active {
+.auth-lock-dot--filled {
     background: var(--text-dark);
-    color: var(--bg-light);
     border-color: var(--text-dark);
+}
+
+/* Teclado sin bordes */
+.auth-lock-keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 64px);
+    justify-content: center;
+    gap: 14px 22px;
+}
+
+#auth-lock-overlay .auth-lock-key {
+    width: 64px;
+    height: 64px;
+    padding: 0;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--text-dark);
+    font-size: 1.5rem;
+    font-weight: 300;
+    cursor: pointer;
+    transition: background-color var(--transition);
+    -webkit-tap-highlight-color: transparent;
+}
+
+#auth-lock-overlay .auth-lock-key:active {
+    background-color: var(--bg-header);
+}
+
+@media (hover: hover) {
+    #auth-lock-overlay .auth-lock-key:hover {
+        background-color: var(--bg-header);
+    }
+}
+
+#auth-lock-overlay .auth-lock-key--del {
+    color: var(--text-muted);
+    font-size: 1.15rem;
+}
+
+.auth-lock-key-spacer {
+    width: 64px;
+    height: 64px;
 }
 
 .auth-lock-error {
     min-height: 18px;
     font-size: 0.78rem;
-    font-weight: 600;
-    color: #C4685F;
+    font-weight: 500;
+    color: var(--c-neg);
 }
 
 .auth-lock-forgot {
     background: none;
     border: none;
-    color: var(--text-muted);
-    font-size: 0.75rem;
-    text-decoration: underline;
     cursor: pointer;
-    margin-top: 4px;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    margin-top: 6px;
+}
+
+.auth-lock-forgot:hover {
+    color: var(--text-dark);
 }
 
 .auth-lock-cooldown {
     font-size: 0.8rem;
     color: var(--text-muted);
     padding: 20px 0;
-}
-
-/* --- Código numérico --- */
-.auth-lock-dots {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin: 6px 0 4px;
-}
-
-.auth-lock-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    border: 2px solid var(--border-color);
-    background: transparent;
-    transition: background-color var(--transition);
-}
-
-.auth-lock-dot--filled {
-    background-color: var(--primary-green);
-    border-color: var(--primary-green);
-}
-
-.auth-lock-keypad {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    width: 100%;
-}
-
-.auth-lock-key {
-    padding: 14px 0;
-    border-radius: 10px;
-    border: 1px solid var(--border-color);
-    background: var(--white);
-    color: var(--text-dark);
-    font-size: 1.1rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background-color var(--transition);
-}
-
-.auth-lock-key:hover {
-    background-color: var(--bg-header);
-}
-
-.auth-lock-key--ok {
-    background-color: var(--primary-green);
-    color: var(--white);
-    border-color: var(--primary-green);
-}
-
-.auth-lock-key--del {
-    color: #C4685F;
-}
-
-/* --- Patrón --- */
-.auth-lock-pattern-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    width: 100%;
-    max-width: 240px;
-    margin: 6px auto;
-}
-
-.auth-lock-pattern-dot {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 1;
-    border-radius: 50%;
-    border: 2px solid var(--border-color);
-    background: var(--white);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all var(--transition);
-}
-
-.auth-lock-pattern-dot--active {
-    background-color: var(--primary-green);
-    border-color: var(--primary-green);
-}
-
-.auth-lock-pattern-order {
-    color: var(--white);
-    font-size: 0.85rem;
-    font-weight: 800;
-}
-
-.auth-lock-pattern-actions {
-    display: flex;
-    gap: 10px;
-    width: 100%;
-}
-
-.auth-lock-pattern-actions button {
-    flex: 1;
-    padding: 10px 0;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    background: var(--white);
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.auth-lock-pattern-actions .auth-lock-key--ok {
-    background-color: var(--primary-green);
-    color: var(--white);
-    border-color: var(--primary-green);
 }

@@ -1,0 +1,166 @@
+/**
+ * ==========================================
+ * COMPONENTE: TAREAS SEMANALES — ESTILOS
+ * ==========================================
+ */
+
+/* ---------- Inicio ---------- */
+#home-weekly-tasks:empty { display: none; }
+
+.wt-home {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.wt-home-title {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.wt-home-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 13px 16px;
+    text-align: left;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    background: var(--white);
+    color: var(--text-dark);
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.wt-check {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    border: 1.5px solid var(--text-muted);
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.wt-home-item--done { opacity: 0; transform: translateX(10px); }
+.wt-home-item--done .wt-check { background: var(--primary-green); border-color: var(--primary-green); }
+.wt-home-item--done .wt-home-text { text-decoration: line-through; color: var(--text-muted); }
+
+/* ---------- Gestión ---------- */
+.wt-toolbar { padding: 0 0 12px; }
+
+.wt-empty {
+    padding: 28px 8px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.wt-item {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    width: 100%;
+    margin-bottom: 8px;
+    padding: 13px 16px;
+    text-align: left;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    background: var(--white);
+    cursor: pointer;
+}
+
+.wt-item-title { font-size: 0.9rem; font-weight: 600; color: var(--text-dark); }
+.wt-item-sub { font-size: 0.72rem; font-weight: 500; color: var(--text-muted); letter-spacing: 0.2px; }
+
+.wt-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+}
+
+.wt-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text-dark);
+    font-size: 0.9rem;
+    font-family: inherit;
+}
+
+.wt-input:focus { outline: none; border-color: var(--primary-green); }
+
+.wt-label {
+    margin-top: 2px;
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.wt-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+
+.wt-day {
+    height: 36px;
+    padding: 0;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.wt-day--on { background: var(--primary-green); border-color: var(--primary-green); color: #0E0E0F; }
+
+.wt-freq { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.wt-chip {
+    padding: 7px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.wt-chip--on { background: var(--bg-header); border-color: var(--text-muted); color: var(--text-dark); }
+
+.wt-actions { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.wt-spacer { flex: 1; }
+
+.wt-btn {
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-dark);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.wt-btn--primary { background: var(--primary-green); border-color: var(--primary-green); color: #0E0E0F; }
+.wt-btn--danger { border-color: transparent; color: var(--c-neg); padding-left: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+    .wt-home-item, .wt-check { transition: none; }
+}
