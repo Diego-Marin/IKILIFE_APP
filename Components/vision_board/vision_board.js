@@ -10,6 +10,7 @@
  *   · "+" en las pestañas: nueva regla/cosa
  *   · Doble clic / doble toque en una imagen: suma +1 a "la viví"
  *   · Clic en la insignia de contador: corregir el número
+ *   · Clic en el nombre bajo la imagen: ponerle o cambiarle el nombre
  *   · Clic derecho o mantener presionada una imagen: eliminarla
  *   · Pestaña activa: botones Renombrar / Eliminar debajo de las pestañas
  *
@@ -34,6 +35,10 @@
  *   ALTER TABLE vision_meta_images ADD COLUMN IF NOT EXISTS count integer NOT NULL DEFAULT 0;
  *   ALTER TABLE odio_meta_images   ADD COLUMN IF NOT EXISTS count integer NOT NULL DEFAULT 0;
  *
+ * Nombre de cada imagen (columna nueva, opcional hasta que le pongas nombre):
+ *   ALTER TABLE vision_meta_images ADD COLUMN IF NOT EXISTS title text;
+ *   ALTER TABLE odio_meta_images   ADD COLUMN IF NOT EXISTS title text;
+ *
  * Usa _supabase, handleImgFallback, openHeaderView y closeHeaderView
  * (main.js): cargar este archivo después de main.js.
  */
@@ -41,7 +46,7 @@
     'use strict';
 
     /* ---------- Configuración (si tus columnas se llaman distinto, cámbialas aquí) ---------- */
-    const COLS = { name: 'name', image: 'image_filename', count: 'count' };
+    const COLS = { name: 'name', image: 'image_filename', count: 'count', title: 'title' };
 
     const BOARDS = {
         vision: {
@@ -159,10 +164,14 @@
         const imgs = s.images.filter(im => im[b.fk] === s.active);
         const items = imgs.map(im => {
             const n = countOf(im);
+            const t = im[COLS.title] ? String(im[COLS.title]).trim() : '';
             return `
             <div class="vision-feed-item" data-id="${im.id}" tabindex="0" title="Doble clic: la viví · Clic derecho o mantener: eliminar">
-                <img class="vision-feed-img" src="assets/images/${esc(im[COLS.image])}" alt="" draggable="false" loading="lazy" decoding="async" onerror="handleImgFallback(this)">
-                ${n > 0 ? `<button type="button" class="vision-feed-count" data-act="fix-count" title="Veces vivida (toca para corregir)">${HEART_SM}<span>${n}</span></button>` : ''}
+                <div class="vision-feed-media">
+                    <img class="vision-feed-img" src="assets/images/${esc(im[COLS.image])}" alt="${esc(t)}" draggable="false" loading="lazy" decoding="async" onerror="handleImgFallback(this)">
+                    ${n > 0 ? `<button type="button" class="vision-feed-count" data-act="fix-count" title="Veces vivida (toca para corregir)">${HEART_SM}<span>${n}</span></button>` : ''}
+                </div>
+                <button type="button" class="vision-feed-title${t ? '' : ' vision-feed-title--empty'}" data-act="edit-title" title="Clic para ponerle nombre">${t ? esc(t) : 'Sin nombre'}</button>
             </div>`;
         }).join('');
 
@@ -194,7 +203,7 @@
             badge.dataset.act = 'fix-count';
             badge.title = 'Veces vivida (toca para corregir)';
             badge.innerHTML = HEART_SM + '<span></span>';
-            item.appendChild(badge);
+            (item.querySelector('.vision-feed-media') || item).appendChild(badge);
         }
         badge.querySelector('span').textContent = n;
         if (bump) {
@@ -299,6 +308,7 @@
                 case 'delete-meta': return deleteMeta(key);
                 case 'add-image': return addImage(key);
                 case 'fix-count': return item && fixCount(key, Number(item.dataset.id));
+                case 'edit-title': return item && editTitle(key, Number(item.dataset.id));
             }
         });
     }
@@ -401,11 +411,41 @@
         if (s.active == null) return;
         const file = prompt('Nombre del archivo de imagen (debe estar en assets/images/):');
         if (!file || file.trim() === '') return;
-        const { data, error } = await _supabase.from(b.imagesTable)
-            .insert([{ [b.fk]: s.active, [COLS.image]: file.trim() }]).select();
+        const title = prompt('Nombre de la imagen (opcional):', '');
+        if (title === null) return;
+        const row = { [b.fk]: s.active, [COLS.image]: file.trim() };
+        if (title.trim() !== '') row[COLS.title] = title.trim();
+        const { data, error } = await _supabase.from(b.imagesTable).insert([row]).select();
         if (error) { alert('Error al guardar la imagen: ' + error.message); return; }
         if (data && data[0]) s.images.push(data[0]);
         render(key);
+    }
+
+    async function editTitle(key, id) {
+        const b = BOARDS[key];
+        const im = state[key].images.find(x => x.id === id);
+        if (!im) return;
+        const actual = im[COLS.title] ? String(im[COLS.title]) : '';
+        const input = prompt('Nombre de esta imagen (vacío para quitarlo):', actual);
+        if (input === null) return;
+        const nuevo = input.trim();
+        if (nuevo === actual.trim()) return;
+
+        const { error } = await _supabase.from(b.imagesTable)
+            .update({ [COLS.title]: nuevo === '' ? null : nuevo }).eq('id', id);
+        if (error) {
+            alert('Error al guardar el nombre: ' + error.message +
+                '\n\nAgrega la columna en Supabase:\nALTER TABLE ' + b.imagesTable +
+                ' ADD COLUMN IF NOT EXISTS ' + COLS.title + ' text;');
+            return;
+        }
+        im[COLS.title] = nuevo === '' ? null : nuevo;
+
+        const btn = rootOf(key).querySelector(`.vision-feed-item[data-id="${id}"] .vision-feed-title`);
+        if (btn) {
+            btn.textContent = nuevo || 'Sin nombre';
+            btn.classList.toggle('vision-feed-title--empty', nuevo === '');
+        }
     }
 
     async function deleteImage(key, id) {
