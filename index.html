@@ -956,6 +956,7 @@ button.brand-name {
                         <div class="summary-card summary-card--wide">
                             <div class="summary-label">Patrimonio Neto</div>
                             <div class="summary-value" id="kpi-patrimonio">$0</div>
+                            <div class="summary-sub" id="kpi-patrimonio-sub"></div>
                         </div>
                     </div>
                 </div>
@@ -994,6 +995,7 @@ button.brand-name {
                         <div>Total</div>
                         <div>+ Sumar</div>
                     </div>
+                    <div class="finance-include-hint">Marca ✓ lo que suma al cálculo del patrimonio. Desmarca lo que ya pagaste para no descontarlo dos veces.</div>
                     <ul id="list-debts" style="list-style:none;"></ul>
                     <div style="padding: 16px;">
                         <button class="add-habit-btn" onclick="addFinanceItem('debt', 'Deudas')" style="width:100%;">+
@@ -1014,6 +1016,7 @@ button.brand-name {
                         <div>+ Sumar</div>
                     </div>
 
+                    <div class="finance-include-hint">Marca ✓ lo que suma al cálculo del patrimonio. Desmarca lo que ya pagaste para no descontarlo dos veces.</div>
                     <!-- Gastos por categoría (misma lista que Ingresos / Deudas) -->
                     <div id="dynamic-expense-categories"></div>
 

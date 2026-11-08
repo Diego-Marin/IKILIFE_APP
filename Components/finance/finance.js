@@ -115,13 +115,19 @@ async function loadFinances() {
     let totalIngresosReal = 0;
     let totalGastosReal = 0;
     let totalDeudasReal = 0;
-    let totalDeudasParaPatrimonio = 0; // excluye Curso de Inglés
+    let totalDeudasParaPatrimonio = 0; // excluye Curso de Inglés (solo items marcados)
+    let totalDeudasTodasPat = 0;       // idem pero con TODOS los items (para comparar)
+    let totalGastosTodos = 0;          // gastos obligatorios con TODOS los items
+    let hayExcluidos = false;
     const expensesByCategory = {};
     const totalsByCategory = {};
 
     finances.forEach(item => {
         const isIncome = item.type === 'income';
         const isDebt = item.type === 'debt';
+        // "incluir" = marcado en el check. Si la columna no existe o es null, cuenta como incluido.
+        const incluido = item.incluir !== false;
+        if (!isIncome && item.type !== 'saving' && !incluido) hayExcluidos = true;
         // NOTA: el ahorro manual (type === 'saving') ya no tiene UI propia;
         // si quedan filas antiguas de ese tipo en finance_logs, se ignoran
         // aquí (no se suman a ningún total) para no romper nada existente.
@@ -129,11 +135,17 @@ async function loadFinances() {
         if (isIncome) textColorClass = 'text-income';
         if (isDebt) textColorClass = 'text-debt';
 
+        const nameDiv = `<div class="finance-item-name" style="cursor:pointer; overflow:hidden; text-overflow:ellipsis;" onclick="editFinanceConcept(${item.id}, '${item.concept}')" title="Clic para editar nombre | Clic Derecho para eliminar">${item.concept}</div>`;
+        // Deudas y gastos llevan un check para incluirlos (o no) en el cálculo del patrimonio.
+        const leadHtml = isIncome ? nameDiv : `
+                <div class="finance-item-lead">
+                    <input type="checkbox" class="finance-check" ${incluido ? 'checked' : ''} onchange="toggleFinanceInclude(${item.id}, this.checked)" aria-label="Incluir en el cálculo" title="Marcado: suma al cálculo del patrimonio. Desmarcado: no cuenta (por ejemplo, ya lo pagaste).">
+                    ${nameDiv}
+                </div>`;
+
         const row = `
-            <li class="finance-item" oncontextmenu="event.preventDefault(); deleteFinanceItem(${item.id}, '${item.concept}')">
-                <div class="finance-item-name" style="cursor:pointer; overflow:hidden; text-overflow:ellipsis;" onclick="editFinanceConcept(${item.id}, '${item.concept}')" title="Clic para editar nombre | Clic Derecho para eliminar">
-                    ${item.concept}
-                </div>
+            <li class="finance-item${incluido ? '' : ' finance-item--off'}" oncontextmenu="event.preventDefault(); deleteFinanceItem(${item.id}, '${item.concept}')">
+                ${leadHtml}
                 <div class="${textColorClass}" style="font-weight:bold; font-size: 0.95rem; text-align:right; cursor:pointer;" onclick="editFinanceRealTotal(${item.id}, ${item.real})" title="Total acumulado (Clic para corregir manualmente)">
                     ${formatCurrency(item.real)}
                 </div>
@@ -147,11 +159,15 @@ async function loadFinances() {
             totalIngresosReal += Number(item.real);
             if (listIncomes) listIncomes.insertAdjacentHTML('beforeend', row);
         } else if (isDebt) {
-            totalDeudasReal += Number(item.real);
-            if (!esCursoIngles(item)) totalDeudasParaPatrimonio += Number(item.real);
+            if (!esCursoIngles(item)) totalDeudasTodasPat += Number(item.real);
+            if (incluido) {
+                totalDeudasReal += Number(item.real);
+                if (!esCursoIngles(item)) totalDeudasParaPatrimonio += Number(item.real);
+            }
             if (listDebts) listDebts.insertAdjacentHTML('beforeend', row);
         } else if (item.type !== 'saving') {
-            totalGastosReal += Number(item.real);
+            totalGastosTodos += Number(item.real);
+            if (incluido) totalGastosReal += Number(item.real);
             if (!expensesByCategory[item.category]) expensesByCategory[item.category] = [];
             expensesByCategory[item.category].push(row);
             totalsByCategory[item.category] = (totalsByCategory[item.category] || 0) + Number(item.real);
@@ -203,6 +219,17 @@ async function loadFinances() {
     if (document.getElementById('kpi-deudas')) document.getElementById('kpi-deudas').textContent = formatCurrency(totalDeudasReal);
 
     if (document.getElementById('kpi-patrimonio')) document.getElementById('kpi-patrimonio').textContent = formatCurrency(patrimonioNeto);
+
+    // Comparación: si hay items desmarcados, se muestra cuánto sería el patrimonio con TODO incluido.
+    const subPatrimonio = document.getElementById('kpi-patrimonio-sub');
+    if (subPatrimonio) {
+        if (hayExcluidos) {
+            const patrimonioTodo = totalIngresosReal - totalGastosTodos - ahorroAsignado - totalDeudasTodasPat;
+            subPatrimonio.textContent = `Con todo incluido: ${formatCurrency(patrimonioTodo)}`;
+        } else {
+            subPatrimonio.textContent = '';
+        }
+    }
 
     // Color de cada tarjeta según tu estado económico.
     setKpiTone('kpi-ingresos', totalIngresosReal > 0 ? 'income' : 'neutral');
@@ -281,6 +308,17 @@ async function setFinanceBudget(category, currentBudget) {
 /* ==========================================
    CRUD DE MOVIMIENTOS
    ========================================== */
+/* Marca o desmarca un item de deuda/gasto para el cálculo del patrimonio.
+   Requiere la columna: ALTER TABLE finance_logs ADD COLUMN IF NOT EXISTS incluir boolean NOT NULL DEFAULT true; */
+async function toggleFinanceInclude(id, incluir) {
+    const { error } = await _supabase.from('finance_logs').update({ incluir: !!incluir }).eq('id', id);
+    if (error) {
+        alert('No se pudo guardar el cambio: ' + error.message +
+            '\n\nAgrega la columna en Supabase:\nALTER TABLE finance_logs ADD COLUMN IF NOT EXISTS incluir boolean NOT NULL DEFAULT true;');
+    }
+    loadFinances();
+}
+
 async function addFinanceCategory() {
     const categoryName = prompt("Nombre de la nueva categoría (Ej: Transporte, Suscripciones):");
     if (!categoryName || categoryName.trim() === "") return;

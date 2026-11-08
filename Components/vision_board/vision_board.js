@@ -8,6 +8,7 @@
  * de imágenes estilo Pinterest.
  *
  *   · "+" en las pestañas: nueva regla/cosa
+ *   · Un clic / un toque en una imagen: la amplía (clic o Esc para cerrar)
  *   · Doble clic / doble toque en una imagen: suma +1 a "la viví"
  *   · Clic en la insignia de contador: corregir el número
  *   · Clic en el nombre bajo la imagen: ponerle o cambiarle el nombre
@@ -77,6 +78,8 @@
     const DOBLE_MS = 320;
     const LONG_MS = 650;
     let _last = { id: 0, t: 0, x: 0, y: 0 };
+    let _openTimer = null;
+    let _viewer = null;
 
     const HEART_SM = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21.2l7.8-7.7 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg>';
     const HEART_LG = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21.2l7.8-7.7 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg>';
@@ -166,7 +169,7 @@
             const n = countOf(im);
             const t = im[COLS.title] ? String(im[COLS.title]).trim() : '';
             return `
-            <div class="vision-feed-item" data-id="${im.id}" tabindex="0" title="Doble clic: la viví · Clic derecho o mantener: eliminar">
+            <div class="vision-feed-item" data-id="${im.id}" tabindex="0" title="Clic: ampliar · Doble clic: la viví · Clic derecho o mantener: eliminar">
                 <div class="vision-feed-media">
                     <img class="vision-feed-img" src="assets/images/${esc(im[COLS.image])}" alt="${esc(t)}" draggable="false" loading="lazy" decoding="async" onerror="handleImgFallback(this)">
                     ${n > 0 ? `<button type="button" class="vision-feed-count" data-act="fix-count" title="Veces vivida (toca para corregir)">${HEART_SM}<span>${n}</span></button>` : ''}
@@ -269,10 +272,15 @@
             const now = Date.now();
             const cerca = Math.hypot(e.clientX - _last.x, e.clientY - _last.y) < 40;
             if (_last.id === id && now - _last.t < DOBLE_MS && cerca) {
+                // Segundo toque: cancela la ampliación y suma +1
+                clearTimeout(_openTimer);
                 _last = { id: 0, t: 0, x: 0, y: 0 };
                 sumar(key, id, item, e);
             } else {
+                // Primer toque: si no llega un segundo, se amplía la imagen
+                clearTimeout(_openTimer);
                 _last = { id, t: now, x: e.clientX, y: e.clientY };
+                _openTimer = setTimeout(() => openViewer(key, id), DOBLE_MS);
             }
         });
 
@@ -311,6 +319,53 @@
                 case 'edit-title': return item && editTitle(key, Number(item.dataset.id));
             }
         });
+    }
+
+    /* ==========================================
+       VISOR: ampliar la imagen
+       ========================================== */
+    function closeViewer() {
+        if (!_viewer) return;
+        _viewer.remove();
+        _viewer = null;
+        document.removeEventListener('keydown', onViewerKey);
+    }
+
+    function onViewerKey(e) { if (e.key === 'Escape') closeViewer(); }
+
+    function openViewer(key, id) {
+        const im = state[key].images.find(x => x.id === id);
+        if (!im) return;
+        closeViewer();
+
+        const title = im[COLS.title] ? String(im[COLS.title]).trim() : '';
+        const n = countOf(im);
+
+        _viewer = document.createElement('div');
+        _viewer.className = 'img-viewer';
+        _viewer.setAttribute('role', 'dialog');
+        _viewer.setAttribute('aria-label', 'Imagen ampliada');
+
+        const big = document.createElement('img');
+        big.className = 'img-viewer-img';
+        big.src = 'assets/images/' + im[COLS.image];
+        big.alt = title;
+        big.draggable = false;
+        big.onerror = function () { handleImgFallback(big); };
+        _viewer.appendChild(big);
+
+        const caption = [title, n > 0 ? '♥ ' + n : ''].filter(Boolean).join('  ·  ');
+        if (caption) {
+            const cap = document.createElement('div');
+            cap.className = 'img-viewer-caption';
+            cap.textContent = caption;
+            _viewer.appendChild(cap);
+        }
+
+        _viewer.addEventListener('click', closeViewer);
+        _viewer.addEventListener('contextmenu', (e) => e.preventDefault());
+        document.addEventListener('keydown', onViewerKey);
+        document.body.appendChild(_viewer);
     }
 
     /* ==========================================
