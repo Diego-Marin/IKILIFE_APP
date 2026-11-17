@@ -116,73 +116,44 @@ function loadAgradecimientos() {
  */
 document.addEventListener('DOMContentLoaded', async () => {
 
-    // 1b. Aplica nombre/emoji personalizados guardados para las
-    // categorías fijas de Hábitos (ver editHabitCategory más abajo).
+    // Nombres/emojis personalizados y categorías fijas eliminadas.
     try {
         applyFixedHabitCategoryOverrides();
+        applyRemovedFixedHabitCategories();
+        document.querySelectorAll('#view-tracking .camino-tab-btn[data-subtab]')
+            .forEach(b => bindHabitTabDelete(b, b.dataset.subtab));
     } catch (error) {
-        console.error("Error aplicando nombres personalizados de categorías:", error);
+        console.error("Error aplicando categorías de hábitos:", error);
     }
 
-    // 2. Carga de datos y estado
-    // NOTA: se removió loadEscuelas() porque la tabla "escuelas_logs" ya
-    // no existe en Supabase y ese componente no tiene vista en el HTML
-    // actual (quedó como código muerto). También se removió la llamada a
-    // generateInsights(), una función que nunca llegó a definirse y que
-    // rompía la carga inicial con un ReferenceError en consola.
+    // Solo se carga lo que se ve en Inicio. El resto (ideas, odios, planes,
+    // compras, finanzas...) se carga al abrir su pestaña (ver bottom_nav.js).
     try {
-        updateWeeklyProgress();
         loadHomeUpcomingPlans();
-        loadIdeas();
-        showRandomIdea();
-        loadOdios();
-        loadPlanes();
-        loadCompras();
-        if (typeof renderYearWeeks === 'function') renderYearWeeks(); // Progreso del Año (Home)
-        loadFinances();
-        loadAgradecimientos();
-        // loadEnglish() ya no se llama aquí: apuntaba a #english-section, que
-        // no existía en ningún lado del HTML (código muerto). Ahora el
-        // componente vive como sub-tab "INGLÉS" dentro de Camino y se carga
-        // al visitarla (ver switchTrackingTab).
-
-        // FIX "CONTEO INCONSISTENTE DE HÁBITOS" (parte 2): antes
-        // loadCustomHabitCategories() se disparaba sin esperar su
-        // respuesta y loadEspejoDelAlma() corría de inmediato. Como
-        // esa función agrega las categorías personalizadas (ME,
-        // SALUD, WORK...) a HABIT_CATEGORIES de forma asíncrona, el
-        // conteo de "Hábitos de hoy" a veces se calculaba ANTES de
-        // que esas categorías existieran (y las ignoraba por
-        // completo) y a veces DESPUÉS (y sí las contaba) — una
-        // carrera que dependía de qué tan rápido respondiera
-        // Supabase. Ahora se espera explícitamente a que las
-        // categorías personalizadas terminen de cargar antes de
-        // calcular el Espejo del Alma por primera vez.
+        // Las categorías personalizadas deben estar listas antes del Espejo del Alma.
         await loadCustomHabitCategories();
         if (typeof loadEspejoDelAlma === 'function') loadEspejoDelAlma();
     } catch (error) {
         console.error("Error durante la carga de datos:", error);
     }
 
-    // 3. Suscripciones en tiempo real (Supabase)
+    // Suscripción en tiempo real (un solo listener para insert/update/delete)
     try {
         if (typeof _supabase !== 'undefined') {
             _supabase.channel('habit-changes')
-                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'habit_logs' }, () => refreshActiveHabitsList())
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'habit_logs' }, () => refreshActiveHabitsList())
-                .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'habit_logs' }, () => refreshActiveHabitsList())
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'habit_logs' }, () => refreshActiveHabitsList())
                 .subscribe();
         }
     } catch (error) {
         console.error("Error en la suscripción de Supabase:", error);
     }
 
-    // 4. Refresco periódico de Odios y Sentimientos, solo para mantener
-    // al día el contador "Disponible en Xh Ym" del bloqueo de 12 horas
-    // (no afecta el resto de la app).
+    // Mantiene al día el contador de bloqueo, solo si Sentimientos está abierto.
     setInterval(() => {
-        loadOdios();
-        loadSentimientos();
+        const v = document.getElementById('view-sentimientos');
+        if (document.hidden || !v || !v.classList.contains('active')) return;
+        if (typeof loadOdios === 'function') loadOdios();
+        if (typeof loadLoves === 'function') loadLoves();
     }, 60000);
 });
 
@@ -450,7 +421,7 @@ function formatDateLocal(date) {
  * completa, así cualquier cálculo derivado de ella siempre parte de
  * los mismos datos reales.
  */
-async function fetchAllRows(table, selectStr) {
+async function fetchAllRowsSequential(table, selectStr) {
     const PAGE_SIZE = 1000;
     let from = 0;
     let all = [];
@@ -465,6 +436,21 @@ async function fetchAllRows(table, selectStr) {
         from += PAGE_SIZE;
     }
     return { data: all, error: null };
+}
+
+/* Cuenta las filas y pide todas las páginas EN PARALELO (antes eran en cadena).
+   Si la tabla no tiene "id" o algo falla, cae al método secuencial. */
+async function fetchAllRows(table, selectStr) {
+    const PAGE_SIZE = 1000;
+    const { count, error: cErr } = await _supabase.from(table).select('*', { count: 'exact', head: true });
+    if (cErr || count == null) return fetchAllRowsSequential(table, selectStr);
+
+    const pages = Math.max(1, Math.ceil(count / PAGE_SIZE));
+    const results = await Promise.all(Array.from({ length: pages }, (_, i) =>
+        _supabase.from(table).select(selectStr).order('id', { ascending: true })
+            .range(i * PAGE_SIZE, (i + 1) * PAGE_SIZE - 1)));
+    if (results.some(r => r.error)) return fetchAllRowsSequential(table, selectStr);
+    return { data: results.flatMap(r => r.data || []), error: null };
 }
 
 /**
@@ -486,6 +472,85 @@ const HABIT_CATEGORIES = {
     dinero: { tag: 'DINERO', label: 'DINERO', icon: '💰' },
     saludemocional: { tag: 'BIENESTAR', label: 'SALUD EMOCIONAL', icon: '🕊️' },
 };
+
+/**
+ * ==========================================
+ * ELIMINAR PESTAÑAS DE HÁBITOS (fijas o personalizadas)
+ * ==========================================
+ * Clic derecho (PC) o mantener presionada la pestaña (móvil). Borra la
+ * categoría y sus hábitos. Las fijas se recuerdan como eliminadas en
+ * localStorage; si creas una lista con el mismo nombre, vuelve a existir.
+ */
+const REMOVED_FIXED_KEY = 'ikilife_removed_fixed_habit_categories';
+function getRemovedFixed() {
+    try { return JSON.parse(localStorage.getItem(REMOVED_FIXED_KEY) || '[]'); } catch (e) { return []; }
+}
+function setRemovedFixed(arr) {
+    localStorage.setItem(REMOVED_FIXED_KEY, JSON.stringify(arr));
+}
+
+function applyRemovedFixedHabitCategories() {
+    getRemovedFixed().forEach(id => {
+        delete HABIT_CATEGORIES[id];
+        document.querySelector(`.camino-tab-btn[data-subtab="${id}"]`)?.remove();
+        document.getElementById('tracking-' + id)?.remove();
+    });
+}
+
+async function deleteHabitCategory(subtabId) {
+    const cat = HABIT_CATEGORIES[subtabId];
+    if (!cat) return;
+    if (!confirm(`¿Eliminar la pestaña "${cat.label}" y todos sus hábitos? No se puede deshacer.`)) return;
+
+    if (FIXED_HABIT_CATEGORY_IDS.includes(subtabId)) {
+        setRemovedFixed([...new Set([...getRemovedFixed(), subtabId])]);
+    } else {
+        const { error } = await _supabase.from('habit_categories').delete().eq('tag', cat.tag);
+        if (error) { alert('Error al eliminar: ' + error.message); return; }
+    }
+
+    const { data: names } = await _supabase.from('habit_logs').select('habit_name').eq('project_tag', cat.tag);
+    const uniq = [...new Set((names || []).map(n => n.habit_name))];
+    await _supabase.from('habit_logs').delete().eq('project_tag', cat.tag);
+    if (uniq.length) await _supabase.from('habit_rule_images').delete().in('habit_name', uniq);
+    invalidateHabitsCache();
+
+    const btn = document.querySelector(`.camino-tab-btn[data-subtab="${subtabId}"]`);
+    const wasActive = btn ? btn.classList.contains('camino-tab-active') : false;
+    delete HABIT_CATEGORIES[subtabId];
+    btn?.remove();
+    document.getElementById('tracking-' + subtabId)?.remove();
+
+    if (wasActive) {
+        const first = document.querySelector('#view-tracking .camino-tab-btn[data-subtab]');
+        if (first) switchTrackingTab(first.dataset.subtab, first);
+    }
+    if (typeof loadEspejoDelAlma === 'function') loadEspejoDelAlma();
+}
+
+function bindHabitTabDelete(btn, subtabId) {
+    let timer = null;
+    let fired = false;
+    const cancel = () => { clearTimeout(timer); timer = null; };
+
+    btn.addEventListener('pointerdown', (e) => {
+        if (e.pointerType === 'mouse') return;
+        fired = false;
+        timer = setTimeout(() => {
+            if (!fired) { fired = true; deleteHabitCategory(subtabId); }
+        }, 700);
+    });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => btn.addEventListener(ev, cancel));
+    btn.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        cancel();
+        if (!fired) { fired = true; deleteHabitCategory(subtabId); }
+    });
+    // Tras una pulsación larga, el clic que sigue no debe cambiar de pestaña.
+    btn.addEventListener('click', (e) => {
+        if (fired) { e.stopImmediatePropagation(); e.preventDefault(); fired = false; }
+    }, true);
+}
 
 /**
  * ==========================================
@@ -2353,17 +2418,14 @@ function renderCustomHabitCategoryUI(subtabId, category) {
         btn.type = 'button';
         btn.className = 'camino-tab-btn';
         btn.dataset.subtab = subtabId;
-        btn.title = 'Doble clic: editar nombre/emoji · Clic derecho: eliminar esta lista';
+        btn.title = 'Doble clic: editar nombre/emoji · Clic derecho o mantener presionado: eliminar';
         btn.innerHTML = `<span class="camino-tab-icon">${category.icon}</span><span class="camino-tab-label">${category.label}</span>`;
         btn.addEventListener('click', () => switchTrackingTab(subtabId, btn));
         btn.addEventListener('dblclick', (e) => {
             e.preventDefault();
             editHabitCategory(subtabId);
         });
-        btn.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            deleteCustomHabitCategory(category.tag, subtabId);
-        });
+        bindHabitTabDelete(btn, subtabId);
         tabsBar.insertBefore(btn, addBtn || null);
     }
 
@@ -2415,6 +2477,7 @@ async function addCustomHabitCategory() {
     }
 
     const subtabId = tag.toLowerCase();
+    setRemovedFixed(getRemovedFixed().filter(x => x !== subtabId));
     const category = { tag, label, icon };
     HABIT_CATEGORIES[subtabId] = category;
     renderCustomHabitCategoryUI(subtabId, category);
@@ -2423,30 +2486,6 @@ async function addCustomHabitCategory() {
     switchTrackingTab(subtabId, btn);
 }
 
-async function deleteCustomHabitCategory(tag, subtabId) {
-    const category = HABIT_CATEGORIES[subtabId];
-    const ok = confirm(`¿Eliminar la lista "${category ? category.label : tag}" y todos sus hábitos? Esta acción no se puede deshacer.`);
-    if (!ok) return;
-
-    const { error: errCat } = await _supabase.from('habit_categories').delete().eq('tag', tag);
-    if (errCat) {
-        alert('Error al eliminar la lista: ' + errCat.message);
-        return;
-    }
-    await _supabase.from('habit_logs').delete().eq('project_tag', tag);
-    invalidateHabitsCache();
-
-    delete HABIT_CATEGORIES[subtabId];
-    const btnToRemove = document.querySelector(`.camino-tab-btn[data-subtab="${subtabId}"]`);
-    const wasActive = btnToRemove ? btnToRemove.classList.contains('camino-tab-active') : false;
-    btnToRemove?.remove();
-    document.getElementById('tracking-' + subtabId)?.remove();
-
-    if (wasActive) {
-        const firstBtn = document.querySelector('.camino-tabs .camino-tab-btn[data-subtab]');
-        if (firstBtn) switchTrackingTab(firstBtn.dataset.subtab, firstBtn);
-    }
-}
 
 /**
  * Brain Dump es una subvista propia (#view-ideas), igual que Metas y
@@ -2459,6 +2498,11 @@ async function deleteCustomHabitCategory(tag, subtabId) {
 let _ideasPreviousViewId = null;
 
 function openIdeasFromHeader() {
+    if (typeof window.requireAuth === 'function') window.requireAuth(_openIdeasView);
+    else _openIdeasView();
+}
+
+function _openIdeasView() {
     const view = document.getElementById('view-ideas');
     if (!view) return;
 

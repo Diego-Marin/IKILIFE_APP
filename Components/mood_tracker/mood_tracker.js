@@ -62,7 +62,8 @@ async function cargarUltimosRegistros(tableName, fkColumn) {
     const { data, error } = await _supabase
         .from(tableName)
         .select(`${fkColumn}, valor, fecha, created_at`)
-        .order('fecha', { ascending: false });
+        .order('fecha', { ascending: false })
+        .order('created_at', { ascending: false });
 
     if (error) {
         console.error(`Error cargando ${tableName}:`, error.message);
@@ -289,50 +290,18 @@ async function guardarRegistroSeccion(key) {
     const nowIso = new Date().toISOString();
     const fechaHoy = getFechaHoyISO();
 
-    // 1. Un solo SELECT: qué items ya tienen registro guardado hoy.
-    const { data: existentesHoy, error: errSelect } = await _supabase
-        .from(config.regTable)
-        .select(`id, ${config.fkColumn}`)
-        .eq('fecha', fechaHoy);
+    // Cada guardado inserta filas nuevas (sin UNIQUE por día): todos cuentan.
+    const filas = ids.map(id => ({
+        [config.fkColumn]: Number(id),
+        fecha: fechaHoy,
+        valor: seleccion[id],
+        created_at: nowIso,
+    }));
 
-    if (errSelect) {
-        console.error(`Error consultando ${config.regTable}:`, errSelect.message);
-        alert('Error al guardar el registro: ' + errSelect.message);
-        return;
-    }
-
-    const idExistentePorFk = {};
-    (existentesHoy || []).forEach(row => {
-        idExistentePorFk[row[config.fkColumn]] = row.id;
-    });
-
-    // 2. Todas las escrituras (update o insert) se lanzan a la vez.
-    const escrituras = ids.map(id => {
-        const fkValue = Number(id);
-        const valor = seleccion[id];
-        const idExistente = idExistentePorFk[fkValue];
-
-        if (idExistente) {
-            return _supabase
-                .from(config.regTable)
-                .update({ valor: valor, created_at: nowIso })
-                .eq('id', idExistente);
-        }
-        return _supabase
-            .from(config.regTable)
-            .insert([{
-                [config.fkColumn]: fkValue,
-                fecha: fechaHoy,
-                valor: valor,
-                created_at: nowIso,
-            }]);
-    });
-
-    const resultados = await Promise.all(escrituras);
-    const conError = resultados.find(r => r && r.error);
-    if (conError) {
-        console.error(`Error guardando en ${config.regTable}:`, conError.error.message);
-        alert('Error al guardar el registro: ' + conError.error.message);
+    const { error } = await _supabase.from(config.regTable).insert(filas);
+    if (error) {
+        console.error(`Error guardando en ${config.regTable}:`, error.message);
+        alert('Error al guardar el registro: ' + error.message);
         return;
     }
 

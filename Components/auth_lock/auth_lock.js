@@ -11,6 +11,8 @@
  *    mayor seguridad y persistencia. Si falla la conexion o la
  *    tabla no existe, hace fallback a localStorage.
  * 3. NUNCA EXPIRA: el hash se almacena de forma permanente.
+ * 4. requireAuth(callback): pide el codigo de nuevo antes de abrir
+ *    secciones protegidas (ej. Metas).
  *
  * TABLA REQUERIDA EN SUPABASE:
  *   CREATE TABLE app_auth (
@@ -109,19 +111,6 @@
         startInactivityTimer();
     }
 
-    async function clearAuthConfig() {
-        var client = getSupabaseClient();
-        if (client) {
-            try {
-                await client.from('app_auth').delete().eq('id', 1);
-            } catch (e) { /* ignore */ }
-        }
-        localStorage.removeItem(STORAGE_KEY);
-        localStorage.removeItem(UNLOCKED_KEY);
-        _configCache = null;
-        draftFirst = null;
-    }
-
     /* ---------- Estado de desbloqueo ---------- */
     function isUnlocked() {
         return localStorage.getItem(UNLOCKED_KEY) === '1';
@@ -216,12 +205,19 @@
         }
     };
 
+    /* Pide el codigo de nuevo antes de ejecutar una accion protegida
+       (ej. abrir Metas). "Cancelar" cierra el overlay sin ejecutar nada. */
+    window.requireAuth = async function(onSuccess) {
+        var config = await loadAuthConfig();
+        if (!config) { onSuccess(); return; }
+        renderReauthScreen(config, onSuccess);
+    };
+
     /* ---------- Pantallas ---------- */
     function renderSetupScreen(confirming, errorMsg) {
         showOverlay(
             '<div class="auth-lock-box">' +
                 '<div class="auth-lock-title">IKILIFE</div>' +
-                '<div class="auth-lock-subtitle">' + (confirming ? 'Confirma tu código' : 'Crea un código de 4 dígitos') + '</div>' +
                 '<div id="auth-lock-input-area"></div>' +
                 '<div class="auth-lock-error" id="auth-lock-error"></div>' +
             '</div>'
@@ -246,21 +242,11 @@
         showOverlay(
             '<div class="auth-lock-box">' +
                 '<div class="auth-lock-title">IKILIFE</div>' +
-                '<div class="auth-lock-subtitle">Ingresa tu código</div>' +
                 '<div id="auth-lock-input-area"></div>' +
                 '<div class="auth-lock-error" id="auth-lock-error"></div>' +
-                '<button type="button" class="auth-lock-forgot" id="auth-lock-forgot">¿Olvidaste tu código?</button>' +
             '</div>'
         );
         if (errorMsg) showError(errorMsg);
-
-        document.getElementById('auth-lock-forgot').addEventListener('click', async function() {
-            var ok = confirm('Esto borrará tu código actual y tendrás que crear uno nuevo. ¿Continuar?');
-            if (ok) {
-                await clearAuthConfig();
-                renderSetupScreen(false);
-            }
-        });
 
         var now = Date.now();
         if (lockedUntil > now) {
@@ -284,6 +270,42 @@
                     disableInputTemporarily(config);
                 } else {
                     renderUnlockScreen(config, 'Código incorrecto. Intenta de nuevo.');
+                }
+            }
+        });
+    }
+
+    function renderReauthScreen(config, onSuccess, errorMsg) {
+        showOverlay(
+            '<div class="auth-lock-box">' +
+                '<div class="auth-lock-title">IKILIFE</div>' +
+                '<div id="auth-lock-input-area"></div>' +
+                '<div class="auth-lock-error" id="auth-lock-error"></div>' +
+            '</div>'
+        );
+        if (errorMsg) showError(errorMsg);
+
+        if (lockedUntil > Date.now()) {
+            var area = document.getElementById('auth-lock-input-area');
+            if (area) area.innerHTML = '<div class="auth-lock-cooldown">Vuelve a intentar en unos segundos...</div>';
+            setTimeout(function() { renderReauthScreen(config, onSuccess); }, Math.max(1000, lockedUntil - Date.now()));
+            return;
+        }
+
+        renderCodeInput(async function(rawValue) {
+            var hash = await sha256Hex(rawValue);
+            if (hash === config.hash) {
+                attempts = 0;
+                hideOverlay();
+                onSuccess();
+            } else {
+                attempts += 1;
+                if (attempts >= 5) {
+                    lockedUntil = Date.now() + 30000;
+                    attempts = 0;
+                    renderReauthScreen(config, onSuccess, 'Demasiados intentos. Espera 30 segundos.');
+                } else {
+                    renderReauthScreen(config, onSuccess, 'Código incorrecto. Intenta de nuevo.');
                 }
             }
         });

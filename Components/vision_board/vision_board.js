@@ -2,51 +2,52 @@
  * ==========================================
  * COMPONENTE: VISION BOARD (Metas) — LÓGICA
  * ==========================================
- * Un solo botón del header (#metas-header-btn) abre #view-vision-board,
- * que tiene dos etiquetas: "Reglas de vida" y "Cosas a eliminar".
- * Cada tablero tiene pestañas (una por regla/cosa) y debajo un feed
- * de imágenes estilo Pinterest.
+ * #metas-header-btn abre #view-vision-board (pide el código de acceso).
+ * Arriba hay pestañas (.metas-hub-tabs): "Reglas de vida", "Cosas a
+ * eliminar" y las que tú crees con el botón "+". Cada pestaña es UN solo
+ * feed de imágenes estilo Pinterest (ya no hay sub-pestañas por regla).
  *
- *   · "+" en las pestañas: nueva regla/cosa
+ *   · "+" en las pestañas: nueva pestaña
+ *   · Pestañas propias: botones Renombrar / Eliminar bajo las pestañas
  *   · Un clic / un toque en una imagen: la amplía (clic o Esc para cerrar)
  *   · Doble clic / doble toque en una imagen: suma +1 a "la viví"
  *   · Clic en la insignia de contador: corregir el número
  *   · Clic en el nombre bajo la imagen: ponerle o cambiarle el nombre
  *   · Clic derecho o mantener presionada una imagen: eliminarla
- *   · Pestaña activa: botones Renombrar / Eliminar debajo de las pestañas
  *
- * TABLAS ESPERADAS EN SUPABASE (ajusta COLS / fk abajo si las tuyas
- * tienen otros nombres de columna):
+ * "Reglas de vida" y "Cosas a eliminar" siguen usando sus tablas actuales
+ * (vision_metas/vision_meta_images y odio_metas/odio_meta_images): se
+ * muestran TODAS las imágenes que ya tenías juntas en un solo feed, y las
+ * nuevas se guardan en la primera "meta" (si no existe, se crea "General").
  *
- *   CREATE TABLE IF NOT EXISTS vision_metas (
+ * TABLAS NUEVAS (solo para las pestañas propias):
+ *   CREATE TABLE IF NOT EXISTS metas_tabs (
  *     id bigint generated always as identity PRIMARY KEY,
  *     name text NOT NULL,
  *     created_at timestamptz DEFAULT now()
  *   );
- *   CREATE TABLE IF NOT EXISTS vision_meta_images (
+ *   CREATE TABLE IF NOT EXISTS metas_tab_images (
  *     id bigint generated always as identity PRIMARY KEY,
- *     meta_id bigint REFERENCES vision_metas(id) ON DELETE CASCADE,
+ *     tab_id bigint REFERENCES metas_tabs(id) ON DELETE CASCADE,
  *     image_filename text NOT NULL,
  *     count integer NOT NULL DEFAULT 0,
+ *     title text,
  *     created_at timestamptz DEFAULT now()
  *   );
- *   -- y lo mismo para odio_metas / odio_meta_images
+ *   (Si usas RLS en tus otras tablas, agrega la misma política aquí.)
  *
- * Si las tablas ya existían sin la columna del contador:
+ * Si las tablas de imágenes antiguas no tienen estas columnas:
  *   ALTER TABLE vision_meta_images ADD COLUMN IF NOT EXISTS count integer NOT NULL DEFAULT 0;
  *   ALTER TABLE odio_meta_images   ADD COLUMN IF NOT EXISTS count integer NOT NULL DEFAULT 0;
- *
- * Nombre de cada imagen (columna nueva, opcional hasta que le pongas nombre):
  *   ALTER TABLE vision_meta_images ADD COLUMN IF NOT EXISTS title text;
  *   ALTER TABLE odio_meta_images   ADD COLUMN IF NOT EXISTS title text;
  *
- * Usa _supabase, handleImgFallback, openHeaderView y closeHeaderView
- * (main.js): cargar este archivo después de main.js.
+ * Usa _supabase, handleImgFallback, openHeaderView (main.js) y
+ * requireAuth (auth_lock.js): cargar después de ellos.
  */
 (function () {
     'use strict';
 
-    /* ---------- Configuración (si tus columnas se llaman distinto, cámbialas aquí) ---------- */
     const COLS = { name: 'name', image: 'image_filename', count: 'count', title: 'title' };
 
     const BOARDS = {
@@ -55,25 +56,29 @@
             metasTable: 'vision_metas',
             imagesTable: 'vision_meta_images',
             fk: 'meta_id',
-            promptMeta: 'Nombre de la nueva regla de vida:',
-            emptyText: 'Aún no tienes reglas de vida. Toca “+” para crear la primera.',
         },
         odios: {
             rootId: 'odios-board-root',
             metasTable: 'odio_metas',
             imagesTable: 'odio_meta_images',
             fk: 'meta_id',
-            promptMeta: 'Nombre de la cosa que quieres eliminar:',
-            emptyText: 'Aún no tienes cosas a eliminar. Toca “+” para agregar la primera.',
+        },
+        custom: {
+            rootId: 'custom-board-root',
+            metasTable: 'metas_tabs',
+            imagesTable: 'metas_tab_images',
+            fk: 'tab_id',
+            custom: true,
         },
     };
 
     const state = {
         vision: { metas: [], images: [], active: null },
         odios: { metas: [], images: [], active: null },
+        custom: { metas: [], images: [], active: null },   // metas = pestañas propias
     };
 
-    let _hub = 'vision';
+    let _hub = 'vision';            // 'vision' | 'odios' | 'c<id>'
     const _pendingSaves = {};
     const DOBLE_MS = 320;
     const LONG_MS = 650;
@@ -85,6 +90,10 @@
     const HEART_LG = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21.2l7.8-7.7 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg>';
     const PLUS = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
 
+    const SQL_CUSTOM =
+        'CREATE TABLE IF NOT EXISTS metas_tabs (id bigint generated always as identity PRIMARY KEY, name text NOT NULL, created_at timestamptz DEFAULT now());\n' +
+        'CREATE TABLE IF NOT EXISTS metas_tab_images (id bigint generated always as identity PRIMARY KEY, tab_id bigint REFERENCES metas_tabs(id) ON DELETE CASCADE, image_filename text NOT NULL, count integer NOT NULL DEFAULT 0, title text, created_at timestamptz DEFAULT now());';
+
     function esc(t) {
         return String(t == null ? '' : t)
             .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -92,18 +101,76 @@
     }
     const rootOf = key => document.getElementById(BOARDS[key].rootId);
     const countOf = img => Number(img[COLS.count]) || 0;
-    const activeKey = key => 'ikilife_metas_active_' + key;
+    const ACTIVE_KEY = 'ikilife_metas_active_custom';
+    const isCustomHub = h => /^c\d+$/.test(h);
 
-    function saveActive(key) {
+    function saveActive() {
         try {
-            const id = state[key].active;
-            if (id == null) localStorage.removeItem(activeKey(key));
-            else localStorage.setItem(activeKey(key), String(id));
+            const id = state.custom.active;
+            if (id == null) localStorage.removeItem(ACTIVE_KEY);
+            else localStorage.setItem(ACTIVE_KEY, String(id));
         } catch (e) { /* sin almacenamiento: se ignora */ }
     }
+    function savedActive() {
+        try { return Number(localStorage.getItem(ACTIVE_KEY)) || null; } catch (e) { return null; }
+    }
 
-    function savedActive(key) {
-        try { return Number(localStorage.getItem(activeKey(key))) || null; } catch (e) { return null; }
+    /* ==========================================
+       HUB DE PESTAÑAS (arriba)
+       ========================================== */
+    const hubEl = () => document.querySelector('#view-vision-board .metas-hub-tabs');
+
+    // Crea el panel de pestañas propias y engancha los clics del hub (una sola vez).
+    function ensureHub() {
+        const view = document.getElementById('view-vision-board');
+        if (!view) return;
+
+        if (!document.getElementById('custom-board-root')) {
+            const pane = document.createElement('div');
+            pane.className = 'metas-pane hidden';
+            pane.dataset.pane = 'custom';
+            pane.innerHTML = '<div id="custom-board-root"></div>';
+            view.appendChild(pane);
+        }
+
+        const hub = hubEl();
+        if (hub && !hub.dataset.vbBound) {
+            hub.dataset.vbBound = '1';
+            hub.addEventListener('click', (e) => {
+                if (e.target.closest('[data-act="add-tab"]')) return addTab();
+                const t = e.target.closest('[data-custom-tab]');
+                if (t) window.switchMetasTab(t.dataset.metasTab);
+            });
+        }
+    }
+
+    function renderHubTabs() {
+        const hub = hubEl();
+        if (!hub) return;
+        hub.querySelectorAll('[data-custom-tab], [data-act="add-tab"]').forEach(n => n.remove());
+
+        state.custom.metas.forEach(t => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'camino-tab-btn' + (_hub === 'c' + t.id ? ' camino-tab-active' : '');
+            btn.dataset.metasTab = 'c' + t.id;
+            btn.dataset.customTab = '1';
+            btn.title = t[COLS.name];
+            const label = document.createElement('span');
+            label.className = 'camino-tab-label';
+            label.textContent = t[COLS.name];
+            btn.appendChild(label);
+            hub.appendChild(btn);
+        });
+
+        const add = document.createElement('button');
+        add.type = 'button';
+        add.className = 'camino-tab-btn camino-tab-btn--add';
+        add.dataset.act = 'add-tab';
+        add.title = 'Nueva pestaña';
+        add.setAttribute('aria-label', 'Nueva pestaña');
+        add.innerHTML = '<span class="camino-tab-label">Nueva</span>';
+        hub.appendChild(add);
     }
 
     /* ==========================================
@@ -124,6 +191,9 @@
         const err = m.error || i.error;
         if (err) {
             console.error('Error cargando ' + key + ':', err.message);
+            s.metas = [];
+            s.images = [];
+            if (b.custom) renderHubTabs();
             root.innerHTML = `<div class="vision-feed-empty">No se pudo cargar (${esc(err.message)}).<br>Revisa que existan las tablas <strong>${b.metasTable}</strong> y <strong>${b.imagesTable}</strong> (el SQL está al inicio de vision_board.js).</div>`;
             return;
         }
@@ -131,16 +201,19 @@
         s.metas = m.data || [];
         s.images = i.data || [];
 
-        const ids = s.metas.map(x => x.id);
-        if (!ids.includes(s.active)) {
-            const saved = savedActive(key);
-            s.active = ids.includes(saved) ? saved : (ids[0] != null ? ids[0] : null);
+        if (b.custom) {
+            const ids = s.metas.map(x => x.id);
+            if (!ids.includes(s.active)) {
+                const saved = savedActive();
+                s.active = ids.includes(saved) ? saved : (ids[0] != null ? ids[0] : null);
+            }
+            renderHubTabs();
         }
         render(key);
     }
 
     /* ==========================================
-       RENDER
+       RENDER (un solo feed por pestaña)
        ========================================== */
     function render(key) {
         const b = BOARDS[key];
@@ -148,23 +221,12 @@
         const root = rootOf(key);
         if (!root) return;
 
-        const tabs = s.metas.map(m => `
-            <button type="button" class="vision-tab-btn${m.id === s.active ? ' vision-tab-active' : ''}" data-act="tab" data-id="${m.id}" title="${esc(m[COLS.name])}">${esc(m[COLS.name])}</button>`).join('');
-
-        const bar = `
-            <div class="vision-tabs-bar">
-                <div class="vision-tabs">
-                    ${tabs}
-                    <button type="button" class="vision-tab-add" data-act="add-meta" aria-label="Agregar" title="Agregar">${PLUS}</button>
-                </div>
-            </div>`;
-
-        if (s.metas.length === 0) {
-            root.innerHTML = bar + `<div class="vision-feed-empty">${esc(b.emptyText)}</div>`;
+        if (b.custom && s.active == null) {
+            root.innerHTML = '<div class="vision-feed-empty">Toca “+” arriba para crear una pestaña nueva.</div>';
             return;
         }
 
-        const imgs = s.images.filter(im => im[b.fk] === s.active);
+        const imgs = b.custom ? s.images.filter(im => im[b.fk] === s.active) : s.images;
         const items = imgs.map(im => {
             const n = countOf(im);
             const t = im[COLS.title] ? String(im[COLS.title]).trim() : '';
@@ -178,11 +240,13 @@
             </div>`;
         }).join('');
 
-        root.innerHTML = bar + `
+        const actions = b.custom ? `
             <div class="metas-actions" style="display:flex; gap:8px; padding:4px 0 0;">
                 <button type="button" class="wt-btn" data-act="rename-meta">Renombrar</button>
-                <button type="button" class="wt-btn wt-btn--danger" data-act="delete-meta" style="padding-left:14px;">Eliminar</button>
-            </div>
+                <button type="button" class="wt-btn wt-btn--danger" data-act="delete-meta" style="padding-left:14px;">Eliminar pestaña</button>
+            </div>` : '';
+
+        root.innerHTML = actions + `
             <div class="vision-feed">
                 ${items}
                 <button type="button" class="vision-feed-add" data-act="add-image">${PLUS}<span>Agregar imagen</span></button>
@@ -272,12 +336,10 @@
             const now = Date.now();
             const cerca = Math.hypot(e.clientX - _last.x, e.clientY - _last.y) < 40;
             if (_last.id === id && now - _last.t < DOBLE_MS && cerca) {
-                // Segundo toque: cancela la ampliación y suma +1
                 clearTimeout(_openTimer);
                 _last = { id: 0, t: 0, x: 0, y: 0 };
                 sumar(key, id, item, e);
             } else {
-                // Primer toque: si no llega un segundo, se amplía la imagen
                 clearTimeout(_openTimer);
                 _last = { id, t: now, x: e.clientX, y: e.clientY };
                 _openTimer = setTimeout(() => openViewer(key, id), DOBLE_MS);
@@ -293,7 +355,6 @@
             }
         });
 
-        // Clic derecho sobre una imagen = eliminar (y se evita el menú del navegador)
         root.addEventListener('contextmenu', (e) => {
             const item = e.target.closest('.vision-feed-item');
             if (!item) return;
@@ -307,13 +368,8 @@
             if (!btn) return;
             const item = btn.closest('.vision-feed-item');
             switch (btn.dataset.act) {
-                case 'tab':
-                    state[key].active = Number(btn.dataset.id);
-                    saveActive(key);
-                    return render(key);
-                case 'add-meta': return addMeta(key);
-                case 'rename-meta': return renameMeta(key);
-                case 'delete-meta': return deleteMeta(key);
+                case 'rename-meta': return renameTab();
+                case 'delete-meta': return deleteTab();
                 case 'add-image': return addImage(key);
                 case 'fix-count': return item && fixCount(key, Number(item.dataset.id));
                 case 'edit-title': return item && editTitle(key, Number(item.dataset.id));
@@ -410,65 +466,88 @@
     }
 
     /* ==========================================
-       CRUD
+       PESTAÑAS PROPIAS (crear / renombrar / eliminar)
        ========================================== */
-    async function addMeta(key) {
-        const b = BOARDS[key];
-        const name = prompt(b.promptMeta);
+    async function addTab() {
+        const name = prompt('Nombre de la nueva pestaña:');
         if (!name || name.trim() === '') return;
-        const { data, error } = await _supabase.from(b.metasTable)
+        const { data, error } = await _supabase.from(BOARDS.custom.metasTable)
             .insert([{ [COLS.name]: name.trim() }]).select();
-        if (error) { alert('Error al guardar: ' + error.message); return; }
-        if (data && data[0]) {
-            state[key].metas.push(data[0]);
-            state[key].active = data[0].id;
-            saveActive(key);
+        if (error) {
+            alert('Error al crear la pestaña: ' + error.message +
+                '\n\nCrea las tablas en Supabase:\n' + SQL_CUSTOM);
+            return;
         }
-        render(key);
+        if (data && data[0]) {
+            state.custom.metas.push(data[0]);
+            window.switchMetasTab('c' + data[0].id);
+        }
     }
 
-    async function renameMeta(key) {
-        const b = BOARDS[key];
-        const s = state[key];
-        const meta = s.metas.find(m => m.id === s.active);
-        if (!meta) return;
-        const name = prompt('Editar nombre:', meta[COLS.name]);
-        if (!name || name.trim() === '' || name.trim() === meta[COLS.name]) return;
-        const { error } = await _supabase.from(b.metasTable)
-            .update({ [COLS.name]: name.trim() }).eq('id', meta.id);
+    async function renameTab() {
+        const s = state.custom;
+        const tab = s.metas.find(m => m.id === s.active);
+        if (!tab) return;
+        const name = prompt('Editar nombre:', tab[COLS.name]);
+        if (!name || name.trim() === '' || name.trim() === tab[COLS.name]) return;
+        const { error } = await _supabase.from(BOARDS.custom.metasTable)
+            .update({ [COLS.name]: name.trim() }).eq('id', tab.id);
         if (error) { alert('Error al editar: ' + error.message); return; }
-        meta[COLS.name] = name.trim();
-        render(key);
+        tab[COLS.name] = name.trim();
+        renderHubTabs();
     }
 
-    async function deleteMeta(key) {
-        const b = BOARDS[key];
-        const s = state[key];
-        const meta = s.metas.find(m => m.id === s.active);
-        if (!meta) return;
-        if (!confirm(`¿Eliminar "${meta[COLS.name]}" y todas sus imágenes?`)) return;
+    async function deleteTab() {
+        const b = BOARDS.custom;
+        const s = state.custom;
+        const tab = s.metas.find(m => m.id === s.active);
+        if (!tab) return;
+        if (!confirm(`¿Eliminar la pestaña "${tab[COLS.name]}" y todas sus imágenes?`)) return;
 
         // Por si la clave foránea no tiene ON DELETE CASCADE.
-        await _supabase.from(b.imagesTable).delete().eq(b.fk, meta.id);
-        const { error } = await _supabase.from(b.metasTable).delete().eq('id', meta.id);
+        await _supabase.from(b.imagesTable).delete().eq(b.fk, tab.id);
+        const { error } = await _supabase.from(b.metasTable).delete().eq('id', tab.id);
         if (error) { alert('Error al eliminar: ' + error.message); return; }
 
-        s.images = s.images.filter(im => im[b.fk] !== meta.id);
-        s.metas = s.metas.filter(m => m.id !== meta.id);
-        s.active = s.metas.length ? s.metas[0].id : null;
-        saveActive(key);
-        render(key);
+        s.images = s.images.filter(im => im[b.fk] !== tab.id);
+        s.metas = s.metas.filter(m => m.id !== tab.id);
+        s.active = null;
+        saveActive();
+        window.switchMetasTab('vision');
+    }
+
+    /* ==========================================
+       IMÁGENES
+       ========================================== */
+    // En "Reglas de vida" / "Cosas a eliminar" las imágenes nuevas se guardan en
+    // la primera meta existente (o en una llamada "General" que se crea sola).
+    async function ownerFor(key) {
+        const b = BOARDS[key];
+        const s = state[key];
+        if (b.custom) return s.active;
+        if (s.metas.length) return s.metas[0].id;
+        const { data, error } = await _supabase.from(b.metasTable)
+            .insert([{ [COLS.name]: 'General' }]).select();
+        if (error || !data || !data[0]) {
+            alert('Error al preparar el tablero: ' + (error ? error.message : 'sin datos'));
+            return null;
+        }
+        s.metas.push(data[0]);
+        return data[0].id;
     }
 
     async function addImage(key) {
         const b = BOARDS[key];
         const s = state[key];
-        if (s.active == null) return;
         const file = prompt('Nombre del archivo de imagen (debe estar en assets/images/):');
         if (!file || file.trim() === '') return;
         const title = prompt('Nombre de la imagen (opcional):', '');
         if (title === null) return;
-        const row = { [b.fk]: s.active, [COLS.image]: file.trim() };
+
+        const owner = await ownerFor(key);
+        if (owner == null) return;
+
+        const row = { [b.fk]: owner, [COLS.image]: file.trim() };
         if (title.trim() !== '') row[COLS.title] = title.trim();
         const { data, error } = await _supabase.from(b.imagesTable).insert([row]).select();
         if (error) { alert('Error al guardar la imagen: ' + error.message); return; }
@@ -513,22 +592,39 @@
     }
 
     /* ==========================================
-       HUB: Reglas de vida | Cosas a eliminar
+       HUB: cambiar de pestaña / abrir Metas
        ========================================== */
     window.switchMetasTab = function (which) {
-        if (!BOARDS[which]) which = 'vision';
+        ensureHub();
+        const custom = isCustomHub(which);
+        if (!custom && !BOARDS[which]) which = 'vision';
+        if (custom) {
+            state.custom.active = Number(which.slice(1));
+            saveActive();
+        }
         _hub = which;
+        const paneKey = custom ? 'custom' : which;
 
-        document.querySelectorAll('#view-vision-board .metas-hub-tabs .camino-tab-btn').forEach(b => {
+        document.querySelectorAll('#view-vision-board .metas-hub-tabs .camino-tab-btn[data-metas-tab]').forEach(b => {
             b.classList.toggle('camino-tab-active', b.dataset.metasTab === which);
         });
         document.querySelectorAll('#view-vision-board .metas-pane').forEach(p => {
-            p.classList.toggle('hidden', p.dataset.pane !== which);
+            p.classList.toggle('hidden', p.dataset.pane !== paneKey);
         });
-        load(which);
+        load(paneKey);
     };
 
+    // Abrir Metas pide el código de acceso cada vez (requireAuth, auth_lock.js).
     window.openMetasBoard = function () {
-        openHeaderView('view-vision-board', () => window.switchMetasTab(_hub));
+        const open = () => {
+            ensureHub();
+            openHeaderView('view-vision-board', async () => {
+                await load('custom');   // trae las pestañas propias y las dibuja
+                if (isCustomHub(_hub) && !state.custom.metas.some(t => 'c' + t.id === _hub)) _hub = 'vision';
+                window.switchMetasTab(_hub);
+            });
+        };
+        if (typeof window.requireAuth === 'function') window.requireAuth(open);
+        else open();
     };
 })();
